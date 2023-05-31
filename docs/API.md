@@ -5,7 +5,7 @@
 This page keeps the current api guidance concise after earlier rough notes.
 
 ## Usage
-- Rewrote the typescript explanation around the maintained behavior.
+- Merged scattered server guidance into the docs.
 
 - Earlier scratch notes were compressed into the current guidance.
 
