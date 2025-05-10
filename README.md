@@ -3,13 +3,15 @@
 A working tree for resonance with an evolving implementation history.
 
 ## Overview
-resonance documents maintained build commands, known limits, and remaining work.
+resonance records the stable project shape and the work still worth checking.
 
 ## Status
-Lifecycle stage: expansion. The useful early notes have been carried forward.
+Lifecycle stage: publication. Earlier setup detail now lives in maintained guidance.
 
 ## Development
-- Reduced surprise in the docker release checks.
+- Aligned local and CI checks for dev.
+
+- The older setup fragments have been reduced to the useful parts.
 
 ## Usage
 - Merged scattered dev guidance into the docs.
