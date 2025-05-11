@@ -3,10 +3,10 @@
 A working tree for resonance with an evolving implementation history.
 
 ## Overview
-resonance records the stable project shape and the work still worth checking.
+resonance keeps setup, verification, and known limitations in one place.
 
 ## Status
-Lifecycle stage: publication. Earlier setup detail now lives in maintained guidance.
+Lifecycle stage: publication. Maintenance guidance now reflects the stable shape.
 
 ## Development
 - Aligned local and CI checks for dev.
@@ -14,9 +14,9 @@ Lifecycle stage: publication. Earlier setup detail now lives in maintained guida
 - The older setup fragments have been reduced to the useful parts.
 
 ## Usage
-- Merged scattered dev guidance into the docs.
+- Made the build assumptions easier to check later.
 
-- The older setup fragments have been reduced to the useful parts.
+- The document now favors checked behavior over exploratory notes.
 
 ## Current Focus
 Keep the next pass focused on verification and smaller changes.
