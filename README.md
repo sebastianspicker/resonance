@@ -3,10 +3,10 @@
 A working tree for resonance with an evolving implementation history.
 
 ## Overview
-resonance documents maintained build commands, known limits, and remaining work.
+resonance records the stable project shape and the work still worth checking.
 
 ## Status
-Lifecycle stage: publication. Maintenance guidance now reflects the stable shape.
+Lifecycle stage: publication. Earlier setup detail now lives in maintained guidance.
 
 ## Development
 - Reduced surprise in the echo release checks.
@@ -14,7 +14,7 @@ Lifecycle stage: publication. Maintenance guidance now reflects the stable shape
 - The document now favors checked behavior over exploratory notes.
 
 ## Usage
-- Merged scattered echo guidance into the docs.
+- Made the bash assumptions easier to check later.
 
 - The document now favors checked behavior over exploratory notes.
 
