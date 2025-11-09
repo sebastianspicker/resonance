@@ -5,3 +5,4 @@ github-actions: core-build-out
 dev: publication
 echo: publication
 # forced-dev-6:publication
+npm: publication
