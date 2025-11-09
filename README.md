@@ -14,9 +14,9 @@ Lifecycle stage: publication. The useful early notes have been carried forward.
 - The document now favors checked behavior over exploratory notes.
 
 ## Usage
-- Made the name assumptions easier to check later.
+- Rewrote the npm explanation around the maintained behavior.
 
-- The document now favors checked behavior over exploratory notes.
+- Earlier scratch detail is now represented in maintained sections.
 
 ## Current Focus
 Keep the next pass focused on verification and smaller changes.
