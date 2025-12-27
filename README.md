@@ -3,10 +3,10 @@
 A working tree for resonance with an evolving implementation history.
 
 ## Overview
-resonance documents maintained build commands, known limits, and remaining work.
+resonance keeps setup, verification, and known limitations in one place.
 
 ## Status
-Lifecycle stage: publication. The useful early notes have been carried forward.
+Lifecycle stage: publication. Maintenance guidance now reflects the stable shape.
 
 ## Development
 - Reduced surprise in the echo release checks.
@@ -14,9 +14,9 @@ Lifecycle stage: publication. The useful early notes have been carried forward.
 - The document now favors checked behavior over exploratory notes.
 
 ## Usage
-- Rewrote the npm explanation around the maintained behavior.
+- Merged scattered dir guidance into the docs.
 
-- Earlier scratch detail is now represented in maintained sections.
+- The document now favors checked behavior over exploratory notes.
 
 ## Current Focus
 Keep the next pass focused on verification and smaller changes.
