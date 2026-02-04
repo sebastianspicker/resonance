@@ -1,0 +1,73 @@
+name: CI
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  server:
+    name: Server Tests
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: resonance
+          POSTGRES_PASSWORD: resonance
+          POSTGRES_DB: resonance
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U resonance"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+
+    env:
+      DATABASE_URL: postgresql://resonance:resonance@localhost:5432/resonance
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: server/package-lock.json
+
+      - name: Install dependencies
+        working-directory: server
+        run: npm ci
+
+      - name: Lint
+        working-directory: server
+        run: npm run lint
+
+      - name: Secret scan
+        run: ./scripts/secret-scan.sh
+
+      - name: Dependency audit (high+ only)
+        working-directory: server
+        run: npm audit --audit-level=high
+
+      - name: Generate Prisma client
+        working-directory: server
+        run: npm run prisma:generate
+
+      - name: Run migrations
+        working-directory: server
+        run: npm run prisma:migrate
+
+      - name: Build (typecheck)
+        working-directory: server
+        run: npm run build
+
+      - name: Test
+        working-directory: server
+        run: npm test

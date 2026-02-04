@@ -1,0 +1,138 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum GlobalRole {
+  student
+  teacher
+}
+
+enum CourseRole {
+  student
+  teacher
+}
+
+enum EntryStatus {
+  draft
+  submitted
+}
+
+enum ArtifactType {
+  audio
+  video
+}
+
+enum UploadState {
+  pending
+  uploading
+  uploaded
+  failed
+}
+
+enum FeedbackStatus {
+  ok
+  needs_revision
+  next_goal
+}
+
+enum FeedbackTargetType {
+  entry
+  artifact
+}
+
+model User {
+  id          String        @id
+  displayName String
+  globalRole  GlobalRole
+  memberships Membership[]
+  entries     PracticeEntry[] @relation("StudentEntries")
+  feedback    Feedback[]
+  refreshTokens RefreshToken[]
+}
+
+model Course {
+  id          String        @id
+  title       String
+  memberships Membership[]
+  entries     PracticeEntry[]
+}
+
+model Membership {
+  userId   String
+  courseId String
+  roleInCourse CourseRole
+  user     User   @relation(fields: [userId], references: [id])
+  course   Course @relation(fields: [courseId], references: [id])
+
+  @@id([userId, courseId])
+}
+
+model PracticeEntry {
+  id              String      @id
+  courseId        String
+  studentId       String
+  createdAt       DateTime    @default(now())
+  practiceDate    DateTime
+  goalText        String
+  durationSeconds Int?
+  tags            String[]
+  notes           String?
+  status          EntryStatus @default(draft)
+  updatedAt       DateTime    @updatedAt
+  deletedAt       DateTime?
+
+  course  Course @relation(fields: [courseId], references: [id])
+  student User   @relation("StudentEntries", fields: [studentId], references: [id])
+  artifacts Artifact[]
+}
+
+model Artifact {
+  id              String      @id
+  entryId         String
+  type            ArtifactType
+  durationSeconds Int
+  createdAt       DateTime    @default(now())
+  uploadState     UploadState @default(pending)
+  storageKey      String?
+  remoteUrl       String?
+
+  entry PracticeEntry @relation(fields: [entryId], references: [id])
+}
+
+model Feedback {
+  id          String      @id
+  targetType  FeedbackTargetType
+  targetId    String
+  teacherId   String
+  createdAt   DateTime    @default(now())
+  status      FeedbackStatus
+  commentsText String
+
+  teacher User @relation(fields: [teacherId], references: [id])
+  markers Marker[]
+}
+
+model Marker {
+  id          String   @id
+  feedbackId  String
+  timeSeconds Int
+  text        String
+
+  feedback Feedback @relation(fields: [feedbackId], references: [id])
+}
+
+model RefreshToken {
+  id         String   @id
+  userId     String
+  tokenHash  String
+  expiresAt  DateTime
+  revokedAt  DateTime?
+  createdAt  DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+}
