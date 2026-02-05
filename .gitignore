@@ -29,6 +29,12 @@ pnpm-debug.log*
 .idea/
 *.swp
 
+# Local docs (findings/logs/decisions)
+DECISIONS.md
+FINDINGS.md
+LOG.md
+REFACTOR_PLAN.md
+
 # Xcode
 DerivedData/
 *.xcworkspace
