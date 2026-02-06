@@ -15,10 +15,17 @@ patterns=(
 )
 
 found=0
+exclude_paths=(
+  "scripts/secret-scan.sh"
+)
+exclude_args=()
+for path in "${exclude_paths[@]}"; do
+  exclude_args+=(":!${path}")
+done
 for pattern in "${patterns[@]}"; do
-  if git grep -nE -e "$pattern" -- . >/dev/null; then
+  if git grep -nE -e "$pattern" -- . "${exclude_args[@]}" >/dev/null; then
     echo "Potential secret pattern matched: $pattern" >&2
-    git grep -nE -e "$pattern" -- . >&2 || true
+    git grep -nE -e "$pattern" -- . "${exclude_args[@]}" >&2 || true
     found=1
   fi
 done

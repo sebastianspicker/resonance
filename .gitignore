@@ -56,6 +56,15 @@ server/prisma/dev.db
 
 # Coverage
 coverage/
+*.lcov
+test-results/
+junit.xml
+junit-*.xml
+reports/
+.cache/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
 
 # MinIO
 infra/minio-data/

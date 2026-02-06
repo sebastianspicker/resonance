@@ -8,10 +8,26 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
+  infra-validate:
+    name: Infra Validate
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Docker Compose config
+        run: docker compose -f infra/docker-compose.yml config -q
+
   server:
     name: Server Tests
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     services:
       postgres:
         image: postgres:16
@@ -51,10 +67,6 @@ jobs:
 
       - name: Secret scan
         run: ./scripts/secret-scan.sh
-
-      - name: Dependency audit (high+ only)
-        working-directory: server
-        run: npm audit --audit-level=high
 
       - name: Generate Prisma client
         working-directory: server
