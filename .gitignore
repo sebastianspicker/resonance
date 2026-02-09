@@ -28,6 +28,7 @@ pnpm-debug.log*
 .vscode/
 .idea/
 *.swp
+.cursor/
 
 # Local docs (findings/logs/decisions)
 DECISIONS.md

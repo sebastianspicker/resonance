@@ -6,6 +6,9 @@ struct ExportView: View {
     @State private var startDate = Calendar.current.date(byAdding: .day, value: -30, to: Date()) ?? Date()
     @State private var endDate = Date()
     @State private var exportURL: URL?
+    @State private var errorMessage: String?
+    @State private var showErrorAlert = false
+    @State private var showEmptyRangeMessage = false
 
     var body: some View {
         NavigationStack {
@@ -22,19 +25,44 @@ struct ExportView: View {
                 }
             }
             .navigationTitle("Export")
+            .alert("Export failed", isPresented: $showErrorAlert) {
+                Button("OK") { showErrorAlert = false; errorMessage = nil }
+            } message: {
+                if let errorMessage { Text(errorMessage) }
+            }
+            .alert("No entries", isPresented: $showEmptyRangeMessage) {
+                Button("OK") { showEmptyRangeMessage = false }
+            } message: {
+                Text("No entries in the selected date range.")
+            }
         }
     }
 
     private func generate() {
-        let descriptor = FetchDescriptor<LocalPracticeEntry>(predicate: #Predicate { $0.practiceDate >= startDate && $0.practiceDate <= endDate && $0.deletedAt == nil })
+        errorMessage = nil
+        var descriptor = FetchDescriptor<LocalPracticeEntry>(
+            predicate: #Predicate { $0.practiceDate >= startDate && $0.practiceDate <= endDate && $0.deletedAt == nil }
+        )
+        descriptor.sortBy = [SortDescriptor(\.practiceDate, order: .forward)]
         let entries = (try? modelContext.fetch(descriptor)) ?? []
-        let filename = "Resonance_Export_\(Int(Date().timeIntervalSince1970)).pdf"
-        let url = FileManager.default.temporaryDirectory.appendingPathComponent(filename)
+
+        if entries.isEmpty {
+            showEmptyRangeMessage = true
+            return
+        }
+
+        let filename = "Resonance_Export_\(Int(Date().timeIntervalSince1970))_\(UUID().uuidString.prefix(8)).pdf"
+        let exportDir = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
+            .appendingPathComponent("Exports", isDirectory: true)
+        try? FileManager.default.createDirectory(at: exportDir, withIntermediateDirectories: true)
+        let url = exportDir.appendingPathComponent(filename)
+
         do {
             try PDFExporter.export(entries: entries, to: url)
             exportURL = url
         } catch {
-            print("PDF export failed: \(error)")
+            errorMessage = error.localizedDescription
+            showErrorAlert = true
         }
     }
 }
