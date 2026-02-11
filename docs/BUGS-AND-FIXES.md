@@ -178,7 +178,7 @@ Same as (2): Implement and document `redirectUri` validation when production aut
 
 **Description:** Ownership check is `if (user.role === 'student' && entry.studentId !== user.id)`. Users with global role teacher but course role student skip the check and can access any entry in the course.
 
-**Fix:** Use course role from `requireCourseRole()`: restrict “own entries only” when course role is student, not when global role is student. **Sources:** `02-acl.md` #1
+**Fix:** Use course role from `requireCourseRole()`: restrict “own entries only” when course role is student, not when global role is student. **Sources:** `server/src/server.ts`
 
 ---
 
@@ -400,15 +400,15 @@ Same as (2): Code exchange does not bind or validate `redirectUri`. **Sources:**
 |--------|----------------|-----------|
 | 401 on API calls | Missing/invalid token, refresh race | Token in header; single-flight refresh; Keychain not failing silently |
 | Unexpected sign-out | Refresh race, Keychain write failure | Single-flight refresh; check Keychain status |
-| Teacher sees all entries (incl. drafts) | No status filter on GET entries | Filter by status or document intent (02-acl, 03-entries) |
-| Student can confirm others’ artifacts | No ownership check on confirm | Add student-owner check (02-acl, 06-storage) |
-| Entry delete leaves orphaned data / broken storage | S3 before DB; prefetch outside transaction | Delete in transaction; delete storage after commit (03, 06) |
-| Upload “succeeds” but artifact not uploaded | Presign URL invalid or no Content-Type | Validate URL; set Content-Type on PUT (04, 09) |
-| Sync queue item disappears, no error | Parse failure or unknown type treated as success | Throw on parse/unknown type (09, 14, 17) |
-| createEntry fails on iOS (encoding) | Optional.none in JSON body | Omit nil optionals or encode explicitly (19, 17) |
-| Decode failure on entries/feedback (iOS) | Date format (fractional seconds) | Align decoder with server date format (19, 10) |
-| Tests wipe real DB | DATABASE_URL not forced to test DB | Use test-only DB in vitest setup (15) |
-| Dev auth in production | AUTH_MODE=dev in reachable env | Never use dev auth in production; document (01, 16) |
+| Teacher sees all entries (incl. drafts) | No status filter on GET entries | Filter by status or document intent; see §6 |
+| Student can confirm others’ artifacts | No ownership check on confirm | Add student-owner check; see §10, §17 |
+| Entry delete leaves orphaned data / broken storage | S3 before DB; prefetch outside transaction | Delete in transaction; delete storage after commit; see §5, §20 |
+| Upload “succeeds” but artifact not uploaded | Presign URL invalid or no Content-Type | Validate URL; set Content-Type on PUT; see §21 |
+| Sync queue item disappears, no error | Parse failure or unknown type treated as success | Throw on parse/unknown type; see §22 |
+| createEntry fails on iOS (encoding) | Optional.none in JSON body | Omit nil optionals or encode explicitly; see §27 |
+| Decode failure on entries/feedback (iOS) | Date format (fractional seconds) | Align decoder with server date format; see §28 |
+| Tests wipe real DB | DATABASE_URL not forced to test DB | Use test-only DB in vitest setup; see §14 |
+| Dev auth in production | AUTH_MODE=dev in reachable env | Never use dev auth in production; document; see §1 |
 
 ---
 
