@@ -29,6 +29,7 @@ pnpm-debug.log*
 .idea/
 *.swp
 .cursor/
+.codex/
 
 # Local docs (findings/logs/decisions)
 DECISIONS.md
