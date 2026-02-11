@@ -312,85 +312,85 @@ Same as (2): Code exchange does not bind or validate `redirectUri`. **Sources:**
 
 ### 34. [Bug] deletedAt not enforced on artifact/feedback routes
 
-**Description:** Artifact and feedback routes do not check `entry.deletedAt` (or artifact’s entry deleted). **Fix:** After loading entry/artifact, reject with 410 if entry is deleted. **Sources:** `02-acl.md` #7
+**Description:** Artifact and feedback routes do not check `entry.deletedAt` (or artifact’s entry deleted). **Fix:** After loading entry/artifact, reject with 410 if entry is deleted. **Sources:** `server/src/server.ts`
 
 ---
 
 ### 35. [Bug] Client-controlled entry/artifact IDs with no format validation
 
-**Description:** Client supplies primary keys; no format/length validation; duplicate ID can 500. **Fix:** Validate format (e.g. UUID or allowlist); return 409 on conflict. **Sources:** `02-acl.md` #10, `03-entries.md` #10
+**Description:** Client supplies primary keys; no format/length validation; duplicate ID can 500. **Fix:** Validate format (e.g. UUID or allowlist); return 409 on conflict. **Sources:** `server/src/server.ts`
 
 ---
 
 ### 36. [Bug] Submitted-entry edit lock bypass via falsy values
 
-**Description:** Lock uses `if (body.goalText || ...)` so "" or 0 bypass. **Fix:** Check “field present” (e.g. `body.hasOwnProperty('goalText')`) instead of truthiness. **Sources:** `03-entries.md` #4, `07-api-routes.md` #1
+**Description:** Lock uses `if (body.goalText || ...)` so "" or 0 bypass. **Fix:** Check “field present” (e.g. `body.hasOwnProperty('goalText')`) instead of truthiness. **Sources:** `server/src/server.ts`
 
 ---
 
 ### 37. [Bug] Presign reuses storageKey and sets uploadState to uploading (overwrite + state regression)
 
-**Description:** Repeated presign overwrites same key and can set already-uploaded artifact back to uploading. **Fix:** Do not overwrite storageKey if already set; do not set uploadState to uploading if already uploaded; or issue new key for each presign. **Sources:** `04-artifacts.md` #3
+**Description:** Repeated presign overwrites same key and can set already-uploaded artifact back to uploading. **Fix:** Do not overwrite storageKey if already set; do not set uploadState to uploading if already uploaded; or issue new key for each presign. **Sources:** `server/src/server.ts`
 
 ---
 
 ### 38. [Bug] ensureBucket treats any HeadBucket error as “missing” (CreateBucket race/wrong error)
 
-**Description:** Any error from HeadBucket leads to CreateBucket; access denied or TLS errors can cause wrong behavior or multi-instance race. **Fix:** Only create on 404/NoSuchBucket; rethrow others; or use idempotent create where supported. **Sources:** `06-storage.md` #3, `server/src/storage.ts`
+**Description:** Any error from HeadBucket leads to CreateBucket; access denied or TLS errors can cause wrong behavior or multi-instance race. **Fix:** Only create on 404/NoSuchBucket; rethrow others; or use idempotent create where supported. **Sources:** `server/src/storage.ts`
 
 ---
 
 ### 39. [Bug] Sign-in callback: missing code or parse failure → silent no-op
 
-**Description:** If callback URL or `code` is missing/unparseable, AuthManager returns without error or state update. **Fix:** Set error state or show user-visible error; do not silently no-op. **Sources:** `01-auth.md` #15, `08-ios-auth.md`
+**Description:** If callback URL or `code` is missing/unparseable, AuthManager returns without error or state update. **Fix:** Set error state or show user-visible error; do not silently no-op. **Sources:** `ios/ResonanceApp/Sources/AuthManager.swift`
 
 ---
 
 ### 40. [Bug] SwiftData fetch/save errors swallowed in SyncManager
 
-**Description:** `try?` on fetch/save; enqueue can silently fail to persist. **Fix:** Propagate or handle errors; distinguish “empty queue” from “fetch failed”. **Sources:** `09-ios-sync.md` #4, #5
+**Description:** `try?` on fetch/save; enqueue can silently fail to persist. **Fix:** Propagate or handle errors; distinguish “empty queue” from “fetch failed”. **Sources:** `ios/ResonanceApp/Sources/SyncManager.swift`
 
 ---
 
 ### 41. [Bug] SyncManager predicate force-unwrap nextAttemptAt in #Predicate
 
-**Description:** `item.nextAttemptAt! <= now` in predicate can be unsafe under SwiftData translation. **Fix:** Avoid force-unwrap in predicate; use optional binding or a safe expression. **Sources:** `09-ios-sync.md` #4
+**Description:** `item.nextAttemptAt! <= now` in predicate can be unsafe under SwiftData translation. **Fix:** Avoid force-unwrap in predicate; use optional binding or a safe expression. **Sources:** `ios/ResonanceApp/Sources/SyncManager.swift`
 
 ---
 
 ### 42. [Bug] Media directory protection only on first creation; errors swallowed
 
-**Description:** `setFileProtection` only when directory does not exist; creation errors ignored. **Fix:** Ensure protection after create; handle and optionally retry or log errors. **Sources:** `17-ios-persistence-audio.md` #3
+**Description:** `setFileProtection` only when directory does not exist; creation errors ignored. **Fix:** Ensure protection after create; handle and optionally retry or log errors. **Sources:** `ios/ResonanceApp/Sources/FileStore.swift`
 
 ---
 
 ### 43. [Bug] ModelContainer failure → fatalError (crash at launch)
 
-**Description:** SwiftData container creation failure calls `fatalError`. **Fix:** Surface error to user (e.g. alert + safe state) or recover; avoid fatalError in production. **Sources:** `17-ios-persistence-audio.md` #4
+**Description:** SwiftData container creation failure calls `fatalError`. **Fix:** Surface error to user (e.g. alert + safe state) or recover; avoid fatalError in production. **Sources:** `ios/ResonanceApp/Sources/Persistence.swift`
 
 ---
 
 ### 44. [Bug] Feedback targetId/targetType no FK (integrity only in app code)
 
-**Description:** Feedback has no DB FK to entry/artifact; orphaned or invalid targets possible if any code path inserts without checks. **Fix:** Document and keep all insertion paths validated; optionally add DB constraints or triggers. **Sources:** `02-acl.md` #9
+**Description:** Feedback has no DB FK to entry/artifact; orphaned or invalid targets possible if any code path inserts without checks. **Fix:** Document and keep all insertion paths validated; optionally add DB constraints or triggers. **Sources:** `server/prisma/schema.prisma`
 
 ---
 
 ### 45. [Bug] Prisma ON DELETE CASCADE on core relations (large irreversible loss)
 
-**Description:** Cascade deletes can remove large amounts of data in one go. **Fix:** Document and consider softer delete or narrower cascade where appropriate. **Sources:** `12-prisma.md` #1
+**Description:** Cascade deletes can remove large amounts of data in one go. **Fix:** Document and consider softer delete or narrower cascade where appropriate. **Sources:** `server/prisma/schema.prisma`, `server/prisma/migrations/`
 
 ---
 
 ### 46. [Bug] Multiple critical routes untested (submit, feedback GET, auth/me, course detail, dev/authorize)
 
-**Description:** No tests for submit, entry feedback, auth/me, GET course by id, dev/authorize. **Fix:** Add tests for these endpoints (happy path and key negative cases). **Sources:** `15-tests.md` #2, #3, #4
+**Description:** No tests for submit, entry feedback, auth/me, GET course by id, dev/authorize. **Fix:** Add tests for these endpoints (happy path and key negative cases). **Sources:** `server/tests/`
 
 ---
 
 ### 47. [Bug] ACL tests miss global-role vs course-role and artifact IDOR cases
 
-**Description:** Tests do not cover teacher-in-course-as-student IDOR or artifact confirm/presign as non-owner. **Fix:** Add tests for role mismatch and artifact ownership. **Sources:** `02-acl.md` #12
+**Description:** Tests do not cover teacher-in-course-as-student IDOR or artifact confirm/presign as non-owner. **Fix:** Add tests for role mismatch and artifact ownership. **Sources:** `server/tests/acl.test.ts`
 
 ---
 
