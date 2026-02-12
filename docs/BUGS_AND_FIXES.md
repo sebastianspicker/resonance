@@ -8,7 +8,7 @@ Each item can be turned into a separate issue.
 
 ### 1. [Bug/Operational] Dev auth is unauthenticated and GET-driven
 
-**Description:** When `AUTH_MODE=dev`, `/dev/login`, `/dev/authorize`, and `/dev/issue` are publicly accessible. Anyone can obtain auth codes and mint sessions; `/dev/issue` can accept an arbitrary `userId` to issue a code for any existing user. The flow is GET-driven with no CSRF or confirmation (e.g. “Login as Teacher” is one click).
+**Description:** When `AUTH_MODE=dev`, `/dev/login`, `/dev/authorize`, and `/dev/issue` are publicly accessible. Anyone can obtain auth codes and mint sessions; `/dev/issue` can accept an arbitrary `userId` to issue a code for any existing user. The flow is GET-driven with no CSRF or confirmation (e.g. "Login as Teacher" is one click).
 
 **Impact:** If dev server is reachable beyond localhost (misconfig or shared env), full authentication bypass and account takeover.
 
@@ -48,7 +48,7 @@ Each item can be turned into a separate issue.
 
 **Impact:** Single-use refresh token guarantee can be violated; token duplication and harder containment after theft.
 
-**Fix:** Wrap read → conditional update (e.g. “revoke where revokedAt is null”) → issue in a transaction, or use a single atomic “claim and revoke” (e.g. conditional update by id + revokedAt).
+**Fix:** Wrap read → conditional update (e.g. "revoke where revokedAt is null") → issue in a transaction, or use a single atomic "claim and revoke" (e.g. conditional update by id + revokedAt).
 
 **Sources:** `server/src/auth.ts`
 
@@ -60,7 +60,7 @@ Each item can be turned into a separate issue.
 
 **Impact:** Irrecoverable DB/storage mismatch; broken playback or orphaned blobs; partial deletion with no clear recovery.
 
-**Fix:** Prefer “DB transaction first” (soft-delete or mark-for-deletion, then delete storage, then hard-delete), or use a two-phase approach with clear rollback/retry. Ensure artifact list used for S3 delete is inside the same transactional view (e.g. delete in transaction, then delete storage for the same set).
+**Fix:** Prefer "DB transaction first" (soft-delete or mark-for-deletion, then delete storage, then hard-delete), or use a two-phase approach with clear rollback/retry. Ensure artifact list used for S3 delete is inside the same transactional view (e.g. delete in transaction, then delete storage for the same set).
 
 **Sources:** `server/src/server.ts:351-391`
 
@@ -70,7 +70,7 @@ Each item can be turned into a separate issue.
 
 **Description:** `GET /courses/:courseId/entries` for a teacher returns all non-deleted entries in the course (no `status` filter). Drafts are included, unlike the dedicated review queue which filters `status: 'submitted'`.
 
-**Impact:** Teachers can see draft practice notes and in-progress artifacts outside the intended “review queue” boundary; may violate product expectation that drafts are student-only.
+**Impact:** Teachers can see draft practice notes and in-progress artifacts outside the intended "review queue" boundary; may violate product expectation that drafts are student-only.
 
 **Fix:** Either restrict this endpoint for teachers to `status: 'submitted'` (or document that teachers intentionally see all entries). Align with review queue semantics.
 
@@ -96,7 +96,7 @@ Each item can be turned into a separate issue.
 
 **Impact:** Cross-environment token reuse; confusing auth failures or tokens sent to wrong server.
 
-**Fix:** Include environment/server identifier in Keychain keys (e.g. hash of API base or explicit “dev”/“prod” key suffix).
+**Fix:** Include environment/server identifier in Keychain keys (e.g. hash of API base or explicit "dev"/"prod" key suffix).
 
 **Sources:** `ios/ResonanceApp/Sources/AppConfig.swift`
 
@@ -106,9 +106,9 @@ Each item can be turned into a separate issue.
 
 ### 9. [Enhancement] Use course role, not global role, for entry/artifact authorization
 
-**Description:** Many routes use `user.role` from the JWT (global role) instead of `roleInCourse` from membership. `requireEntryAccess` only restricts “owner” when `user.role === 'student'`, so a user with global teacher but course student can access any entry in that course (IDOR). Presign/confirm and feedback similarly mix global vs course role.
+**Description:** Many routes use `user.role` from the JWT (global role) instead of `roleInCourse` from membership. `requireEntryAccess` only restricts "owner" when `user.role === 'student'`, so a user with global teacher but course student can access any entry in that course (IDOR). Presign/confirm and feedback similarly mix global vs course role.
 
-**Fix:** Use `requireCourseRole()` result for authorization decisions (e.g. “can edit own entry” when `roleInCourse === 'student'`, “can confirm artifact” only for owning student or course teacher). Unify on course role for all course-scoped operations.
+**Fix:** Use `requireCourseRole()` result for authorization decisions (e.g. "can edit own entry" when `roleInCourse === 'student'`, "can confirm artifact" only for owning student or course teacher). Unify on course role for all course-scoped operations.
 
 **Sources:** `server/src/server.ts`
 
@@ -116,7 +116,7 @@ Each item can be turned into a separate issue.
 
 ### 10. [Enhancement] Enforce student ownership on artifact confirm (and align with presign)
 
-**Description:** `POST /artifacts/:artifactId/confirm` checks only course membership; it does not enforce that a student is the owner of the artifact’s entry. Presign does enforce student ownership. Any course member can confirm any artifact.
+**Description:** `POST /artifacts/:artifactId/confirm` checks only course membership; it does not enforce that a student is the owner of the artifact's entry. Presign does enforce student ownership. Any course member can confirm any artifact.
 
 **Fix:** Add the same ownership check as presign: if `user.role === 'student'` (or course role is student), require `artifact.entry.studentId === user.id`.
 
@@ -144,7 +144,7 @@ Same as (2): Implement and document `redirectUri` validation when production aut
 
 **Description:** PATCH `/entries/:entryId` does not validate `goalText`/`notes` type (can 500). Submitted-entry lock checks use truthiness, so `goalText: ""` or `durationSeconds: 0` bypass the lock. Nullable fields (notes, durationSeconds) cannot be cleared via PATCH.
 
-**Fix:** Use `requireString`/type checks for goalText and notes on PATCH; enforce submitted-entry lock with “field present in body” (e.g. `body.goalText !== undefined`) instead of truthiness; allow explicit null to clear nullable fields.
+**Fix:** Use `requireString`/type checks for goalText and notes on PATCH; enforce submitted-entry lock with "field present in body" (e.g. `body.goalText !== undefined`) instead of truthiness; allow explicit null to clear nullable fields.
 
 **Sources:** `server/src/server.ts`
 
@@ -162,7 +162,7 @@ Same as (2): Implement and document `redirectUri` validation when production aut
 
 ### 15. [Enhancement] Keychain status codes and single-flight refresh (iOS)
 
-**Description:** Keychain set/get/delete ignore OSStatus; failures are silent. `refreshIfNeeded()` has no single-flight/lock; concurrent refresh can cause one request to invalidate the other’s token and trigger sign-out despite a successful refresh elsewhere.
+**Description:** Keychain set/get/delete ignore OSStatus; failures are silent. `refreshIfNeeded()` has no single-flight/lock; concurrent refresh can cause one request to invalidate the other's token and trigger sign-out despite a successful refresh elsewhere.
 
 **Fix:** Check Keychain status in set/delete/add and surface or retry on failure. Add a lock or single-flight for refresh so only one refresh runs at a time and callers await the same result.
 
@@ -178,7 +178,7 @@ Same as (2): Implement and document `redirectUri` validation when production aut
 
 **Description:** Ownership check is `if (user.role === 'student' && entry.studentId !== user.id)`. Users with global role teacher but course role student skip the check and can access any entry in the course.
 
-**Fix:** Use course role from `requireCourseRole()`: restrict “own entries only” when course role is student, not when global role is student. **Sources:** `server/src/server.ts`
+**Fix:** Use course role from `requireCourseRole()`: restrict "own entries only" when course role is student, not when global role is student. **Sources:** `server/src/server.ts`
 
 ---
 
@@ -190,7 +190,7 @@ Same as (2): Implement and document `redirectUri` validation when production aut
 
 ---
 
-### 18. [Bug] Presign allows global-teacher to get PUT URLs for others’ artifacts (overwrite risk)
+### 18. [Bug] Presign allows global-teacher to get PUT URLs for others' artifacts (overwrite risk)
 
 **Description:** Presign only restricts students; global teacher in course can presign any artifact. Storage key is deterministic; overwrite of existing object is possible.
 
@@ -202,7 +202,7 @@ Same as (2): Implement and document `redirectUri` validation when production aut
 
 **Description:** POST `/feedback` and GET `/entries/:entryId/feedback` rely on global role or requireEntryAccess. A global teacher enrolled as student in a course can leave feedback; a global student with course role teacher cannot (inconsistent).
 
-**Fix:** Use course role for “may post feedback” and “may read feedback” (e.g. require `roleInCourse === 'teacher'` for posting; visibility by entry access using course role). **Sources:** `server/src/server.ts`
+**Fix:** Use course role for "may post feedback" and "may read feedback" (e.g. require `roleInCourse === 'teacher'` for posting; visibility by entry access using course role). **Sources:** `server/src/server.ts`
 
 ---
 
@@ -210,7 +210,7 @@ Same as (2): Implement and document `redirectUri` validation when production aut
 
 **Description:** Artifacts are fetched outside the transaction; feedback is deleted by prefetched artifact IDs; then entry (and artifacts) are deleted. Cascade can remove artifacts not in the prefetch list, orphaning their feedback. S3 delete runs before transaction; DB failure leaves DB referencing missing storage.
 
-**Fix:** Move artifact enumeration and feedback/artifact/entry deletion into a single transactional boundary; delete storage only after transaction commits, or use a two-phase “mark then delete storage then finalize” with retry. **Sources:** `server/src/server.ts`
+**Fix:** Move artifact enumeration and feedback/artifact/entry deletion into a single transactional boundary; delete storage only after transaction commits, or use a two-phase "mark then delete storage then finalize" with retry. **Sources:** `server/src/server.ts`
 
 ---
 
@@ -260,7 +260,7 @@ Same as (2): Code exchange does not bind or validate `redirectUri`. **Sources:**
 
 ### 27. [Bug] createEntry JSON body: Optional.none as Any breaks JSONSerialization
 
-**Description:** iOS builds `[String: Any]` with `durationSeconds as Any` and `notes as Any`. When nil, Swift can put `Optional.none` in the dict; `JSONSerialization` cannot encode it and throws. Common for “no notes” entries.
+**Description:** iOS builds `[String: Any]` with `durationSeconds as Any` and `notes as Any`. When nil, Swift can put `Optional.none` in the dict; `JSONSerialization` cannot encode it and throws. Common for "no notes" entries.
 
 **Fix:** Omit optional keys when nil, or use a type that encodes to JSON null explicitly (e.g. encode only when non-nil, or use a custom encoder). **Sources:** `ios/ResonanceApp/Sources/APIClient.swift`
 
@@ -312,7 +312,7 @@ Same as (2): Code exchange does not bind or validate `redirectUri`. **Sources:**
 
 ### 34. [Bug] deletedAt not enforced on artifact/feedback routes
 
-**Description:** Artifact and feedback routes do not check `entry.deletedAt` (or artifact’s entry deleted). **Fix:** After loading entry/artifact, reject with 410 if entry is deleted. **Sources:** `server/src/server.ts`
+**Description:** Artifact and feedback routes do not check `entry.deletedAt` (or artifact's entry deleted). **Fix:** After loading entry/artifact, reject with 410 if entry is deleted. **Sources:** `server/src/server.ts`
 
 ---
 
@@ -324,7 +324,7 @@ Same as (2): Code exchange does not bind or validate `redirectUri`. **Sources:**
 
 ### 36. [Bug] Submitted-entry edit lock bypass via falsy values
 
-**Description:** Lock uses `if (body.goalText || ...)` so "" or 0 bypass. **Fix:** Check “field present” (e.g. `body.hasOwnProperty('goalText')`) instead of truthiness. **Sources:** `server/src/server.ts`
+**Description:** Lock uses `if (body.goalText || ...)` so "" or 0 bypass. **Fix:** Check "field present" (e.g. `body.hasOwnProperty('goalText')`) instead of truthiness. **Sources:** `server/src/server.ts`
 
 ---
 
@@ -334,7 +334,7 @@ Same as (2): Code exchange does not bind or validate `redirectUri`. **Sources:**
 
 ---
 
-### 38. [Bug] ensureBucket treats any HeadBucket error as “missing” (CreateBucket race/wrong error)
+### 38. [Bug] ensureBucket treats any HeadBucket error as "missing" (CreateBucket race/wrong error)
 
 **Description:** Any error from HeadBucket leads to CreateBucket; access denied or TLS errors can cause wrong behavior or multi-instance race. **Fix:** Only create on 404/NoSuchBucket; rethrow others; or use idempotent create where supported. **Sources:** `server/src/storage.ts`
 
@@ -348,7 +348,7 @@ Same as (2): Code exchange does not bind or validate `redirectUri`. **Sources:**
 
 ### 40. [Bug] SwiftData fetch/save errors swallowed in SyncManager
 
-**Description:** `try?` on fetch/save; enqueue can silently fail to persist. **Fix:** Propagate or handle errors; distinguish “empty queue” from “fetch failed”. **Sources:** `ios/ResonanceApp/Sources/SyncManager.swift`
+**Description:** `try?` on fetch/save; enqueue can silently fail to persist. **Fix:** Propagate or handle errors; distinguish "empty queue" from "fetch failed". **Sources:** `ios/ResonanceApp/Sources/SyncManager.swift`
 
 ---
 
@@ -401,9 +401,9 @@ Same as (2): Code exchange does not bind or validate `redirectUri`. **Sources:**
 | 401 on API calls | Missing/invalid token, refresh race | Token in header; single-flight refresh; Keychain not failing silently |
 | Unexpected sign-out | Refresh race, Keychain write failure | Single-flight refresh; check Keychain status |
 | Teacher sees all entries (incl. drafts) | No status filter on GET entries | Filter by status or document intent; see §6 |
-| Student can confirm others’ artifacts | No ownership check on confirm | Add student-owner check; see §10, §17 |
+| Student can confirm others' artifacts | No ownership check on confirm | Add student-owner check; see §10, §17 |
 | Entry delete leaves orphaned data / broken storage | S3 before DB; prefetch outside transaction | Delete in transaction; delete storage after commit; see §5, §20 |
-| Upload “succeeds” but artifact not uploaded | Presign URL invalid or no Content-Type | Validate URL; set Content-Type on PUT; see §21 |
+| Upload "succeeds" but artifact not uploaded | Presign URL invalid or no Content-Type | Validate URL; set Content-Type on PUT; see §21 |
 | Sync queue item disappears, no error | Parse failure or unknown type treated as success | Throw on parse/unknown type; see §22 |
 | createEntry fails on iOS (encoding) | Optional.none in JSON body | Omit nil optionals or encode explicitly; see §27 |
 | Decode failure on entries/feedback (iOS) | Date format (fractional seconds) | Align decoder with server date format; see §28 |

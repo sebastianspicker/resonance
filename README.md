@@ -108,6 +108,23 @@ npm test
 
 iOS unit tests can be run from Xcode with the `ResonanceAppTests` scheme.
 
+## Validation (build / run / test)
+
+To verify the repo end-to-end:
+
+```bash
+# Infra + backend: build and test
+docker compose -f infra/docker-compose.yml up -d
+cd server && npm install && npm run prisma:generate && npm run prisma:migrate && npm run prisma:seed
+npm run build && npm test
+
+# Optional: full CI-style check from repo root (starts Postgres if needed)
+./scripts/ci-local.sh --with-docker
+
+# Secret scan (from repo root)
+./scripts/secret-scan.sh
+```
+
 ## Security
 
 - Dev auth endpoints (`/dev/*`) are disabled unless `AUTH_MODE=dev`.
@@ -128,21 +145,16 @@ iOS unit tests can be run from Xcode with the `ResonanceAppTests` scheme.
 - **CORS issues in prod**: Set `CORS_ORIGINS` to explicit allowed origins.
 
 ## Docs
-- `docs/PRD.md`
-- `docs/USER_STORIES.md`
-- `docs/ARCHITECTURE.md`
-- `docs/DATA_MODEL.md`
-- `docs/API.md`
-- `docs/UI.md`
-- `docs/SECURITY.md`
-- `docs/PLAN.md`
-- `docs/ASSUMPTIONS.md`
-- `docs/STATUS.md`
-- `docs/RUNBOOK.md`
-- `docs/FINDINGS.md`
-- `docs/LOG.md`
-- `docs/REPO_MAP.md`
-- `docs/DECISIONS.md`
+- `docs/PRD.md` — Product requirements
+- `docs/USER_STORIES.md` — User stories
+- `docs/ARCHITECTURE.md` — Architecture
+- `docs/DATA_MODEL.md` — Data model
+- `docs/API.md` — API reference
+- `docs/UI.md` — UI spec
+- `docs/SECURITY.md` — Security documentation
+- `docs/ASSUMPTIONS.md` — Product assumptions
+- `docs/RUNBOOK.md` — Ops runbook
+- `docs/BUGS_AND_FIXES.md` — Known bugs and required fixes (issue source)
 
 ## License
 MIT.
