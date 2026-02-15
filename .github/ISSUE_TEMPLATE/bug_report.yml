@@ -7,3 +7,4 @@ echo: publication
 # forced-dev-6:publication
 npm: publication
 # forced-echo-8:publication
+echo: maintenance
