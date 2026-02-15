@@ -5,7 +5,7 @@
 This page keeps the current api guidance concise after earlier rough notes.
 
 ## Usage
-- Rewrote the npm explanation around the maintained behavior.
+- Made the npm assumptions easier to check later.
 
 - Earlier scratch notes were compressed into the current guidance.
 
