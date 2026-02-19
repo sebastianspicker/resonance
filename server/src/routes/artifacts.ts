@@ -1,5 +1,6 @@
 import type { FastifyInstance } from 'fastify';
 import type { PrismaClient } from '@prisma/client';
+import type { S3Client } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { PutObjectCommand, HeadObjectCommand } from '@aws-sdk/client-s3';
 import { config } from '../config.js';
@@ -15,7 +16,7 @@ import {
 export function registerArtifactRoutes(
   app: FastifyInstance,
   prisma: PrismaClient,
-  s3: { send: (cmd: unknown) => Promise<unknown> },
+  s3: S3Client,
   requireAuth: (request: unknown) => Promise<void>
 ) {
   app.post('/entries/:entryId/artifacts', { preHandler: requireAuth }, async (request) => {
@@ -63,7 +64,7 @@ export function registerArtifactRoutes(
       Key: storageKey,
       ContentType: artifact.type === 'audio' ? 'audio/m4a' : 'video/mp4'
     });
-    const uploadUrl = await getSignedUrl(s3 as never, command, {
+    const uploadUrl = await getSignedUrl(s3, command, {
       expiresIn: config.s3.presignTtlSeconds
     });
     await prisma.artifact.update({

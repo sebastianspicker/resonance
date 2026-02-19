@@ -1,5 +1,6 @@
 import type { FastifyInstance } from 'fastify';
 import type { PrismaClient } from '@prisma/client';
+import type { S3Client } from '@aws-sdk/client-s3';
 import { DeleteObjectCommand } from '@aws-sdk/client-s3';
 import { config } from '../config.js';
 import { ApiError } from '../errors.js';
@@ -16,7 +17,7 @@ import {
 export function registerEntryRoutes(
   app: FastifyInstance,
   prisma: PrismaClient,
-  s3: { send: (cmd: unknown) => Promise<unknown> },
+  s3: S3Client,
   requireAuth: (request: unknown) => Promise<void>
 ) {
   app.post('/courses/:courseId/entries', { preHandler: requireAuth }, async (request) => {

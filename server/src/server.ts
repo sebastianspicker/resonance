@@ -2,6 +2,7 @@ import Fastify from 'fastify';
 import cors from '@fastify/cors';
 import helmet from '@fastify/helmet';
 import type { PrismaClient } from '@prisma/client';
+import type { S3Client } from '@aws-sdk/client-s3';
 import { config } from './config.js';
 import { ApiError, sendError } from './errors.js';
 import { verifyAccessToken } from './auth.js';
@@ -11,7 +12,7 @@ import { registerEntryRoutes } from './routes/entries.js';
 import { registerArtifactRoutes } from './routes/artifacts.js';
 import { registerFeedbackRoutes } from './routes/feedback.js';
 
-export function buildServer(prisma: PrismaClient, s3: { send: (cmd: unknown) => Promise<unknown> }) {
+export function buildServer(prisma: PrismaClient, s3: S3Client) {
   const app = Fastify({
     logger: true,
     requestIdHeader: 'x-request-id',

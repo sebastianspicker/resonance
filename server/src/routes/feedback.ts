@@ -72,8 +72,8 @@ export function registerFeedbackRoutes(
         markers: {
           create: markers.map((marker: Record<string, unknown>) => ({
             id: `mk_${nanoid(10)}`,
-            timeSeconds: marker.timeSeconds,
-            text: marker.text
+            timeSeconds: marker.timeSeconds as number,
+            text: marker.text as string
           }))
         }
       },
