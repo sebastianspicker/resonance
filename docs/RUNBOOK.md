@@ -11,6 +11,7 @@ If a command is marked "Not configured", it is a deliberate gap to be addressed 
 ## Environment
 - Backend env file:
   - `cp server/.env.example server/.env`
+- **Dev auth:** Set `AUTH_MODE=dev` only for local development. Never set `AUTH_MODE=dev` in any environment reachable from the network (e.g. staging or production). Dev auth endpoints (`/dev/login`, `/dev/authorize`, `/dev/issue`) are unauthenticated and must remain strictly local-only (e.g. bind to loopback or run only on localhost).
 
 ## Local Services
 Start Postgres + MinIO:

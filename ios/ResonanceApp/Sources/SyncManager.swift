@@ -13,14 +13,17 @@ enum SyncTaskType: String {
 
 @MainActor
 final class SyncManager: ObservableObject {
-    private let apiClient = APIClient()
+    private let apiClient: APIClient
     private let modelContext: ModelContext
     private let authManager: AuthManager
     private let session: URLSession
 
-    init(modelContext: ModelContext, authManager: AuthManager) {
+    @Published var lastSyncedAt: Date?
+
+    init(modelContext: ModelContext, authManager: AuthManager, apiClient: APIClient) {
         self.modelContext = modelContext
         self.authManager = authManager
+        self.apiClient = apiClient
         let config = URLSessionConfiguration.background(withIdentifier: "resonance.sync")
         config.waitsForConnectivity = true
         self.session = URLSession(configuration: config)
@@ -53,6 +56,9 @@ final class SyncManager: ObservableObject {
                 let delay = min(pow(2.0, Double(item.retryCount)), 300)
                 item.nextAttemptAt = Date().addingTimeInterval(delay)
             }
+        }
+        if !items.isEmpty {
+            lastSyncedAt = Date()
         }
         try? modelContext.save()
     }
@@ -104,20 +110,19 @@ final class SyncManager: ObservableObject {
         }
     }
 
-    private func fetchEntry(id: String) throws -> LocalPracticeEntry {
-        let descriptor = FetchDescriptor<LocalPracticeEntry>(predicate: #Predicate { $0.id == id })
-        guard let entry = try modelContext.fetch(descriptor).first else {
+    private func fetchFirst<T: PersistentModel>(_ descriptor: FetchDescriptor<T>) throws -> T {
+        guard let first = try modelContext.fetch(descriptor).first else {
             throw NSError(domain: "Sync", code: 404)
         }
-        return entry
+        return first
+    }
+
+    private func fetchEntry(id: String) throws -> LocalPracticeEntry {
+        try fetchFirst(FetchDescriptor<LocalPracticeEntry>(predicate: #Predicate { $0.id == id }))
     }
 
     private func fetchArtifact(id: String) throws -> LocalArtifact {
-        let descriptor = FetchDescriptor<LocalArtifact>(predicate: #Predicate { $0.id == id })
-        guard let artifact = try modelContext.fetch(descriptor).first else {
-            throw NSError(domain: "Sync", code: 404)
-        }
-        return artifact
+        try fetchFirst(FetchDescriptor<LocalArtifact>(predicate: #Predicate { $0.id == id }))
     }
 
     private func uploadFile(urlString: String, fileURL: URL) async throws {

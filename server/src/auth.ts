@@ -74,22 +74,26 @@ export async function rotateRefreshToken(prisma: PrismaClient, refreshToken: str
   }
 
   const record = await prisma.refreshToken.findUnique({ where: { id: tokenId } });
-  if (!record || record.revokedAt) {
+  if (!record) {
     throw new ApiError(401, 'REFRESH_REVOKED', 'Refresh token has been revoked');
   }
-
+  if (record.revokedAt) {
+    throw new ApiError(401, 'REFRESH_REVOKED', 'Refresh token has been revoked');
+  }
   if (record.expiresAt.getTime() < Date.now()) {
     throw new ApiError(401, 'REFRESH_EXPIRED', 'Refresh token expired');
   }
-
   if (record.tokenHash !== hashToken(refreshToken)) {
     throw new ApiError(401, 'REFRESH_MISMATCH', 'Refresh token mismatch');
   }
 
-  await prisma.refreshToken.update({
-    where: { id: tokenId },
+  const updated = await prisma.refreshToken.updateMany({
+    where: { id: tokenId, revokedAt: null },
     data: { revokedAt: new Date() }
   });
+  if (updated.count === 0) {
+    throw new ApiError(401, 'REFRESH_REVOKED', 'Refresh token has been revoked');
+  }
 
   const user = await prisma.user.findUnique({ where: { id: userId } });
   if (!user) {

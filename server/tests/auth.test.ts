@@ -1,13 +1,6 @@
 import request from 'supertest';
 import { beforeAll, afterAll, beforeEach, describe, expect, it } from 'vitest';
-import { app, setupApp, teardownApp, resetDb, seedBasic } from './testUtils.js';
-
-async function getAccessToken(role: 'student' | 'teacher') {
-  const issue = await request(app.server).post('/dev/issue').send({ role });
-  const code = issue.body.code;
-  const session = await request(app.server).post('/auth/session').send({ code, redirectUri: 'resonance://auth-callback' });
-  return session.body.accessToken as string;
-}
+import { app, setupApp, teardownApp, resetDb, seedBasic, getAccessToken } from './testUtils.js';
 
 describe('auth', () => {
   beforeAll(async () => {

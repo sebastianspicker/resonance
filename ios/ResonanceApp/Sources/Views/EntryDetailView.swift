@@ -4,10 +4,12 @@ import SwiftData
 struct EntryDetailView: View {
     @Bindable var entry: LocalPracticeEntry
     @Environment(\.modelContext) private var modelContext
+    @EnvironmentObject var appState: AppState
     @EnvironmentObject var syncManager: SyncManager
     @EnvironmentObject var authManager: AuthManager
     @StateObject private var recorder = AudioRecorder()
     @StateObject private var player = AudioPlayer()
+    @State private var isLoadingFeedback = false
 
     var body: some View {
         Form {
@@ -46,7 +48,10 @@ struct EntryDetailView: View {
             }
 
             Section("Feedback") {
-                if entry.feedback.isEmpty {
+                if isLoadingFeedback {
+                    ProgressView()
+                        .frame(maxWidth: .infinity)
+                } else if entry.feedback.isEmpty {
                     Text("No feedback yet")
                         .foregroundStyle(.secondary)
                 } else {
@@ -108,8 +113,10 @@ struct EntryDetailView: View {
 
     private func refreshFeedback() async {
         guard let session = authManager.session else { return }
+        isLoadingFeedback = true
+        defer { isLoadingFeedback = false }
         do {
-            let feedbackList = try await APIClient().fetchFeedback(accessToken: session.accessToken, entryId: entry.id)
+            let feedbackList = try await appState.apiClient.fetchFeedback(accessToken: session.accessToken, entryId: entry.id)
             entry.feedback.removeAll()
             for feedback in feedbackList {
                 let local = LocalFeedback(id: feedback.id, targetType: feedback.targetType, targetId: feedback.targetId, teacherName: feedback.teacherName, status: FeedbackStatus(rawValue: feedback.status) ?? .ok, commentsText: feedback.commentsText)
@@ -121,7 +128,7 @@ struct EntryDetailView: View {
             }
             try? modelContext.save()
         } catch {
-            print("Feedback refresh failed: \\(error)")
+            appState.reportError(error)
         }
     }
 }

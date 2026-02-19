@@ -8,6 +8,7 @@ struct MarkerDraft: Identifiable {
 
 struct FeedbackEditorView: View {
     let entry: ReviewQueueResponse
+    @EnvironmentObject var appState: AppState
     @EnvironmentObject var authManager: AuthManager
     @Environment(\.dismiss) private var dismiss
 
@@ -69,10 +70,10 @@ struct FeedbackEditorView: View {
             return LocalMarker(id: UUID().uuidString, timeSeconds: seconds, text: draft.text)
         }
         do {
-            _ = try await APIClient().createFeedback(accessToken: session.accessToken, targetType: "entry", targetId: entry.id, status: status, commentsText: commentsText, markers: markerModels)
+            _ = try await appState.apiClient.createFeedback(accessToken: session.accessToken, targetType: "entry", targetId: entry.id, status: status, commentsText: commentsText, markers: markerModels)
             dismiss()
         } catch {
-            print("Feedback failed: \(error)")
+            appState.reportError(error)
         }
     }
 }

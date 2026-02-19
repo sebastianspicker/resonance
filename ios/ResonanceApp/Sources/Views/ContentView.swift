@@ -3,6 +3,7 @@ import SwiftData
 
 struct ContentView: View {
     let modelContext: ModelContext
+    @EnvironmentObject var appState: AppState
     @EnvironmentObject var authManager: AuthManager
     @EnvironmentObject var syncManager: SyncManager
 
@@ -16,6 +17,13 @@ struct ContentView: View {
         }
         .task {
             await syncManager.processQueue()
+        }
+        .alert("Error", isPresented: $appState.showErrorAlert) {
+            Button("OK") { appState.clearError() }
+        } message: {
+            if let message = appState.lastErrorMessage {
+                Text(message)
+            }
         }
     }
 }

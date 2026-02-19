@@ -1,13 +1,11 @@
 import request from 'supertest';
 import { beforeAll, afterAll, beforeEach, describe, expect, it } from 'vitest';
 import { DeleteObjectCommand } from '@aws-sdk/client-s3';
-import { app, setupApp, teardownApp, resetDb, seedBasic, prisma, s3Mock } from './testUtils.js';
+import { app, setupApp, teardownApp, resetDb, seedBasic, getAccessToken, prisma, s3Mock } from './testUtils.js';
 
-async function login(role: 'student' | 'teacher') {
+function login(role: 'student' | 'teacher') {
   const userId = role === 'student' ? 'student-1' : 'teacher-1';
-  const issue = await request(app.server).post('/dev/issue').send({ userId, role });
-  const session = await request(app.server).post('/auth/session').send({ code: issue.body.code, redirectUri: 'resonance://auth-callback' });
-  return session.body.accessToken as string;
+  return getAccessToken(role, { userId });
 }
 
 describe('acl', () => {

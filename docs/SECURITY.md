@@ -18,7 +18,8 @@
 - Token theft: short-lived access tokens, refresh rotation, token hashes stored server-side, no tokens in logs.
 - Media exposure: pre-signed URLs limited to short TTL; object keys are unguessable UUIDs; server verifies upload by HEAD.
 - Offline device loss: iOS File Protection (`NSFileProtectionComplete`) for local media; OS-level device encryption.
-- CSRF/redirect abuse in SSO: ASWebAuthenticationSession with strict callback URL scheme; server does not currently validate `redirectUri` in dev auth flow.
+- CSRF/redirect abuse in SSO: ASWebAuthenticationSession with strict callback URL scheme; server does not currently validate `redirectUri` in dev auth flow. When introducing production OAuth/SSO, implement `redirectUri` validation (allowlist or exact match to registered callback).
+- **Dev auth:** Use `AUTH_MODE=dev` only on localhost. Never enable dev auth in any reachable environment; dev endpoints are unauthenticated and would allow full authentication bypass.
 
 ## GDPR Controls
 - Data minimization: store only `id`, `displayName`, and role. No analytics by default.

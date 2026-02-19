@@ -15,6 +15,7 @@ struct ResonanceApp: App {
     var body: some Scene {
         WindowGroup {
             ContentView(modelContext: container.mainContext)
+                .environmentObject(appState)
                 .environmentObject(appState.authManager)
                 .environmentObject(appState.syncManager)
         }

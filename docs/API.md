@@ -11,6 +11,7 @@ Request:
 ```
 { "code": "string", "redirectUri": "string" }
 ```
+Note: The server accepts `redirectUri` but does **not** validate it in the current (dev) auth implementation. When production auth is introduced, `redirectUri` must be validated (e.g. allowlist or exact match to the registered callback) as per OAuth best practice.
 
 Response:
 ```

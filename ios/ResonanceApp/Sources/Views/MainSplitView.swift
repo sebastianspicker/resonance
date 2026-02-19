@@ -3,6 +3,7 @@ import SwiftData
 
 struct MainSplitView: View {
     let modelContext: ModelContext
+    @EnvironmentObject var appState: AppState
     @EnvironmentObject var authManager: AuthManager
     @EnvironmentObject var syncManager: SyncManager
     @Query(sort: \LocalCourse.title) private var courses: [LocalCourse]
@@ -10,6 +11,7 @@ struct MainSplitView: View {
     @State private var showCalendar = false
     @State private var showExport = false
     @State private var showSettings = false
+    @State private var isRefreshing = false
 
     var body: some View {
         NavigationSplitView {
@@ -23,11 +25,29 @@ struct MainSplitView: View {
                 .tag(course.id)
             }
             .navigationTitle("Courses")
+            .overlay {
+                if isRefreshing { ProgressView().scaleEffect(1.2) }
+            }
+            .safeAreaInset(edge: .bottom, spacing: 0) {
+                if let lastSync = syncManager.lastSyncedAt {
+                    Text("Last synced \(lastSync, style: .relative) ago")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 4)
+                }
+            }
             .toolbar {
                 ToolbarItem(placement: .primaryAction) {
                     Button("Sync") {
-                        Task { await refreshCourses() }
+                        Task {
+                            isRefreshing = true
+                            await refreshCourses()
+                            await syncManager.processQueue()
+                            isRefreshing = false
+                        }
                     }
+                    .disabled(isRefreshing)
                 }
                 ToolbarItem(placement: .automatic) {
                     Button("Upload Queue") {
@@ -75,7 +95,7 @@ struct MainSplitView: View {
     private func refreshCourses() async {
         guard let session = authManager.session else { return }
         do {
-            let remoteCourses = try await APIClient().fetchCourses(accessToken: session.accessToken)
+            let remoteCourses = try await appState.apiClient.fetchCourses(accessToken: session.accessToken)
             let existing = (try? modelContext.fetch(FetchDescriptor<LocalCourse>())) ?? []
             let existingMap = Dictionary(uniqueKeysWithValues: existing.map { ($0.id, $0) })
 
@@ -90,7 +110,7 @@ struct MainSplitView: View {
             }
             try? modelContext.save()
         } catch {
-            print("Course fetch failed: \(error)")
+            appState.reportError(error)
         }
     }
 }

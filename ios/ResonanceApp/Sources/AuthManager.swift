@@ -15,9 +15,10 @@ struct AuthSession: Codable {
 final class AuthManager: NSObject, ObservableObject {
     @Published var session: AuthSession?
     private var authSession: ASWebAuthenticationSession?
-    private let apiClient = APIClient()
+    private let apiClient: APIClient
 
-    override init() {
+    init(apiClient: APIClient = APIClient()) {
+        self.apiClient = apiClient
         super.init()
         loadSession()
     }

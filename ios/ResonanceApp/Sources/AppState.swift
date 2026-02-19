@@ -3,12 +3,32 @@ import SwiftData
 
 @MainActor
 final class AppState: ObservableObject {
+    let apiClient: APIClient
     let authManager: AuthManager
     let syncManager: SyncManager
 
+    @Published var lastErrorMessage: String?
+    @Published var showErrorAlert: Bool = false
+
     init(modelContext: ModelContext) {
-        let auth = AuthManager()
+        let client = APIClient()
+        self.apiClient = client
+        let auth = AuthManager(apiClient: client)
         self.authManager = auth
-        self.syncManager = SyncManager(modelContext: modelContext, authManager: auth)
+        self.syncManager = SyncManager(modelContext: modelContext, authManager: auth, apiClient: client)
+    }
+
+    func reportError(_ error: Error) {
+        if let apiError = error as? APIError {
+            lastErrorMessage = apiError.error.message
+        } else {
+            lastErrorMessage = error.localizedDescription
+        }
+        showErrorAlert = true
+    }
+
+    func clearError() {
+        lastErrorMessage = nil
+        showErrorAlert = false
     }
 }

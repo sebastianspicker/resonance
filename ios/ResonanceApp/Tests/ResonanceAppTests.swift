@@ -26,8 +26,9 @@ final class ResonanceAppTests: XCTestCase {
     @MainActor
     func testSyncQueueEnqueue() throws {
         let container = PersistenceController.createContainer(inMemory: true)
-        let auth = AuthManager()
-        let syncManager = SyncManager(modelContext: container.mainContext, authManager: auth)
+        let client = APIClient()
+        let auth = AuthManager(apiClient: client)
+        let syncManager = SyncManager(modelContext: container.mainContext, authManager: auth, apiClient: client)
 
         syncManager.enqueue(type: .createEntry, payload: ["entryId": "entry-1"])
 

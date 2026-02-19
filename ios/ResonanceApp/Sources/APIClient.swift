@@ -1,89 +1,5 @@
 import Foundation
 
-struct APIError: Error, Decodable {
-    let error: APIErrorBody
-
-    struct APIErrorBody: Decodable {
-        let code: String
-        let message: String
-        let details: [String: String]?
-    }
-}
-
-struct TokenResponse: Decodable {
-    let accessToken: String
-    let refreshToken: String
-    let user: UserResponse?
-
-    struct UserResponse: Decodable {
-        let id: String
-        let displayName: String
-        let globalRole: String
-    }
-}
-
-struct CourseResponse: Decodable {
-    let id: String
-    let title: String
-    let roleInCourse: String
-}
-
-struct EntryResponse: Decodable {
-    let id: String
-    let courseId: String
-    let studentId: String
-    let practiceDate: Date
-    let goalText: String
-    let durationSeconds: Int?
-    let tags: [String]
-    let notes: String?
-    let status: String
-}
-
-struct ReviewQueueResponse: Decodable {
-    let id: String
-    let courseId: String
-    let studentId: String
-    let studentName: String
-    let practiceDate: Date
-    let goalText: String
-    let notes: String?
-    let artifacts: [ArtifactResponse]
-}
-
-struct ArtifactResponse: Decodable {
-    let id: String
-    let entryId: String
-    let type: String
-    let durationSeconds: Int
-    let uploadState: String
-    let storageKey: String?
-    let remoteUrl: String?
-}
-
-struct PresignResponse: Decodable {
-    let uploadUrl: String
-    let storageKey: String
-    let expiresInSeconds: Int
-}
-
-struct FeedbackResponse: Decodable {
-    let id: String
-    let targetType: String
-    let targetId: String
-    let teacherName: String
-    let createdAt: Date
-    let status: String
-    let commentsText: String
-    let markers: [MarkerResponse]
-}
-
-struct MarkerResponse: Decodable {
-    let id: String
-    let timeSeconds: Int
-    let text: String
-}
-
 final class APIClient {
     private let session: URLSession
 
@@ -183,21 +99,7 @@ final class APIClient {
 
     private struct EmptyBody: Encodable {}
 
-    private func send<Response: Decodable, Body: Encodable>(url: URL, method: String, body: Body?, accessToken: String?) async throws -> Response {
-        var request = URLRequest(url: url)
-        request.httpMethod = method
-        if let accessToken {
-            request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
-        }
-        if method != "GET" {
-            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        }
-
-        if let body = body {
-            let data = try JSONEncoder.apiEncoder.encode(body)
-            request.httpBody = data
-        }
-
+    private func perform(_ request: URLRequest) async throws -> Data {
         let (data, response) = try await session.data(for: request)
         guard let http = response as? HTTPURLResponse else {
             throw URLError(.badServerResponse)
@@ -208,6 +110,22 @@ final class APIClient {
             }
             throw URLError(.badServerResponse)
         }
+        return data
+    }
+
+    private func send<Response: Decodable, Body: Encodable>(url: URL, method: String, body: Body?, accessToken: String?) async throws -> Response {
+        var request = URLRequest(url: url)
+        request.httpMethod = method
+        if let accessToken {
+            request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+        }
+        if method != "GET" {
+            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        }
+        if let body = body {
+            request.httpBody = try JSONEncoder.apiEncoder.encode(body)
+        }
+        let data = try await perform(request)
         return try JSONDecoder.apiDecoder.decode(Response.self, from: data)
     }
 
@@ -219,17 +137,7 @@ final class APIClient {
         }
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.httpBody = try JSONSerialization.data(withJSONObject: body, options: [])
-
-        let (data, response) = try await session.data(for: request)
-        guard let http = response as? HTTPURLResponse else {
-            throw URLError(.badServerResponse)
-        }
-        if http.statusCode >= 400 {
-            if let apiError = try? JSONDecoder.apiDecoder.decode(APIError.self, from: data) {
-                throw apiError
-            }
-            throw URLError(.badServerResponse)
-        }
+        let data = try await perform(request)
         return try JSONDecoder.apiDecoder.decode(T.self, from: data)
     }
 }

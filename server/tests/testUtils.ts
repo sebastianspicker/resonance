@@ -1,3 +1,4 @@
+import request from 'supertest';
 import { PrismaClient } from '@prisma/client';
 import { buildServer } from '../src/server.js';
 import { S3Client } from '@aws-sdk/client-s3';
@@ -8,6 +9,20 @@ export const prisma = new PrismaClient();
 export const s3Client = createS3Client();
 export const s3Mock = mockClient(S3Client);
 export const app = buildServer(prisma, s3Client);
+
+export type TestRole = 'student' | 'teacher';
+
+export async function getAccessToken(
+  role: TestRole,
+  options?: { userId?: string }
+): Promise<string> {
+  const body = options?.userId ? { userId: options.userId, role } : { role };
+  const issue = await request(app.server).post('/dev/issue').send(body);
+  const session = await request(app.server)
+    .post('/auth/session')
+    .send({ code: issue.body.code, redirectUri: 'resonance://auth-callback' });
+  return session.body.accessToken as string;
+}
 
 export async function setupApp() {
   await prisma.$connect();
