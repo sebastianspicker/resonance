@@ -1,0 +1,339 @@
+{
+  "" : {
+    "diagnostics" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/ResonanceApp-primary.dia",
+    "emit-module-dependencies" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/ResonanceApp-primary-emit-module.d",
+    "emit-module-diagnostics" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/ResonanceApp-primary-emit-module.dia",
+    "pch" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/ResonanceApp-primary-Bridging-header.pch",
+    "swift-dependencies" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/ResonanceApp-primary.swiftdeps"
+  },
+  "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/DerivedSources/resource_bundle_accessor.swift" : {
+    "const-values" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/resource_bundle_accessor.swiftconstvalues",
+    "dependencies" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/resource_bundle_accessor.d",
+    "diagnostics" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/resource_bundle_accessor.dia",
+    "index-unit-output-path" : "/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/resource_bundle_accessor.o",
+    "llvm-bc" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/resource_bundle_accessor.bc",
+    "object" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/resource_bundle_accessor.o",
+    "swift-dependencies" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/resource_bundle_accessor.swiftdeps",
+    "swiftmodule" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/resource_bundle_accessor~partial.swiftmodule"
+  },
+  "/Users/sebastian/Git/_audited/resonance/ios/ResonanceApp/Sources/APIClient.swift" : {
+    "const-values" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/APIClient.swiftconstvalues",
+    "dependencies" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/APIClient.d",
+    "diagnostics" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/APIClient.dia",
+    "index-unit-output-path" : "/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/APIClient.o",
+    "llvm-bc" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/APIClient.bc",
+    "object" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/APIClient.o",
+    "swift-dependencies" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/APIClient.swiftdeps",
+    "swiftmodule" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/APIClient~partial.swiftmodule"
+  },
+  "/Users/sebastian/Git/_audited/resonance/ios/ResonanceApp/Sources/APIModels.swift" : {
+    "const-values" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/APIModels.swiftconstvalues",
+    "dependencies" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/APIModels.d",
+    "diagnostics" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/APIModels.dia",
+    "index-unit-output-path" : "/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/APIModels.o",
+    "llvm-bc" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/APIModels.bc",
+    "object" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/APIModels.o",
+    "swift-dependencies" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/APIModels.swiftdeps",
+    "swiftmodule" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/APIModels~partial.swiftmodule"
+  },
+  "/Users/sebastian/Git/_audited/resonance/ios/ResonanceApp/Sources/AppConfig.swift" : {
+    "const-values" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/AppConfig.swiftconstvalues",
+    "dependencies" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/AppConfig.d",
+    "diagnostics" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/AppConfig.dia",
+    "index-unit-output-path" : "/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/AppConfig.o",
+    "llvm-bc" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/AppConfig.bc",
+    "object" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/AppConfig.o",
+    "swift-dependencies" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/AppConfig.swiftdeps",
+    "swiftmodule" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/AppConfig~partial.swiftmodule"
+  },
+  "/Users/sebastian/Git/_audited/resonance/ios/ResonanceApp/Sources/AppState.swift" : {
+    "const-values" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/AppState.swiftconstvalues",
+    "dependencies" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/AppState.d",
+    "diagnostics" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/AppState.dia",
+    "index-unit-output-path" : "/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/AppState.o",
+    "llvm-bc" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/AppState.bc",
+    "object" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/AppState.o",
+    "swift-dependencies" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/AppState.swiftdeps",
+    "swiftmodule" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/AppState~partial.swiftmodule"
+  },
+  "/Users/sebastian/Git/_audited/resonance/ios/ResonanceApp/Sources/AudioPlayer.swift" : {
+    "const-values" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/AudioPlayer.swiftconstvalues",
+    "dependencies" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/AudioPlayer.d",
+    "diagnostics" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/AudioPlayer.dia",
+    "index-unit-output-path" : "/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/AudioPlayer.o",
+    "llvm-bc" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/AudioPlayer.bc",
+    "object" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/AudioPlayer.o",
+    "swift-dependencies" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/AudioPlayer.swiftdeps",
+    "swiftmodule" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/AudioPlayer~partial.swiftmodule"
+  },
+  "/Users/sebastian/Git/_audited/resonance/ios/ResonanceApp/Sources/AudioRecorder.swift" : {
+    "const-values" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/AudioRecorder.swiftconstvalues",
+    "dependencies" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/AudioRecorder.d",
+    "diagnostics" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/AudioRecorder.dia",
+    "index-unit-output-path" : "/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/AudioRecorder.o",
+    "llvm-bc" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/AudioRecorder.bc",
+    "object" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/AudioRecorder.o",
+    "swift-dependencies" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/AudioRecorder.swiftdeps",
+    "swiftmodule" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/AudioRecorder~partial.swiftmodule"
+  },
+  "/Users/sebastian/Git/_audited/resonance/ios/ResonanceApp/Sources/AuthManager.swift" : {
+    "const-values" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/AuthManager.swiftconstvalues",
+    "dependencies" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/AuthManager.d",
+    "diagnostics" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/AuthManager.dia",
+    "index-unit-output-path" : "/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/AuthManager.o",
+    "llvm-bc" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/AuthManager.bc",
+    "object" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/AuthManager.o",
+    "swift-dependencies" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/AuthManager.swiftdeps",
+    "swiftmodule" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/AuthManager~partial.swiftmodule"
+  },
+  "/Users/sebastian/Git/_audited/resonance/ios/ResonanceApp/Sources/CalendarService.swift" : {
+    "const-values" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/CalendarService.swiftconstvalues",
+    "dependencies" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/CalendarService.d",
+    "diagnostics" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/CalendarService.dia",
+    "index-unit-output-path" : "/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/CalendarService.o",
+    "llvm-bc" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/CalendarService.bc",
+    "object" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/CalendarService.o",
+    "swift-dependencies" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/CalendarService.swiftdeps",
+    "swiftmodule" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/CalendarService~partial.swiftmodule"
+  },
+  "/Users/sebastian/Git/_audited/resonance/ios/ResonanceApp/Sources/DemoDataManager.swift" : {
+    "const-values" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/DemoDataManager.swiftconstvalues",
+    "dependencies" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/DemoDataManager.d",
+    "diagnostics" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/DemoDataManager.dia",
+    "index-unit-output-path" : "/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/DemoDataManager.o",
+    "llvm-bc" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/DemoDataManager.bc",
+    "object" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/DemoDataManager.o",
+    "swift-dependencies" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/DemoDataManager.swiftdeps",
+    "swiftmodule" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/DemoDataManager~partial.swiftmodule"
+  },
+  "/Users/sebastian/Git/_audited/resonance/ios/ResonanceApp/Sources/FileStore.swift" : {
+    "const-values" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/FileStore.swiftconstvalues",
+    "dependencies" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/FileStore.d",
+    "diagnostics" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/FileStore.dia",
+    "index-unit-output-path" : "/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/FileStore.o",
+    "llvm-bc" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/FileStore.bc",
+    "object" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/FileStore.o",
+    "swift-dependencies" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/FileStore.swiftdeps",
+    "swiftmodule" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/FileStore~partial.swiftmodule"
+  },
+  "/Users/sebastian/Git/_audited/resonance/ios/ResonanceApp/Sources/ICalParser.swift" : {
+    "const-values" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/ICalParser.swiftconstvalues",
+    "dependencies" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/ICalParser.d",
+    "diagnostics" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/ICalParser.dia",
+    "index-unit-output-path" : "/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/ICalParser.o",
+    "llvm-bc" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/ICalParser.bc",
+    "object" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/ICalParser.o",
+    "swift-dependencies" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/ICalParser.swiftdeps",
+    "swiftmodule" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/ICalParser~partial.swiftmodule"
+  },
+  "/Users/sebastian/Git/_audited/resonance/ios/ResonanceApp/Sources/KeychainStore.swift" : {
+    "const-values" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/KeychainStore.swiftconstvalues",
+    "dependencies" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/KeychainStore.d",
+    "diagnostics" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/KeychainStore.dia",
+    "index-unit-output-path" : "/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/KeychainStore.o",
+    "llvm-bc" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/KeychainStore.bc",
+    "object" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/KeychainStore.o",
+    "swift-dependencies" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/KeychainStore.swiftdeps",
+    "swiftmodule" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/KeychainStore~partial.swiftmodule"
+  },
+  "/Users/sebastian/Git/_audited/resonance/ios/ResonanceApp/Sources/Models.swift" : {
+    "const-values" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/Models.swiftconstvalues",
+    "dependencies" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/Models.d",
+    "diagnostics" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/Models.dia",
+    "index-unit-output-path" : "/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/Models.o",
+    "llvm-bc" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/Models.bc",
+    "object" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/Models.o",
+    "swift-dependencies" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/Models.swiftdeps",
+    "swiftmodule" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/Models~partial.swiftmodule"
+  },
+  "/Users/sebastian/Git/_audited/resonance/ios/ResonanceApp/Sources/NetworkMonitor.swift" : {
+    "const-values" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/NetworkMonitor.swiftconstvalues",
+    "dependencies" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/NetworkMonitor.d",
+    "diagnostics" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/NetworkMonitor.dia",
+    "index-unit-output-path" : "/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/NetworkMonitor.o",
+    "llvm-bc" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/NetworkMonitor.bc",
+    "object" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/NetworkMonitor.o",
+    "swift-dependencies" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/NetworkMonitor.swiftdeps",
+    "swiftmodule" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/NetworkMonitor~partial.swiftmodule"
+  },
+  "/Users/sebastian/Git/_audited/resonance/ios/ResonanceApp/Sources/PDFExporter.swift" : {
+    "const-values" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/PDFExporter.swiftconstvalues",
+    "dependencies" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/PDFExporter.d",
+    "diagnostics" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/PDFExporter.dia",
+    "index-unit-output-path" : "/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/PDFExporter.o",
+    "llvm-bc" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/PDFExporter.bc",
+    "object" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/PDFExporter.o",
+    "swift-dependencies" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/PDFExporter.swiftdeps",
+    "swiftmodule" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/PDFExporter~partial.swiftmodule"
+  },
+  "/Users/sebastian/Git/_audited/resonance/ios/ResonanceApp/Sources/Persistence.swift" : {
+    "const-values" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/Persistence.swiftconstvalues",
+    "dependencies" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/Persistence.d",
+    "diagnostics" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/Persistence.dia",
+    "index-unit-output-path" : "/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/Persistence.o",
+    "llvm-bc" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/Persistence.bc",
+    "object" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/Persistence.o",
+    "swift-dependencies" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/Persistence.swiftdeps",
+    "swiftmodule" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/Persistence~partial.swiftmodule"
+  },
+  "/Users/sebastian/Git/_audited/resonance/ios/ResonanceApp/Sources/ResonanceApp.swift" : {
+    "const-values" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/ResonanceApp.swiftconstvalues",
+    "dependencies" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/ResonanceApp.d",
+    "diagnostics" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/ResonanceApp.dia",
+    "index-unit-output-path" : "/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/ResonanceApp.o",
+    "llvm-bc" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/ResonanceApp.bc",
+    "object" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/ResonanceApp.o",
+    "swift-dependencies" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/ResonanceApp.swiftdeps",
+    "swiftmodule" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/ResonanceApp~partial.swiftmodule"
+  },
+  "/Users/sebastian/Git/_audited/resonance/ios/ResonanceApp/Sources/ScreenshotScenario.swift" : {
+    "const-values" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/ScreenshotScenario.swiftconstvalues",
+    "dependencies" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/ScreenshotScenario.d",
+    "diagnostics" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/ScreenshotScenario.dia",
+    "index-unit-output-path" : "/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/ScreenshotScenario.o",
+    "llvm-bc" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/ScreenshotScenario.bc",
+    "object" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/ScreenshotScenario.o",
+    "swift-dependencies" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/ScreenshotScenario.swiftdeps",
+    "swiftmodule" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/ScreenshotScenario~partial.swiftmodule"
+  },
+  "/Users/sebastian/Git/_audited/resonance/ios/ResonanceApp/Sources/SyncManager.swift" : {
+    "const-values" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/SyncManager.swiftconstvalues",
+    "dependencies" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/SyncManager.d",
+    "diagnostics" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/SyncManager.dia",
+    "index-unit-output-path" : "/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/SyncManager.o",
+    "llvm-bc" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/SyncManager.bc",
+    "object" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/SyncManager.o",
+    "swift-dependencies" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/SyncManager.swiftdeps",
+    "swiftmodule" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/SyncManager~partial.swiftmodule"
+  },
+  "/Users/sebastian/Git/_audited/resonance/ios/ResonanceApp/Sources/Views/CalendarView.swift" : {
+    "const-values" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/CalendarView.swiftconstvalues",
+    "dependencies" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/CalendarView.d",
+    "diagnostics" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/CalendarView.dia",
+    "index-unit-output-path" : "/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/CalendarView.o",
+    "llvm-bc" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/CalendarView.bc",
+    "object" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/CalendarView.o",
+    "swift-dependencies" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/CalendarView.swiftdeps",
+    "swiftmodule" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/CalendarView~partial.swiftmodule"
+  },
+  "/Users/sebastian/Git/_audited/resonance/ios/ResonanceApp/Sources/Views/ContentView.swift" : {
+    "const-values" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/ContentView.swiftconstvalues",
+    "dependencies" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/ContentView.d",
+    "diagnostics" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/ContentView.dia",
+    "index-unit-output-path" : "/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/ContentView.o",
+    "llvm-bc" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/ContentView.bc",
+    "object" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/ContentView.o",
+    "swift-dependencies" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/ContentView.swiftdeps",
+    "swiftmodule" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/ContentView~partial.swiftmodule"
+  },
+  "/Users/sebastian/Git/_audited/resonance/ios/ResonanceApp/Sources/Views/CourseDetailView.swift" : {
+    "const-values" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/CourseDetailView.swiftconstvalues",
+    "dependencies" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/CourseDetailView.d",
+    "diagnostics" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/CourseDetailView.dia",
+    "index-unit-output-path" : "/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/CourseDetailView.o",
+    "llvm-bc" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/CourseDetailView.bc",
+    "object" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/CourseDetailView.o",
+    "swift-dependencies" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/CourseDetailView.swiftdeps",
+    "swiftmodule" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/CourseDetailView~partial.swiftmodule"
+  },
+  "/Users/sebastian/Git/_audited/resonance/ios/ResonanceApp/Sources/Views/EntryDetailView.swift" : {
+    "const-values" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/EntryDetailView.swiftconstvalues",
+    "dependencies" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/EntryDetailView.d",
+    "diagnostics" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/EntryDetailView.dia",
+    "index-unit-output-path" : "/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/EntryDetailView.o",
+    "llvm-bc" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/EntryDetailView.bc",
+    "object" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/EntryDetailView.o",
+    "swift-dependencies" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/EntryDetailView.swiftdeps",
+    "swiftmodule" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/EntryDetailView~partial.swiftmodule"
+  },
+  "/Users/sebastian/Git/_audited/resonance/ios/ResonanceApp/Sources/Views/EntryListView.swift" : {
+    "const-values" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/EntryListView.swiftconstvalues",
+    "dependencies" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/EntryListView.d",
+    "diagnostics" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/EntryListView.dia",
+    "index-unit-output-path" : "/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/EntryListView.o",
+    "llvm-bc" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/EntryListView.bc",
+    "object" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/EntryListView.o",
+    "swift-dependencies" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/EntryListView.swiftdeps",
+    "swiftmodule" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/EntryListView~partial.swiftmodule"
+  },
+  "/Users/sebastian/Git/_audited/resonance/ios/ResonanceApp/Sources/Views/ExportView.swift" : {
+    "const-values" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/ExportView.swiftconstvalues",
+    "dependencies" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/ExportView.d",
+    "diagnostics" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/ExportView.dia",
+    "index-unit-output-path" : "/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/ExportView.o",
+    "llvm-bc" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/ExportView.bc",
+    "object" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/ExportView.o",
+    "swift-dependencies" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/ExportView.swiftdeps",
+    "swiftmodule" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/ExportView~partial.swiftmodule"
+  },
+  "/Users/sebastian/Git/_audited/resonance/ios/ResonanceApp/Sources/Views/FeedbackEditorView.swift" : {
+    "const-values" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/FeedbackEditorView.swiftconstvalues",
+    "dependencies" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/FeedbackEditorView.d",
+    "diagnostics" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/FeedbackEditorView.dia",
+    "index-unit-output-path" : "/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/FeedbackEditorView.o",
+    "llvm-bc" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/FeedbackEditorView.bc",
+    "object" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/FeedbackEditorView.o",
+    "swift-dependencies" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/FeedbackEditorView.swiftdeps",
+    "swiftmodule" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/FeedbackEditorView~partial.swiftmodule"
+  },
+  "/Users/sebastian/Git/_audited/resonance/ios/ResonanceApp/Sources/Views/LoginView.swift" : {
+    "const-values" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/LoginView.swiftconstvalues",
+    "dependencies" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/LoginView.d",
+    "diagnostics" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/LoginView.dia",
+    "index-unit-output-path" : "/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/LoginView.o",
+    "llvm-bc" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/LoginView.bc",
+    "object" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/LoginView.o",
+    "swift-dependencies" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/LoginView.swiftdeps",
+    "swiftmodule" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/LoginView~partial.swiftmodule"
+  },
+  "/Users/sebastian/Git/_audited/resonance/ios/ResonanceApp/Sources/Views/MainSplitView.swift" : {
+    "const-values" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/MainSplitView.swiftconstvalues",
+    "dependencies" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/MainSplitView.d",
+    "diagnostics" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/MainSplitView.dia",
+    "index-unit-output-path" : "/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/MainSplitView.o",
+    "llvm-bc" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/MainSplitView.bc",
+    "object" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/MainSplitView.o",
+    "swift-dependencies" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/MainSplitView.swiftdeps",
+    "swiftmodule" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/MainSplitView~partial.swiftmodule"
+  },
+  "/Users/sebastian/Git/_audited/resonance/ios/ResonanceApp/Sources/Views/NewEntryView.swift" : {
+    "const-values" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/NewEntryView.swiftconstvalues",
+    "dependencies" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/NewEntryView.d",
+    "diagnostics" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/NewEntryView.dia",
+    "index-unit-output-path" : "/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/NewEntryView.o",
+    "llvm-bc" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/NewEntryView.bc",
+    "object" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/NewEntryView.o",
+    "swift-dependencies" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/NewEntryView.swiftdeps",
+    "swiftmodule" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/NewEntryView~partial.swiftmodule"
+  },
+  "/Users/sebastian/Git/_audited/resonance/ios/ResonanceApp/Sources/Views/SettingsView.swift" : {
+    "const-values" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/SettingsView.swiftconstvalues",
+    "dependencies" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/SettingsView.d",
+    "diagnostics" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/SettingsView.dia",
+    "index-unit-output-path" : "/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/SettingsView.o",
+    "llvm-bc" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/SettingsView.bc",
+    "object" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/SettingsView.o",
+    "swift-dependencies" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/SettingsView.swiftdeps",
+    "swiftmodule" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/SettingsView~partial.swiftmodule"
+  },
+  "/Users/sebastian/Git/_audited/resonance/ios/ResonanceApp/Sources/Views/SyncQueueView.swift" : {
+    "const-values" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/SyncQueueView.swiftconstvalues",
+    "dependencies" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/SyncQueueView.d",
+    "diagnostics" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/SyncQueueView.dia",
+    "index-unit-output-path" : "/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/SyncQueueView.o",
+    "llvm-bc" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/SyncQueueView.bc",
+    "object" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/SyncQueueView.o",
+    "swift-dependencies" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/SyncQueueView.swiftdeps",
+    "swiftmodule" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/SyncQueueView~partial.swiftmodule"
+  },
+  "/Users/sebastian/Git/_audited/resonance/ios/ResonanceApp/Sources/Views/TeacherQueueView.swift" : {
+    "const-values" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/TeacherQueueView.swiftconstvalues",
+    "dependencies" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/TeacherQueueView.d",
+    "diagnostics" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/TeacherQueueView.dia",
+    "index-unit-output-path" : "/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/TeacherQueueView.o",
+    "llvm-bc" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/TeacherQueueView.bc",
+    "object" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/TeacherQueueView.o",
+    "swift-dependencies" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/TeacherQueueView.swiftdeps",
+    "swiftmodule" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/TeacherQueueView~partial.swiftmodule"
+  }
+}

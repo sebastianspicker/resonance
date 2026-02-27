@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>logFormatVersion</key>
+	<integer>12</integer>
+	<key>logs</key>
+	<dict>
+		<key>A0B987AA-C139-4539-9055-95BBAF797C41</key>
+		<dict>
+			<key>className</key>
+			<string>IDECommandLineBuildLog</string>
+			<key>documentTypeString</key>
+			<string>&lt;nil&gt;</string>
+			<key>domainType</key>
+			<string>Xcode.IDEActivityLogDomainType.BuildLog</string>
+			<key>fileName</key>
+			<string>A0B987AA-C139-4539-9055-95BBAF797C41.xcactivitylog</string>
+			<key>hasPrimaryLog</key>
+			<true/>
+			<key>primaryObservable</key>
+			<dict>
+				<key>highLevelStatus</key>
+				<string>W</string>
+				<key>totalNumberOfAnalyzerIssues</key>
+				<integer>0</integer>
+				<key>totalNumberOfErrors</key>
+				<integer>0</integer>
+				<key>totalNumberOfTestFailures</key>
+				<integer>0</integer>
+				<key>totalNumberOfWarnings</key>
+				<integer>2</integer>
+			</dict>
+			<key>schemeIdentifier-containerName</key>
+			<string>ResonanceApp</string>
+			<key>schemeIdentifier-schemeName</key>
+			<string>ResonanceApp</string>
+			<key>schemeIdentifier-sharedScheme</key>
+			<integer>1</integer>
+			<key>signature</key>
+			<string>Building workspace ResonanceApp with scheme ResonanceApp and configuration Debug</string>
+			<key>timeStartedRecording</key>
+			<real>793881038.40469897</real>
+			<key>timeStoppedRecording</key>
+			<real>793881044.57730997</real>
+			<key>title</key>
+			<string>Building workspace ResonanceApp with scheme ResonanceApp and configuration Debug</string>
+			<key>uniqueIdentifier</key>
+			<string>A0B987AA-C139-4539-9055-95BBAF797C41</string>
+		</dict>
+	</dict>
+</dict>
+</plist>

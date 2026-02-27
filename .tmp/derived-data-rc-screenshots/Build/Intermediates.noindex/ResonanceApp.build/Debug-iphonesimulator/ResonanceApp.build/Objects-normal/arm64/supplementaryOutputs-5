@@ -1,0 +1,23 @@
+{
+  "/Users/sebastian/Git/_audited/resonance/ios/ResonanceApp/Sources/PDFExporter.swift" : {
+    "const-values" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/PDFExporter.swiftconstvalues",
+    "dependencies" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/PDFExporter.d",
+    "diagnostics" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/PDFExporter.dia",
+    "object" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/PDFExporter.o",
+    "swift-dependencies" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/PDFExporter.swiftdeps"
+  },
+  "/Users/sebastian/Git/_audited/resonance/ios/ResonanceApp/Sources/Persistence.swift" : {
+    "const-values" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/Persistence.swiftconstvalues",
+    "dependencies" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/Persistence.d",
+    "diagnostics" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/Persistence.dia",
+    "object" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/Persistence.o",
+    "swift-dependencies" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/Persistence.swiftdeps"
+  },
+  "/Users/sebastian/Git/_audited/resonance/ios/ResonanceApp/Sources/ResonanceApp.swift" : {
+    "const-values" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/ResonanceApp.swiftconstvalues",
+    "dependencies" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/ResonanceApp.d",
+    "diagnostics" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/ResonanceApp.dia",
+    "object" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/ResonanceApp.o",
+    "swift-dependencies" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/ResonanceApp.swiftdeps"
+  }
+}

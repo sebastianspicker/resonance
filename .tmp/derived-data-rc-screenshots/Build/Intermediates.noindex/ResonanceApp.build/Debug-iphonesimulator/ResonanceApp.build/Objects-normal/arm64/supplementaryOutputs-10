@@ -1,0 +1,23 @@
+{
+  "/Users/sebastian/Git/_audited/resonance/ios/ResonanceApp/Sources/Views/SettingsView.swift" : {
+    "const-values" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/SettingsView.swiftconstvalues",
+    "dependencies" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/SettingsView.d",
+    "diagnostics" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/SettingsView.dia",
+    "object" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/SettingsView.o",
+    "swift-dependencies" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/SettingsView.swiftdeps"
+  },
+  "/Users/sebastian/Git/_audited/resonance/ios/ResonanceApp/Sources/Views/SyncQueueView.swift" : {
+    "const-values" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/SyncQueueView.swiftconstvalues",
+    "dependencies" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/SyncQueueView.d",
+    "diagnostics" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/SyncQueueView.dia",
+    "object" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/SyncQueueView.o",
+    "swift-dependencies" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/SyncQueueView.swiftdeps"
+  },
+  "/Users/sebastian/Git/_audited/resonance/ios/ResonanceApp/Sources/Views/TeacherQueueView.swift" : {
+    "const-values" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/TeacherQueueView.swiftconstvalues",
+    "dependencies" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/TeacherQueueView.d",
+    "diagnostics" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/TeacherQueueView.dia",
+    "object" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/TeacherQueueView.o",
+    "swift-dependencies" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/TeacherQueueView.swiftdeps"
+  }
+}

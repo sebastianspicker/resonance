@@ -1,0 +1,23 @@
+{
+  "/Users/sebastian/Git/_audited/resonance/ios/ResonanceApp/Sources/Views/EntryListView.swift" : {
+    "const-values" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/EntryListView.swiftconstvalues",
+    "dependencies" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/EntryListView.d",
+    "diagnostics" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/EntryListView.dia",
+    "object" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/EntryListView.o",
+    "swift-dependencies" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/EntryListView.swiftdeps"
+  },
+  "/Users/sebastian/Git/_audited/resonance/ios/ResonanceApp/Sources/Views/ExportView.swift" : {
+    "const-values" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/ExportView.swiftconstvalues",
+    "dependencies" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/ExportView.d",
+    "diagnostics" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/ExportView.dia",
+    "object" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/ExportView.o",
+    "swift-dependencies" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/ExportView.swiftdeps"
+  },
+  "/Users/sebastian/Git/_audited/resonance/ios/ResonanceApp/Sources/Views/FeedbackEditorView.swift" : {
+    "const-values" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/FeedbackEditorView.swiftconstvalues",
+    "dependencies" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/FeedbackEditorView.d",
+    "diagnostics" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/FeedbackEditorView.dia",
+    "object" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/FeedbackEditorView.o",
+    "swift-dependencies" : "/Users/sebastian/Git/_audited/resonance/.tmp/derived-data-rc-screenshots/Build/Intermediates.noindex/ResonanceApp.build/Debug-iphonesimulator/ResonanceApp.build/Objects-normal/arm64/FeedbackEditorView.swiftdeps"
+  }
+}

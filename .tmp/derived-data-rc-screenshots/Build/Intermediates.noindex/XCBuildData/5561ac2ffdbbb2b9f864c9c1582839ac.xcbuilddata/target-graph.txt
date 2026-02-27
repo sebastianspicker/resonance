@@ -1,0 +1,4 @@
+Target dependency graph (2 targets)
+Target 'ResonanceApp' in project 'ResonanceApp'
+➜ Explicit dependency on target 'ResonanceApp_ResonanceApp' in project 'ResonanceApp'
+Target 'ResonanceApp_ResonanceApp' in project 'ResonanceApp' (no dependencies)
