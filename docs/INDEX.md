@@ -9,6 +9,9 @@ This index is the canonical entry point for Resonance documentation.
 - [Security](./SECURITY.md)
 - [UI](./UI.md)
 - [Runbook](./RUNBOOK.md)
+- [Release Candidate Demo](./RELEASE_CANDIDATE_DEMO.md)
+- [Release Candidate Screenshots](./RELEASE_CANDIDATE_SCREENSHOTS.md)
+- [Release Checklist](./RELEASE_CHECKLIST.md)
 - [Bugs and Fixes Log](./BUGS_AND_FIXES.md)
 
 ## Historical / Archived

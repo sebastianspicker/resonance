@@ -4,6 +4,9 @@ All notable changes to this project are documented here. For detailed bug report
 
 ## [Unreleased]
 
+- RC demo track: added canonical Mock University fixture, demo seed/reset scripts, and local bootstrap script for reproducible screenshot states.
+- iOS debug tooling: added local demo dataset loader/clear actions in Settings and bundled fixture for screenshot preparation.
+- Documentation: added RC demo runbook, screenshot matrix, and release checklist.
 - Repo cleanup: removed redundant `server/prisma/seed.js` (seed uses `seed.ts` only).
 - iOS: fixed string interpolation in EntryDetailView error print.
 - Server: atomic refresh token rotation; entry delete now runs DB transaction before S3 delete; teacher course entries restricted to `submitted` only.

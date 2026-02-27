@@ -35,6 +35,7 @@ export const config = {
     .split(',')
     .map((origin) => origin.trim())
     .filter(Boolean),
+  devUniversityName: process.env.DEV_UNIVERSITY_NAME ?? 'Mock University Conservatory',
   devLoginCallbackUrl: process.env.DEV_LOGIN_CALLBACK_URL ?? 'resonance://auth-callback',
   appBaseUrl: process.env.APP_BASE_URL ?? 'http://localhost:4000'
 };
@@ -54,4 +55,3 @@ if (Number.isNaN(config.accessTokenTtlMinutes) || config.accessTokenTtlMinutes <
 if (Number.isNaN(config.refreshTokenTtlDays) || config.refreshTokenTtlDays <= 0) {
   throw new Error('REFRESH_TOKEN_TTL_DAYS must be a positive number.');
 }
-

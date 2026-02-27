@@ -131,6 +131,22 @@ npm run build && npm test
 ./scripts/secret-scan.sh
 ```
 
+## RC Demo Bootstrap (Mock University)
+
+For deterministic local release-candidate screenshots:
+
+```bash
+./scripts/demo/bootstrap-local-demo.sh
+```
+
+This seeds canonical mock data from `demo/fixtures/mock-university.json`.
+
+To reset demo records only:
+
+```bash
+./scripts/demo/reset-local-demo.sh
+```
+
 ## Security
 
 - Dev auth endpoints (`/dev/*`) are disabled unless `AUTH_MODE=dev` and are restricted to localhost requests.
@@ -158,6 +174,9 @@ npm run build && npm test
 - `docs/UI.md` — UI spec
 - `docs/SECURITY.md` — Security documentation
 - `docs/RUNBOOK.md` — Ops runbook
+- `docs/RELEASE_CANDIDATE_DEMO.md` — RC demo bootstrap and preflight
+- `docs/RELEASE_CANDIDATE_SCREENSHOTS.md` — screenshot matrix and capture playbook
+- `docs/RELEASE_CHECKLIST.md` — release gates checklist
 - `docs/BUGS_AND_FIXES.md` — Known bugs and required fixes (issue source)
 - `docs/archive/` — Archived historical docs
 

@@ -123,3 +123,17 @@ Remove local build/runtime artifacts:
 ```bash
 ./scripts/clean-workspace.sh
 ```
+
+## Release Candidate Demo (Mock University)
+Bootstrap deterministic local demo state:
+```bash
+./scripts/demo/bootstrap-local-demo.sh
+```
+
+Reset demo records only:
+```bash
+./scripts/demo/reset-local-demo.sh
+```
+
+Screenshot instructions:
+- See `docs/RELEASE_CANDIDATE_SCREENSHOTS.md`

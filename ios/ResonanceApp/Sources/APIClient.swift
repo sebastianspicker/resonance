@@ -20,6 +20,24 @@ final class APIClient {
         return AuthSession(accessToken: response.accessToken, refreshToken: response.refreshToken, userId: user.id, displayName: user.displayName, globalRole: user.globalRole)
     }
 
+    func issueDevCode(role: String, userId: String? = nil) async throws -> String {
+        let url = AppConfig.apiBaseURL.appendingPathComponent("dev/issue")
+        struct Body: Encodable {
+            let role: String
+            let userId: String?
+        }
+        struct Response: Decodable {
+            let code: String
+        }
+        let response: Response = try await send(
+            url: url,
+            method: "POST",
+            body: Body(role: role, userId: userId),
+            accessToken: nil
+        )
+        return response.code
+    }
+
     func refreshTokens(refreshToken: String) async throws -> (accessToken: String, refreshToken: String) {
         let url = AppConfig.apiBaseURL.appendingPathComponent("auth/refresh")
         let body = ["refreshToken": refreshToken]

@@ -49,7 +49,7 @@ enum ICalParser {
     private static func unfoldLines(_ raw: String) -> [String] {
         var result: [String] = []
         var buffer = ""
-        for line in raw.split(whereSeparator: \CharacterSet.newlines.contains) {
+        for line in raw.split(whereSeparator: { $0.isNewline }) {
             if line.first == " " || line.first == "\t" {
                 buffer += line.dropFirst()
             } else {

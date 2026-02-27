@@ -57,6 +57,10 @@ jobs:
           cache: "npm"
           cache-dependency-path: server/package-lock.json
 
+      - name: Validate demo fixture (non-blocking)
+        continue-on-error: true
+        run: node ./scripts/demo/validate-fixture.mjs
+
       - name: Install dependencies
         working-directory: server
         run: npm ci

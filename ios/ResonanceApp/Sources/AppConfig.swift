@@ -3,6 +3,10 @@ import Foundation
 enum AppConfig {
     static let apiBaseURL = URL(string: ProcessInfo.processInfo.environment["RESONANCE_API_BASE"] ?? "http://localhost:4000")!
     static let devLoginURL = apiBaseURL.appendingPathComponent("dev/login")
+    static let demoUniversityName = ProcessInfo.processInfo.environment["RESONANCE_DEMO_UNIVERSITY_NAME"] ?? "Mock University Conservatory"
+    static let screenshotStudentUserId = ProcessInfo.processInfo.environment["RESONANCE_SCREENSHOT_STUDENT_USER_ID"] ?? "demo_student_lea"
+    static let screenshotTeacherUserId = ProcessInfo.processInfo.environment["RESONANCE_SCREENSHOT_TEACHER_USER_ID"] ?? "demo_teacher_anna"
+    static let screenshotPrimaryCourseId = ProcessInfo.processInfo.environment["RESONANCE_SCREENSHOT_PRIMARY_COURSE_ID"] ?? "demo_course_piano"
     static let authCallbackScheme = "resonance"
     static let authCallbackURL = URL(string: "resonance://auth-callback")!
     static let keychainNamespace: String = {

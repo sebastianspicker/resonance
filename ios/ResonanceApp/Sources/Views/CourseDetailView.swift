@@ -3,7 +3,13 @@ import SwiftData
 
 struct CourseDetailView: View {
     let course: LocalCourse
+    let initialTab: Int
     @State private var selectedTab: Int = 0
+
+    init(course: LocalCourse, initialTab: Int = 0) {
+        self.course = course
+        self.initialTab = initialTab
+    }
 
     var body: some View {
         VStack {
@@ -25,5 +31,10 @@ struct CourseDetailView: View {
             }
         }
         .navigationTitle(course.title)
+        .onAppear {
+            if course.roleInCourse == "teacher" {
+                selectedTab = initialTab
+            }
+        }
     }
 }

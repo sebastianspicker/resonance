@@ -64,6 +64,9 @@ docker compose -f infra/docker-compose.yml config -q
 echo "Running secret scan..."
 ./scripts/secret-scan.sh
 
+echo "Validating demo fixture..."
+node ./scripts/demo/validate-fixture.mjs
+
 echo "Checking committed build artifacts..."
 ./scripts/check-no-build-artifacts.sh
 

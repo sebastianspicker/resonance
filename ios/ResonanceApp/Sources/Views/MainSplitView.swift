@@ -8,12 +8,14 @@ struct MainSplitView: View {
     @EnvironmentObject var syncManager: SyncManager
     @EnvironmentObject var networkMonitor: NetworkMonitor
     @Query(sort: \LocalCourse.title) private var courses: [LocalCourse]
+    @Query(sort: \LocalPracticeEntry.practiceDate, order: .reverse) private var allEntries: [LocalPracticeEntry]
     @State private var selectionId: String?
     @State private var showCalendar = false
     @State private var showExport = false
     @State private var showSettings = false
     @State private var showQueue = false
     @State private var isRefreshing = false
+    @State private var didApplyScreenshotRoute = false
 
     var body: some View {
         NavigationSplitView {
@@ -87,11 +89,7 @@ struct MainSplitView: View {
                 }
             }
         } detail: {
-            if let selectionId, let course = courses.first(where: { $0.id == selectionId }) {
-                CourseDetailView(course: course)
-            } else {
-                ContentUnavailableView("Select a course", systemImage: "music.note.list", description: Text("Choose a course to begin."))
-            }
+            detailPane
         }
         .sheet(isPresented: $showCalendar) {
             CalendarView()
@@ -123,6 +121,10 @@ struct MainSplitView: View {
             if courses.isEmpty {
                 await refreshCourses()
             }
+            applyScreenshotRoutingIfNeeded()
+        }
+        .onChange(of: courses.count) { _, _ in
+            applyScreenshotRoutingIfNeeded()
         }
     }
 
@@ -145,6 +147,146 @@ struct MainSplitView: View {
             try? modelContext.save()
         } catch {
             appState.reportError(error)
+        }
+    }
+
+    @ViewBuilder
+    private var detailPane: some View {
+        if let scenario = ScreenshotScenario.current, scenario.requiresAuthenticatedSession {
+            switch scenario.screen {
+            case .entryDetail:
+                if let entry = screenshotPrimaryEntry {
+                    EntryDetailView(entry: entry)
+                } else {
+                    defaultDetailPane
+                }
+            case .teacherReviewQueue:
+                if let course = screenshotCourse {
+                    TeacherQueueView(courseId: course.id)
+                } else {
+                    defaultDetailPane
+                }
+            case .feedbackEditor:
+                if let reviewEntry = screenshotFeedbackEntry {
+                    FeedbackEditorView(entry: reviewEntry)
+                } else {
+                    defaultDetailPane
+                }
+            default:
+                defaultDetailPane
+            }
+        } else {
+            defaultDetailPane
+        }
+    }
+
+    @ViewBuilder
+    private var defaultDetailPane: some View {
+        if let selectionId, let course = courses.first(where: { $0.id == selectionId }) {
+            let initialTab = (ScreenshotScenario.current?.screen == .teacherReviewQueue) ? 1 : 0
+            CourseDetailView(course: course, initialTab: initialTab)
+        } else {
+            ContentUnavailableView("Select a course", systemImage: "music.note.list", description: Text("Choose a course to begin."))
+        }
+    }
+
+    private func applyScreenshotRoutingIfNeeded() {
+        guard let scenario = ScreenshotScenario.current, scenario.requiresAuthenticatedSession else {
+            return
+        }
+        guard !didApplyScreenshotRoute else {
+            return
+        }
+
+        let needsCourse = scenario.screen != .courses && scenario.screen != .login
+        if needsCourse, screenshotCourse == nil {
+            return
+        }
+
+        switch scenario.screen {
+        case .courses:
+            selectionId = nil
+        case .export:
+            selectionId = screenshotCourse?.id
+            showExport = true
+        case .settings:
+            selectionId = screenshotCourse?.id
+            showSettings = true
+        case .queue:
+            selectionId = screenshotCourse?.id
+            showQueue = true
+        default:
+            selectionId = screenshotCourse?.id
+        }
+
+        didApplyScreenshotRoute = true
+    }
+
+    private var screenshotCourse: LocalCourse? {
+        guard let scenario = ScreenshotScenario.current else {
+            return nil
+        }
+        if let fixedCourse = courses.first(where: { $0.id == AppConfig.screenshotPrimaryCourseId }) {
+            return fixedCourse
+        }
+        let preferredRole = scenario.roleInCourse
+        return courses.first(where: { $0.roleInCourse == preferredRole }) ?? courses.first
+    }
+
+    private var screenshotPrimaryEntry: LocalPracticeEntry? {
+        guard let course = screenshotCourse, let scenario = ScreenshotScenario.current else {
+            return nil
+        }
+        let entriesInCourse = allEntries.filter { $0.courseId == course.id && $0.deletedAt == nil }
+        switch scenario.persona {
+        case .student:
+            if let currentUserId = authManager.session?.userId,
+               let ownEntry = entriesInCourse.first(where: { $0.studentId == currentUserId }) {
+                return ownEntry
+            }
+            return entriesInCourse.first
+        case .teacher:
+            if let submitted = entriesInCourse.first(where: { $0.status == .submitted }) {
+                return submitted
+            }
+            return entriesInCourse.first
+        }
+    }
+
+    private var screenshotFeedbackEntry: ReviewQueueResponse? {
+        guard let entry = screenshotPrimaryEntry else {
+            return nil
+        }
+        return ReviewQueueResponse(
+            id: entry.id,
+            courseId: entry.courseId,
+            studentId: entry.studentId,
+            studentName: displayName(for: entry.studentId),
+            practiceDate: entry.practiceDate,
+            goalText: entry.goalText,
+            notes: entry.notes,
+            artifacts: entry.artifacts.map {
+                ArtifactResponse(
+                    id: $0.id,
+                    entryId: $0.entryId,
+                    type: $0.type.rawValue,
+                    durationSeconds: $0.durationSeconds,
+                    uploadState: $0.uploadState.rawValue,
+                    storageKey: $0.storageKey,
+                    remoteUrl: $0.remoteUrl
+                )
+            }
+        )
+    }
+
+    private func displayName(for studentId: String) -> String {
+        switch studentId {
+        case "demo_student_lea":
+            return "Lea Sommer"
+        case "demo_student_noah":
+            return "Noah Keller"
+        default:
+            return studentId
         }
     }
 }

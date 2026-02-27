@@ -64,6 +64,19 @@ final class AuthManager: NSObject, ObservableObject {
         _ = authSession?.start()
     }
 
+    func signInForScreenshot(role: ScreenshotPersona) async throws {
+        let userId: String
+        switch role {
+        case .student:
+            userId = AppConfig.screenshotStudentUserId
+        case .teacher:
+            userId = AppConfig.screenshotTeacherUserId
+        }
+        let code = try await apiClient.issueDevCode(role: role.rawValue, userId: userId)
+        let session = try await apiClient.exchangeCodeForTokens(code: code)
+        persistSession(session)
+    }
+
     func signOut() {
         // Attempt server-side logout (revoke refresh tokens)
         Task {

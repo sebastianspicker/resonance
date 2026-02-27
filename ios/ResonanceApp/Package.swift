@@ -11,7 +11,7 @@ let package = Package(
     .executableTarget(
       name: "ResonanceApp",
       path: "Sources",
-      resources: [.process("Resources")]
+      resources: [.process("Resources/mock-university.json")]
     ),
     .testTarget(
       name: "ResonanceAppTests",

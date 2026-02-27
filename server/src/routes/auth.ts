@@ -41,13 +41,14 @@ export function registerAuthRoutes(
     requireLocalDevAuth(request);
     const html = `<!doctype html>
 <html>
-  <head><title>Resonance Dev Login</title></head>
+  <head><title>${config.devUniversityName} - Resonance Dev Login</title></head>
   <body>
-    <h1>Resonance Dev Login</h1>
-    <p>Select a role to continue.</p>
+    <h1>${config.devUniversityName}</h1>
+    <p>Resonance RC Demo Login</p>
+    <p>Select a persona to continue.</p>
     <ul>
-      <li><a href="/dev/authorize?role=student">Login as Student</a></li>
-      <li><a href="/dev/authorize?role=teacher">Login as Teacher</a></li>
+      <li><a href="/dev/authorize?role=student">Login as Student Persona</a></li>
+      <li><a href="/dev/authorize?role=teacher">Login as Teacher Persona</a></li>
     </ul>
   </body>
 </html>`;

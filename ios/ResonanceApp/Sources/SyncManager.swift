@@ -211,7 +211,7 @@ final class SyncManager: ObservableObject {
             }
             let status = feedback.status
             let commentsText = feedback.commentsText
-            let markers = feedback.markers.map { Marker(timeSeconds: $0.timeSeconds, text: $0.text) }
+            let markers = feedback.markers
             _ = try await apiClient.createFeedback(accessToken: accessToken, targetType: targetType, targetId: targetId, status: status, commentsText: commentsText, markers: markers)
             if targetType == "entry", let entry = try? fetchEntry(id: targetId) {
                 entry.status = .reviewed
