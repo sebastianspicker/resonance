@@ -64,6 +64,7 @@ junit.xml
 junit-*.xml
 reports/
 .cache/
+.tmp/
 .pytest_cache/
 .mypy_cache/
 .ruff_cache/
