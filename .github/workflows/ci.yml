@@ -68,6 +68,9 @@ jobs:
       - name: Secret scan
         run: ./scripts/secret-scan.sh
 
+      - name: Build artifact guard
+        run: ./scripts/check-no-build-artifacts.sh
+
       - name: Generate Prisma client
         working-directory: server
         run: npm run prisma:generate

@@ -89,6 +89,10 @@ npm run format
 ```bash
 ./scripts/secret-scan.sh
 ```
+- Build artifact guard:
+```bash
+./scripts/check-no-build-artifacts.sh
+```
 - SCA/dependency scan (requires network access):
 ```bash
 cd server
@@ -112,4 +116,10 @@ npm run prisma:migrate
 npm run prisma:seed
 npm run build
 npm test
+```
+
+## Cleanup
+Remove local build/runtime artifacts:
+```bash
+./scripts/clean-workspace.sh
 ```

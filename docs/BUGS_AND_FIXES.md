@@ -394,6 +394,22 @@ Same as (2): Code exchange does not bind or validate `redirectUri`. **Sources:**
 
 ---
 
+## Remediation Update (February 27, 2026)
+
+The following high-priority items were implemented:
+
+- Dev auth hardened to localhost-only access (`DEV_AUTH_LOCAL_ONLY` outside loopback).
+- Artifact `presign`/`confirm` restricted to owning student only.
+- Entry submit authorization switched to `roleInCourse` instead of `globalRole`.
+- Presign contract extended with `requiredHeaders` and iOS uploader now applies those headers.
+- `CORS_ORIGINS` empty state changed to fail-closed.
+- `POST /courses/:courseId/entries` now validates `notes` as `string|null`.
+- `.env.example` and test setup now use 32+ char JWT secrets.
+- Test DB safety tightened: tests refuse to run unless `DATABASE_URL` clearly points to a test DB.
+- Added regression tests for localhost-only dev auth, owner-only artifact authorization, and course-role submit logic.
+
+---
+
 ## Quick reference: common failure causes
 
 | Symptom | Typical cause | Fix / see |
@@ -418,3 +434,23 @@ Same as (2): Code exchange does not bind or validate `redirectUri`. **Sources:**
 - **Title:** Use the **[Bug]** / **[Enhancement]** part as a prefix or label.
 - **Body:** Copy the relevant section (description, impact, fix, sources) into the issue.
 - The **quick reference** table can be linked from the README or a meta-issue for troubleshooting.
+
+## 2026-02-27 Masterplan Execution (P0-P2 focus)
+
+### Fixed
+- Added `reviewed` to entry lifecycle (`draft -> submitted -> reviewed`) in server Prisma schema and iOS model.
+- `POST /feedback` now marks parent entry as `reviewed` for both `targetType=entry` and `targetType=artifact`.
+- `GET /courses/:courseId/review-queue` is now deterministic (`practiceDate desc`, `createdAt desc`).
+- iOS shows entry status badges and artifact sync phases (`queued`, `uploading`, `confirming`, `uploaded`, `failed`).
+- iOS delete flow now requires explicit user confirmation.
+- iOS login/settings now display active API host/environment details.
+- iOS deep links now refresh courses before navigating if the target course is not yet local.
+- Added sync queue UX: pending/failed counters, queue screen, manual retry for failed items.
+- Added local student entry templates and teacher feedback snippets.
+- Added export-time local practice stats (duration + status distribution).
+- Added workspace cleanup script (`scripts/clean-workspace.sh`) and build-artifact guard (`scripts/check-no-build-artifacts.sh`).
+- Added docs index and archived legacy docs under `docs/archive/`.
+
+### Remaining / Follow-up
+- Full structural dedup split of `SyncManager` into dedicated components (`QueueStore`, `TaskExecutor`, `RetryPolicy`) is still pending.
+- Full server-wide parser/authz dedup into service+policy layers remains partially complete.

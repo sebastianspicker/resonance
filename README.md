@@ -80,7 +80,7 @@ Backend environment variables (see `server/.env.example`):
 - `DATABASE_URL` — Postgres connection string
 - `JWT_SECRET` — signing key (required)
 - `AUTH_MODE` — `dev` or `prod` (defaults to `prod`)
-- `CORS_ORIGINS` — comma-separated allowlist (empty = allow all)
+- `CORS_ORIGINS` — comma-separated allowlist (empty = fail-closed, no cross-origin access)
 - `S3_*` — MinIO/S3 endpoint + credentials
 
 ## Development Scripts (Server)
@@ -90,15 +90,21 @@ cd server
 npm run dev          # start dev server
 npm run build        # TypeScript build
 npm run start        # run compiled server
+npm run clean        # remove local build/test artifacts in server/
 npm test             # run tests (requires Postgres)
 npm run lint         # ESLint
 npm run format       # Prettier (write)
 npm run format:check # Prettier (check)
 ```
 
+Workspace cleanup (repo root):
+```bash
+./scripts/clean-workspace.sh
+```
+
 ## Tests
 
-Backend tests require Postgres running:
+Backend tests require Postgres running and `DATABASE_URL` pointing to a test database (must include `test`, e.g. `resonance_test`):
 
 ```bash
 docker compose -f infra/docker-compose.yml up -d
@@ -127,7 +133,7 @@ npm run build && npm test
 
 ## Security
 
-- Dev auth endpoints (`/dev/*`) are disabled unless `AUTH_MODE=dev`.
+- Dev auth endpoints (`/dev/*`) are disabled unless `AUTH_MODE=dev` and are restricted to localhost requests.
 - Secret scanning: `./scripts/secret-scan.sh`
 - Dependency audit: `npm audit --audit-level=high` (in `server/`)
 - SAST: CodeQL runs in GitHub Actions (`.github/workflows/codeql.yml`)
@@ -145,16 +151,15 @@ npm run build && npm test
 - **CORS issues in prod**: Set `CORS_ORIGINS` to explicit allowed origins.
 
 ## Docs
+- `docs/INDEX.md` — Canonical documentation entry point
 - `docs/PRD.md` — Product requirements
-- `docs/USER_STORIES.md` — User stories
 - `docs/ARCHITECTURE.md` — Architecture
-- `docs/DATA_MODEL.md` — Data model
 - `docs/API.md` — API reference
 - `docs/UI.md` — UI spec
 - `docs/SECURITY.md` — Security documentation
-- `docs/ASSUMPTIONS.md` — Product assumptions
 - `docs/RUNBOOK.md` — Ops runbook
 - `docs/BUGS_AND_FIXES.md` — Known bugs and required fixes (issue source)
+- `docs/archive/` — Archived historical docs
 
 ## License
 MIT.

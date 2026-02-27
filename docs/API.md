@@ -38,8 +38,10 @@ Response:
 { "accessToken": "jwt", "refreshToken": "jwt" }
 ```
 
-### POST /dev/login (dev only)
+### GET /dev/login (dev only)
 HTML login (ASWebAuthenticationSession) that redirects to `resonance://auth-callback`.
+
+Note: Dev auth routes (`/dev/*`) are localhost-only and return `DEV_AUTH_LOCAL_ONLY` for non-local requests.
 
 ## Courses
 
@@ -66,6 +68,10 @@ Hard-delete entry and associated artifacts/feedback; storage objects are deleted
 ### POST /entries/:entryId/submit
 Submit an entry for review.
 
+Entry lifecycle:
+- `draft` -> `submitted` -> `reviewed`
+- Editing/submitting is restricted to `draft` entries only.
+
 ## Artifacts
 
 ### POST /entries/:entryId/artifacts
@@ -74,16 +80,36 @@ Create artifact record.
 ### POST /artifacts/:artifactId/presign
 Request pre-signed upload URL.
 
+Authorization: only the owning student of the artifact's entry can call this endpoint.
+
+Response includes required request headers for upload:
+```
+{
+  "uploadUrl": "...",
+  "storageKey": "...",
+  "expiresInSeconds": 900,
+  "requiredHeaders": { "Content-Type": "audio/m4a|video/mp4" }
+}
+```
+
 ### POST /artifacts/:artifactId/confirm
 Confirm upload (server performs HEAD).
+
+Authorization: only the owning student of the artifact's entry can call this endpoint.
 
 ## Feedback
 
 ### GET /courses/:courseId/review-queue
 Teacher-only list of submitted entries.
 
+Ordering:
+- deterministic order by `practiceDate desc`, then `createdAt desc`.
+
 ### POST /feedback
 Create feedback on entry or artifact.
+
+Side effect:
+- when feedback is created for an entry or one of its artifacts, the parent entry status is set to `reviewed`.
 
 ### GET /entries/:entryId/feedback
 Fetch feedback for an entry.

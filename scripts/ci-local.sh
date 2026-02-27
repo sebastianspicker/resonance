@@ -64,6 +64,9 @@ docker compose -f infra/docker-compose.yml config -q
 echo "Running secret scan..."
 ./scripts/secret-scan.sh
 
+echo "Checking committed build artifacts..."
+./scripts/check-no-build-artifacts.sh
+
 echo "Installing dependencies..."
 ( cd server && npm ci )
 
@@ -81,4 +84,3 @@ echo "Typechecking..."
 
 echo "Running tests..."
 ( cd server && npm test )
-
