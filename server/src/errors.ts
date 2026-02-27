@@ -14,11 +14,22 @@ export class ApiError extends Error {
 }
 
 export function sendError(reply: FastifyReply, error: ApiError) {
+  // Only expose safe detail fields to the client
+  const safeDetails: Record<string, unknown> = {};
+  if (error.details) {
+    const allowedKeys = ['field', 'reason', 'expected', 'actual'];
+    for (const key of allowedKeys) {
+      if (error.details[key] !== undefined) {
+        safeDetails[key] = error.details[key];
+      }
+    }
+  }
+
   reply.code(error.statusCode).send({
     error: {
       code: error.code,
       message: error.message,
-      details: error.details ?? {}
+      details: safeDetails
     }
   });
 }

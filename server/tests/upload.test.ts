@@ -52,8 +52,9 @@ describe('media upload flow', () => {
 
     expect(presignRes.status).toBe(200);
     expect(presignRes.body.uploadUrl).toBeTruthy();
+    expect(presignRes.body.requiredHeaders?.['Content-Type']).toBe('audio/m4a');
 
-    s3Mock.on(HeadObjectCommand).resolves({});
+    s3Mock.on(HeadObjectCommand).resolves({ ContentLength: 128 });
 
     const confirmRes = await request(app.server)
       .post(`/artifacts/${artifactRes.body.id}/confirm`)
@@ -62,5 +63,82 @@ describe('media upload flow', () => {
 
     expect(confirmRes.status).toBe(200);
     expect(confirmRes.body.uploadState).toBe('uploaded');
+  });
+
+  it('denies non-owner student for presign and confirm', async () => {
+    const otherStudent = await prisma.user.create({
+      data: { id: 'student-2', displayName: 'Other Student', globalRole: 'student' }
+    });
+    await prisma.membership.create({
+      data: { userId: otherStudent.id, courseId: 'COURSE_TEST', roleInCourse: 'student' }
+    });
+
+    const ownerToken = await login('student');
+    const otherToken = await getAccessToken('student', { userId: 'student-2' });
+
+    const entry = await prisma.practiceEntry.create({
+      data: {
+        id: 'entry-2',
+        courseId: 'COURSE_TEST',
+        studentId: 'student-1',
+        practiceDate: new Date(),
+        goalText: 'Practice',
+        tags: ['tag'],
+        status: 'draft'
+      }
+    });
+
+    const artifactRes = await request(app.server)
+      .post(`/entries/${entry.id}/artifacts`)
+      .set('Authorization', `Bearer ${ownerToken}`)
+      .send({ id: 'artifact-2', type: 'audio', durationSeconds: 30 });
+    expect(artifactRes.status).toBe(200);
+
+    const presignRes = await request(app.server)
+      .post(`/artifacts/${artifactRes.body.id}/presign`)
+      .set('Authorization', `Bearer ${otherToken}`)
+      .send();
+    expect(presignRes.status).toBe(403);
+
+    const confirmRes = await request(app.server)
+      .post(`/artifacts/${artifactRes.body.id}/confirm`)
+      .set('Authorization', `Bearer ${otherToken}`)
+      .send();
+    expect(confirmRes.status).toBe(403);
+  });
+
+  it('denies teacher for presign and confirm', async () => {
+    const studentToken = await login('student');
+    const teacherToken = await login('teacher');
+
+    const entry = await prisma.practiceEntry.create({
+      data: {
+        id: 'entry-3',
+        courseId: 'COURSE_TEST',
+        studentId: 'student-1',
+        practiceDate: new Date(),
+        goalText: 'Practice',
+        tags: ['tag'],
+        status: 'draft'
+      }
+    });
+
+    const artifactRes = await request(app.server)
+      .post(`/entries/${entry.id}/artifacts`)
+      .set('Authorization', `Bearer ${studentToken}`)
+      .send({ id: 'artifact-3', type: 'audio', durationSeconds: 30 });
+    expect(artifactRes.status).toBe(200);
+
+    const presignRes = await request(app.server)
+      .post(`/artifacts/${artifactRes.body.id}/presign`)
+      .set('Authorization', `Bearer ${teacherToken}`)
+      .send();
+    expect(presignRes.status).toBe(403);
+
+    const confirmRes = await request(app.server)
+      .post(`/artifacts/${artifactRes.body.id}/confirm`)
+      .set('Authorization', `Bearer ${teacherToken}`)
+      .send();
+    expect(confirmRes.status).toBe(403);
   });
 });

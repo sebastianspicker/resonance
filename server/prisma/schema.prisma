@@ -20,6 +20,7 @@ enum CourseRole {
 enum EntryStatus {
   draft
   submitted
+  reviewed
 }
 
 enum ArtifactType {
@@ -66,10 +67,12 @@ model Membership {
   userId   String
   courseId String
   roleInCourse CourseRole
-  user     User   @relation(fields: [userId], references: [id])
-  course   Course @relation(fields: [courseId], references: [id])
+  user     User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  course   Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
 
   @@id([userId, courseId])
+  @@index([userId])
+  @@index([courseId])
 }
 
 model PracticeEntry {
@@ -86,9 +89,13 @@ model PracticeEntry {
   updatedAt       DateTime    @updatedAt
   deletedAt       DateTime?
 
-  course  Course @relation(fields: [courseId], references: [id])
-  student User   @relation("StudentEntries", fields: [studentId], references: [id])
+  course  Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  student User   @relation("StudentEntries", fields: [studentId], references: [id], onDelete: Cascade)
   artifacts Artifact[]
+
+  @@index([courseId])
+  @@index([studentId])
+  @@index([status])
 }
 
 model Artifact {
@@ -101,7 +108,9 @@ model Artifact {
   storageKey      String?
   remoteUrl       String?
 
-  entry PracticeEntry @relation(fields: [entryId], references: [id])
+  entry PracticeEntry @relation(fields: [entryId], references: [id], onDelete: Cascade)
+
+  @@index([entryId])
 }
 
 model Feedback {
@@ -113,8 +122,11 @@ model Feedback {
   status      FeedbackStatus
   commentsText String
 
-  teacher User @relation(fields: [teacherId], references: [id])
+  teacher User @relation(fields: [teacherId], references: [id], onDelete: Cascade)
   markers Marker[]
+
+  @@index([targetId, targetType])
+  @@index([teacherId])
 }
 
 model Marker {
@@ -123,7 +135,9 @@ model Marker {
   timeSeconds Int
   text        String
 
-  feedback Feedback @relation(fields: [feedbackId], references: [id])
+  feedback Feedback @relation(fields: [feedbackId], references: [id], onDelete: Cascade)
+
+  @@index([feedbackId])
 }
 
 model RefreshToken {
@@ -134,5 +148,8 @@ model RefreshToken {
   revokedAt  DateTime?
   createdAt  DateTime @default(now())
 
-  user User @relation(fields: [userId], references: [id])
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([tokenHash])
 }

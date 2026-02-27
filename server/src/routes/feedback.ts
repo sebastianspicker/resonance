@@ -18,9 +18,6 @@ export function registerFeedbackRoutes(
 ) {
   app.post('/feedback', { preHandler: requireAuth }, async (request) => {
     const user = request.user!;
-    if (user.role !== 'teacher') {
-      throw new ApiError(403, 'ONLY_TEACHERS', 'Only teachers can leave feedback');
-    }
     const body = request.body as Record<string, unknown>;
     const targetType = requireEnum(
       requireField(body?.targetType, 'targetType'),
@@ -38,16 +35,29 @@ export function registerFeedbackRoutes(
       'commentsText'
     );
     const markers = Array.isArray(body?.markers) ? (body.markers as Record<string, unknown>[]) : [];
+    if (markers.length > 50) {
+      throw new ApiError(400, 'VALIDATION_ERROR', 'Too many markers (max 50)');
+    }
     for (const marker of markers) {
       requireNumber(marker?.timeSeconds, 'marker.timeSeconds', { min: 0 });
-      requireString(requireField(marker?.text, 'marker.text'), 'marker.text');
+      requireString(requireField(marker?.text, 'marker.text'), 'marker.text', { max: 1000 });
     }
+    
+    let courseId: string;
+    let reviewEntryId: string;
     if (targetType === 'entry') {
       const entry = await prisma.practiceEntry.findUnique({ where: { id: targetId } });
       if (!entry) {
         throw new ApiError(404, 'ENTRY_NOT_FOUND', 'Entry not found');
       }
-      await requireCourseRole(prisma, user.id, entry.courseId);
+      if (entry.deletedAt) {
+        throw new ApiError(410, 'ENTRY_DELETED', 'Entry has been deleted');
+      }
+      if (entry.status === 'draft') {
+        throw new ApiError(409, 'ENTRY_NOT_SUBMITTED', 'Entry must be submitted before feedback can be added');
+      }
+      courseId = entry.courseId;
+      reviewEntryId = entry.id;
     } else if (targetType === 'artifact') {
       const artifact = await prisma.artifact.findUnique({
         where: { id: targetId },
@@ -56,29 +66,55 @@ export function registerFeedbackRoutes(
       if (!artifact) {
         throw new ApiError(404, 'ARTIFACT_NOT_FOUND', 'Artifact not found');
       }
-      await requireCourseRole(prisma, user.id, artifact.entry.courseId);
+      if (artifact.entry.deletedAt) {
+        throw new ApiError(410, 'ENTRY_DELETED', 'Entry has been deleted');
+      }
+      if (artifact.entry.status === 'draft') {
+        throw new ApiError(409, 'ENTRY_NOT_SUBMITTED', 'Entry must be submitted before feedback can be added');
+      }
+      courseId = artifact.entry.courseId;
+      reviewEntryId = artifact.entry.id;
     } else {
       throw new ApiError(400, 'INVALID_TARGET', 'Invalid target type');
     }
+    
+    // Use course role for authorization - only course teachers can leave feedback
+    const roleInCourse = await requireCourseRole(prisma, user.id, courseId);
+    if (roleInCourse !== 'teacher') {
+      throw new ApiError(403, 'ONLY_TEACHERS', 'Only course teachers can leave feedback');
+    }
+    
     const feedbackId = `fb_${nanoid(12)}`;
-    const feedback = await prisma.feedback.create({
-      data: {
-        id: feedbackId,
-        targetType,
-        targetId,
-        teacherId: user.id,
-        status,
-        commentsText,
-        markers: {
-          create: markers.map((marker: Record<string, unknown>) => ({
-            id: `mk_${nanoid(10)}`,
-            timeSeconds: marker.timeSeconds as number,
-            text: marker.text as string
-          }))
-        }
-      },
-      include: { markers: true }
+    const feedback = await prisma.$transaction(async (tx) => {
+      const created = await tx.feedback.create({
+        data: {
+          id: feedbackId,
+          targetType,
+          targetId,
+          teacherId: user.id,
+          status,
+          commentsText,
+          markers: {
+            create: markers.map((marker: Record<string, unknown>) => ({
+              id: `mk_${nanoid(10)}`,
+              timeSeconds: marker.timeSeconds as number,
+              text: marker.text as string
+            }))
+          }
+        },
+        include: { markers: true, teacher: true }
+      });
+
+      await tx.practiceEntry.update({
+        where: { id: reviewEntryId },
+        data: { status: 'reviewed' }
+      });
+
+      return created;
     });
-    return feedback;
+    return {
+      ...feedback,
+      teacherName: feedback.teacher.displayName
+    };
   });
 }

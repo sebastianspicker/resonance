@@ -38,3 +38,20 @@ export const config = {
   devLoginCallbackUrl: process.env.DEV_LOGIN_CALLBACK_URL ?? 'resonance://auth-callback',
   appBaseUrl: process.env.APP_BASE_URL ?? 'http://localhost:4000'
 };
+
+if (config.jwtSecret.length < 32) {
+  throw new Error('JWT_SECRET must be at least 32 characters long for security.');
+}
+
+if (Number.isNaN(config.port)) {
+  throw new Error('PORT must be a valid number.');
+}
+
+if (Number.isNaN(config.accessTokenTtlMinutes) || config.accessTokenTtlMinutes <= 0) {
+  throw new Error('ACCESS_TOKEN_TTL_MINUTES must be a positive number.');
+}
+
+if (Number.isNaN(config.refreshTokenTtlDays) || config.refreshTokenTtlDays <= 0) {
+  throw new Error('REFRESH_TOKEN_TTL_DAYS must be a positive number.');
+}
+

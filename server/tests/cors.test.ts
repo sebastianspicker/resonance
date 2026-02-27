@@ -12,7 +12,7 @@ function buildOriginRequest(app: any, origin?: string) {
 }
 
 describe('cors', () => {
-  it('allows all origins when CORS_ORIGINS is empty', async () => {
+  it('fails closed when CORS_ORIGINS is empty', async () => {
     process.env.CORS_ORIGINS = '';
     vi.resetModules();
     const { buildServer } = await import('../src/server.js');
@@ -21,8 +21,8 @@ describe('cors', () => {
     await app.ready();
 
     const res = await buildOriginRequest(app, 'https://example.com');
-    expect(res.status).toBe(204);
-    expect(res.headers['access-control-allow-origin']).toBe('https://example.com');
+    expect(res.status).toBe(404);
+    expect(res.headers['access-control-allow-origin']).toBeUndefined();
 
     await app.close();
     await prisma.$disconnect();

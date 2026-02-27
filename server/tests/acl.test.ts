@@ -73,6 +73,57 @@ describe('acl', () => {
     expect(res.body.length).toBe(1);
   });
 
+  it('returns review queue sorted by practiceDate desc then createdAt desc', async () => {
+    await prisma.practiceEntry.create({
+      data: {
+        id: 'entry-old-practice',
+        courseId: 'COURSE_TEST',
+        studentId: 'student-1',
+        practiceDate: new Date('2025-01-01T10:00:00.000Z'),
+        createdAt: new Date('2025-01-01T09:00:00.000Z'),
+        goalText: 'Older practice',
+        tags: ['tag'],
+        status: 'submitted'
+      }
+    });
+    await prisma.practiceEntry.create({
+      data: {
+        id: 'entry-new-practice',
+        courseId: 'COURSE_TEST',
+        studentId: 'student-1',
+        practiceDate: new Date('2025-01-02T10:00:00.000Z'),
+        createdAt: new Date('2025-01-01T08:00:00.000Z'),
+        goalText: 'Newer practice',
+        tags: ['tag'],
+        status: 'submitted'
+      }
+    });
+    await prisma.practiceEntry.create({
+      data: {
+        id: 'entry-same-practice-newer-created',
+        courseId: 'COURSE_TEST',
+        studentId: 'student-1',
+        practiceDate: new Date('2025-01-02T10:00:00.000Z'),
+        createdAt: new Date('2025-01-02T11:00:00.000Z'),
+        goalText: 'Tie-breaker newer createdAt',
+        tags: ['tag'],
+        status: 'submitted'
+      }
+    });
+
+    const token = await login('teacher');
+    const res = await request(app.server)
+      .get('/courses/COURSE_TEST/review-queue')
+      .set('Authorization', `Bearer ${token}`);
+
+    expect(res.status).toBe(200);
+    expect(res.body.map((entry: any) => entry.id)).toEqual([
+      'entry-same-practice-newer-created',
+      'entry-new-practice',
+      'entry-old-practice'
+    ]);
+  });
+
   it('blocks access to deleted entries', async () => {
     const entry = await prisma.practiceEntry.create({
       data: {
@@ -201,6 +252,46 @@ describe('acl', () => {
     expect(markerAfter).toBeNull();
   });
 
+  it('uses course role (not global role) for submit authorization', async () => {
+    const mixedUser = await prisma.user.create({
+      data: { id: 'mixed-role-user', displayName: 'Mixed Role', globalRole: 'teacher' }
+    });
+    await prisma.membership.create({
+      data: { userId: mixedUser.id, courseId: 'COURSE_TEST', roleInCourse: 'student' }
+    });
+
+    await prisma.practiceEntry.create({
+      data: {
+        id: 'entry-mixed-role',
+        courseId: 'COURSE_TEST',
+        studentId: mixedUser.id,
+        practiceDate: new Date(),
+        goalText: 'Submit me',
+        tags: ['tag'],
+        status: 'draft'
+      }
+    });
+    await prisma.artifact.create({
+      data: {
+        id: 'artifact-mixed-role',
+        entryId: 'entry-mixed-role',
+        type: 'audio',
+        durationSeconds: 15,
+        uploadState: 'uploaded',
+        storageKey: 'artifacts/entry-mixed-role/artifact-mixed-role'
+      }
+    });
+
+    const token = await getAccessToken('teacher', { userId: mixedUser.id });
+    const res = await request(app.server)
+      .post('/entries/entry-mixed-role/submit')
+      .set('Authorization', `Bearer ${token}`)
+      .send();
+
+    expect(res.status).toBe(200);
+    expect(res.body.status).toBe('submitted');
+  });
+
   it('rejects invalid artifact type', async () => {
     const entry = await prisma.practiceEntry.create({
       data: {
@@ -249,5 +340,76 @@ describe('acl', () => {
       });
 
     expect(res.status).toBe(400);
+  });
+
+  it('marks entry as reviewed when teacher posts feedback directly on entry', async () => {
+    const entry = await prisma.practiceEntry.create({
+      data: {
+        id: 'entry-review-status',
+        courseId: 'COURSE_TEST',
+        studentId: 'student-1',
+        practiceDate: new Date(),
+        goalText: 'Review target',
+        tags: ['tag'],
+        status: 'submitted'
+      }
+    });
+
+    const token = await login('teacher');
+    const res = await request(app.server)
+      .post('/feedback')
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        targetType: 'entry',
+        targetId: entry.id,
+        status: 'ok',
+        commentsText: 'Looks good',
+        markers: []
+      });
+
+    expect(res.status).toBe(200);
+
+    const updatedEntry = await prisma.practiceEntry.findUnique({ where: { id: entry.id } });
+    expect(updatedEntry?.status).toBe('reviewed');
+  });
+
+  it('marks parent entry as reviewed when teacher posts feedback on artifact', async () => {
+    const entry = await prisma.practiceEntry.create({
+      data: {
+        id: 'entry-artifact-review-status',
+        courseId: 'COURSE_TEST',
+        studentId: 'student-1',
+        practiceDate: new Date(),
+        goalText: 'Artifact review target',
+        tags: ['tag'],
+        status: 'submitted'
+      }
+    });
+    const artifact = await prisma.artifact.create({
+      data: {
+        id: 'artifact-review-status',
+        entryId: entry.id,
+        type: 'audio',
+        durationSeconds: 12,
+        uploadState: 'uploaded'
+      }
+    });
+
+    const token = await login('teacher');
+    const res = await request(app.server)
+      .post('/feedback')
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        targetType: 'artifact',
+        targetId: artifact.id,
+        status: 'ok',
+        commentsText: 'Great take',
+        markers: []
+      });
+
+    expect(res.status).toBe(200);
+
+    const updatedEntry = await prisma.practiceEntry.findUnique({ where: { id: entry.id } });
+    expect(updatedEntry?.status).toBe('reviewed');
   });
 });

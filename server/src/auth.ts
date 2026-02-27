@@ -7,6 +7,11 @@ import { ApiError } from './errors.js';
 
 const devAuthCodes = new Map<string, { userId: string; expiresAt: number }>();
 
+// JWT configuration constants
+const JWT_ISSUER = 'resonance-api';
+const JWT_AUDIENCE = 'resonance-app';
+const JWT_ALGORITHM = 'HS256' as const;
+
 export function hashToken(token: string) {
   return crypto.createHash('sha256').update(token).digest('hex');
 }
@@ -16,7 +21,12 @@ export function signAccessToken(user: User) {
   return jwt.sign(
     { sub: user.id, role: user.globalRole },
     config.jwtSecret,
-    { expiresIn }
+    { 
+      expiresIn,
+      issuer: JWT_ISSUER,
+      audience: JWT_AUDIENCE,
+      algorithm: JWT_ALGORITHM
+    }
   );
 }
 
@@ -25,13 +35,22 @@ export function signRefreshToken(user: User, tokenId: string) {
   return jwt.sign(
     { sub: user.id, jti: tokenId },
     config.jwtSecret,
-    { expiresIn }
+    { 
+      expiresIn,
+      issuer: JWT_ISSUER,
+      audience: JWT_AUDIENCE,
+      algorithm: JWT_ALGORITHM
+    }
   );
 }
 
 export function verifyAccessToken(token: string) {
   try {
-    return jwt.verify(token, config.jwtSecret) as jwt.JwtPayload;
+    return jwt.verify(token, config.jwtSecret, { 
+      algorithms: [JWT_ALGORITHM],
+      issuer: JWT_ISSUER,
+      audience: JWT_AUDIENCE
+    }) as jwt.JwtPayload;
   } catch {
     throw new ApiError(401, 'INVALID_TOKEN', 'Invalid or expired token');
   }
@@ -39,7 +58,11 @@ export function verifyAccessToken(token: string) {
 
 export function verifyRefreshToken(token: string) {
   try {
-    return jwt.verify(token, config.jwtSecret) as jwt.JwtPayload;
+    return jwt.verify(token, config.jwtSecret, { 
+      algorithms: [JWT_ALGORITHM],
+      issuer: JWT_ISSUER,
+      audience: JWT_AUDIENCE
+    }) as jwt.JwtPayload;
   } catch {
     throw new ApiError(401, 'INVALID_REFRESH', 'Invalid or expired refresh token');
   }
@@ -73,34 +96,45 @@ export async function rotateRefreshToken(prisma: PrismaClient, refreshToken: str
     throw new ApiError(401, 'INVALID_REFRESH', 'Invalid refresh token payload');
   }
 
-  const record = await prisma.refreshToken.findUnique({ where: { id: tokenId } });
-  if (!record) {
-    throw new ApiError(401, 'REFRESH_REVOKED', 'Refresh token has been revoked');
-  }
-  if (record.revokedAt) {
-    throw new ApiError(401, 'REFRESH_REVOKED', 'Refresh token has been revoked');
-  }
-  if (record.expiresAt.getTime() < Date.now()) {
-    throw new ApiError(401, 'REFRESH_EXPIRED', 'Refresh token expired');
-  }
-  if (record.tokenHash !== hashToken(refreshToken)) {
-    throw new ApiError(401, 'REFRESH_MISMATCH', 'Refresh token mismatch');
-  }
+  return await prisma.$transaction(async (tx) => {
+    // Verify token hash first (before any updates)
+    const record = await tx.refreshToken.findUnique({
+      where: { id: tokenId },
+    });
 
-  const updated = await prisma.refreshToken.updateMany({
-    where: { id: tokenId, revokedAt: null },
-    data: { revokedAt: new Date() }
+    if (!record || record.expiresAt.getTime() < Date.now()) {
+      throw new ApiError(401, 'REFRESH_REVOKED', 'Refresh token is invalid or expired');
+    }
+
+    const providedHash = Buffer.from(hashToken(refreshToken), 'hex');
+    const storedHash = Buffer.from(record.tokenHash, 'hex');
+
+    if (providedHash.length !== storedHash.length || !crypto.timingSafeEqual(providedHash, storedHash)) {
+      throw new ApiError(401, 'REFRESH_MISMATCH', 'Refresh token mismatch');
+    }
+
+    // Atomic conditional update: only revoke if not already revoked
+    // This prevents race conditions where two concurrent requests could both succeed
+    const updateResult = await tx.refreshToken.updateMany({
+      where: { 
+        id: tokenId,
+        revokedAt: null  // Only update if not already revoked
+      },
+      data: { revokedAt: new Date() }
+    });
+
+    // If no rows were updated, the token was already used (race condition detected)
+    if (updateResult.count === 0) {
+      throw new ApiError(401, 'REFRESH_ALREADY_USED', 'Refresh token was already used');
+    }
+
+    const user = await tx.user.findUnique({ where: { id: userId } });
+    if (!user) {
+      throw new ApiError(401, 'USER_NOT_FOUND', 'User not found');
+    }
+
+    return issueTokens(tx as any, user);
   });
-  if (updated.count === 0) {
-    throw new ApiError(401, 'REFRESH_REVOKED', 'Refresh token has been revoked');
-  }
-
-  const user = await prisma.user.findUnique({ where: { id: userId } });
-  if (!user) {
-    throw new ApiError(401, 'USER_NOT_FOUND', 'User not found');
-  }
-
-  return issueTokens(prisma, user);
 }
 
 export function issueDevAuthCode(userId: string) {

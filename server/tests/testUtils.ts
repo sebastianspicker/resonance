@@ -12,6 +12,13 @@ export const app = buildServer(prisma, s3Client);
 
 export type TestRole = 'student' | 'teacher';
 
+function assertTestDatabase() {
+  const dbUrl = process.env.DATABASE_URL;
+  if (!dbUrl || !dbUrl.toLowerCase().includes('test')) {
+    throw new Error(`Refusing destructive test setup against non-test database: ${dbUrl ?? '<unset>'}`);
+  }
+}
+
 export async function getAccessToken(
   role: TestRole,
   options?: { userId?: string }
@@ -35,6 +42,7 @@ export async function teardownApp() {
 }
 
 export async function resetDb() {
+  assertTestDatabase();
   await prisma.$executeRawUnsafe('TRUNCATE "Marker", "Feedback", "Artifact", "PracticeEntry", "Membership", "Course", "User", "RefreshToken" CASCADE;');
 }
 

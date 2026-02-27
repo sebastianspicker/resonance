@@ -55,7 +55,7 @@ describe('auth', () => {
 
     const reuse = await request(app.server).post('/auth/refresh').send({ refreshToken });
     expect(reuse.status).toBe(401);
-    expect(reuse.body.error?.code).toBe('REFRESH_REVOKED');
+    expect(reuse.body.error?.code).toBe('REFRESH_ALREADY_USED');
   });
 
   it('rejects invalid refresh tokens', async () => {

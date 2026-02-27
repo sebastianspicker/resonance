@@ -26,9 +26,9 @@ export function registerArtifactRoutes(
     if (!entry || entry.deletedAt) {
       throw new ApiError(404, 'ENTRY_NOT_FOUND', 'Entry not found');
     }
-    await requireCourseRole(prisma, user.id, entry.courseId);
-    if (user.role !== 'student' || entry.studentId !== user.id) {
-      throw new ApiError(403, 'ONLY_STUDENTS', 'Only the student owner can add artifacts');
+    const roleInCourse = await requireCourseRole(prisma, user.id, entry.courseId);
+    if (roleInCourse !== 'student' || entry.studentId !== user.id) {
+      throw new ApiError(403, 'ARTIFACT_ACCESS_DENIED', 'Only the student owner can add artifacts');
     }
     const body = request.body as Record<string, unknown>;
     const artifactId = requireString(requireField(body?.id, 'id'), 'id');
@@ -54,24 +54,38 @@ export function registerArtifactRoutes(
     if (!artifact) {
       throw new ApiError(404, 'ARTIFACT_NOT_FOUND', 'Artifact not found');
     }
-    await requireCourseRole(prisma, user.id, artifact.entry.courseId);
-    if (user.role === 'student' && artifact.entry.studentId !== user.id) {
-      throw new ApiError(403, 'ARTIFACT_ACCESS_DENIED', 'Artifact not owned by student');
+    if (artifact.entry.deletedAt) {
+      throw new ApiError(410, 'ENTRY_DELETED', 'Entry has been deleted');
     }
+    // Use course role for authorization
+    const roleInCourse = await requireCourseRole(prisma, user.id, artifact.entry.courseId);
+    if (roleInCourse !== 'student' || artifact.entry.studentId !== user.id) {
+      throw new ApiError(403, 'ARTIFACT_ACCESS_DENIED', 'Only the student owner can presign artifacts');
+    }
+    // Generate new storage key if not already set (avoid overwriting existing)
     const storageKey = artifact.storageKey ?? `artifacts/${artifact.entryId}/${artifact.id}`;
+    const contentType = artifact.type === 'audio' ? 'audio/m4a' : 'video/mp4';
     const command = new PutObjectCommand({
       Bucket: config.s3.bucket,
       Key: storageKey,
-      ContentType: artifact.type === 'audio' ? 'audio/m4a' : 'video/mp4'
+      ContentType: contentType
     });
     const uploadUrl = await getSignedUrl(s3, command, {
       expiresIn: config.s3.presignTtlSeconds
     });
-    await prisma.artifact.update({
-      where: { id: artifactId },
-      data: { storageKey, uploadState: 'uploading' }
-    });
-    return { uploadUrl, storageKey, expiresInSeconds: config.s3.presignTtlSeconds };
+    // Only update storageKey and uploadState if not already uploaded
+    if (artifact.uploadState !== 'uploaded') {
+      await prisma.artifact.update({
+        where: { id: artifactId },
+        data: { storageKey, uploadState: 'uploading' }
+      });
+    }
+    return {
+      uploadUrl,
+      storageKey,
+      expiresInSeconds: config.s3.presignTtlSeconds,
+      requiredHeaders: { 'Content-Type': contentType }
+    };
   });
 
   app.post('/artifacts/:artifactId/confirm', { preHandler: requireAuth }, async (request) => {
@@ -84,16 +98,28 @@ export function registerArtifactRoutes(
     if (!artifact) {
       throw new ApiError(404, 'ARTIFACT_NOT_FOUND', 'Artifact not found');
     }
-    await requireCourseRole(prisma, user.id, artifact.entry.courseId);
+    // Check if entry is deleted
+    if (artifact.entry.deletedAt) {
+      throw new ApiError(410, 'ENTRY_DELETED', 'Entry has been deleted');
+    }
+    // Use course role for authorization
+    const roleInCourse = await requireCourseRole(prisma, user.id, artifact.entry.courseId);
+    if (roleInCourse !== 'student' || artifact.entry.studentId !== user.id) {
+      throw new ApiError(403, 'ARTIFACT_ACCESS_DENIED', 'Only the student owner can confirm artifacts');
+    }
     if (!artifact.storageKey) {
       throw new ApiError(400, 'MISSING_STORAGE_KEY', 'Artifact missing storage key');
     }
     try {
-      await s3.send(
+      const head = await s3.send(
         new HeadObjectCommand({ Bucket: config.s3.bucket, Key: artifact.storageKey })
       );
-    } catch {
-      throw new ApiError(409, 'UPLOAD_NOT_FOUND', 'Upload not found in storage');
+      if (!head.ContentLength || head.ContentLength === 0) {
+        throw new Error('Empty file');
+      }
+    } catch (err) {
+      request.log.error(err);
+      throw new ApiError(409, 'UPLOAD_INVALID', 'Upload not found or empty in storage');
     }
     const updated = await prisma.artifact.update({
       where: { id: artifactId },

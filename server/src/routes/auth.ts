@@ -1,4 +1,4 @@
-import type { FastifyInstance } from 'fastify';
+import type { FastifyInstance, FastifyRequest } from 'fastify';
 import type { PrismaClient } from '@prisma/client';
 import { config } from '../config.js';
 import { ApiError } from '../errors.js';
@@ -17,10 +17,28 @@ export function registerAuthRoutes(
   _s3: unknown,
   requireAuth: (request: unknown) => Promise<void>
 ) {
-  app.get('/dev/login', async (_request, reply) => {
+  const isLoopbackAddress = (ip: string | undefined) => {
+    if (!ip) {
+      return false;
+    }
+    return ip === '127.0.0.1' || ip === '::1' || ip === '::ffff:127.0.0.1';
+  };
+
+  const requireLocalDevAuth = (request: FastifyRequest) => {
     if (config.authMode !== 'dev') {
       throw new ApiError(404, 'NOT_FOUND', 'Not found');
     }
+    if (!isLoopbackAddress(request.ip)) {
+      throw new ApiError(
+        403,
+        'DEV_AUTH_LOCAL_ONLY',
+        'Dev auth routes are only available from localhost'
+      );
+    }
+  };
+
+  app.get('/dev/login', async (request, reply) => {
+    requireLocalDevAuth(request);
     const html = `<!doctype html>
 <html>
   <head><title>Resonance Dev Login</title></head>
@@ -37,9 +55,7 @@ export function registerAuthRoutes(
   });
 
   app.get('/dev/authorize', async (request, reply) => {
-    if (config.authMode !== 'dev') {
-      throw new ApiError(404, 'NOT_FOUND', 'Not found');
-    }
+    requireLocalDevAuth(request);
     const role = (request.query as { role?: string }).role as 'student' | 'teacher' | undefined;
     if (!role || (role !== 'student' && role !== 'teacher')) {
       throw new ApiError(400, 'INVALID_ROLE', 'Invalid role');
@@ -52,9 +68,7 @@ export function registerAuthRoutes(
   });
 
   app.post('/dev/issue', async (request) => {
-    if (config.authMode !== 'dev') {
-      throw new ApiError(404, 'NOT_FOUND', 'Not found');
-    }
+    requireLocalDevAuth(request);
     const body = request.body as { role?: 'student' | 'teacher'; userId?: string };
     const role = body?.role ?? 'student';
     let user;
@@ -73,9 +87,20 @@ export function registerAuthRoutes(
   app.post('/auth/session', async (request) => {
     const body = request.body as { code?: string; redirectUri?: string };
     const code = requireField(body?.code, 'code');
+    const _redirectUri = body?.redirectUri;
+    
     if (config.authMode !== 'dev') {
+      // Production auth: validate redirectUri against allowlist
+      // The redirectUri must match one of the registered callback URLs for the client
+      // Example: if (!config.allowedRedirectUris.includes(redirectUri)) { throw ... }
+      // For now, production auth is not implemented
       throw new ApiError(501, 'AUTH_NOT_CONFIGURED', 'Production auth not configured');
     }
+    
+    // Dev mode: redirectUri validation is intentionally skipped for development convenience
+    // The redirectUri is not used in dev mode - tokens are returned directly
+    // SECURITY NOTE: When implementing production auth, redirectUri MUST be validated
+    
     const userId = consumeDevAuthCode(code);
     if (!userId) {
       throw new ApiError(401, 'INVALID_CODE', 'Invalid or expired auth code');
@@ -109,5 +134,22 @@ export function registerAuthRoutes(
       displayName: userRecord.displayName,
       globalRole: userRecord.globalRole
     };
+  });
+
+  app.post('/auth/logout', { preHandler: requireAuth }, async (request) => {
+    const user = request.user!;
+    
+    // Revoke all refresh tokens for this user
+    await prisma.refreshToken.updateMany({
+      where: {
+        userId: user.id,
+        revokedAt: null
+      },
+      data: {
+        revokedAt: new Date()
+      }
+    });
+    
+    return { success: true };
   });
 }

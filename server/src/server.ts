@@ -1,6 +1,7 @@
 import Fastify from 'fastify';
 import cors from '@fastify/cors';
 import helmet from '@fastify/helmet';
+import rateLimit from '@fastify/rate-limit';
 import type { PrismaClient } from '@prisma/client';
 import type { S3Client } from '@aws-sdk/client-s3';
 import { config } from './config.js';
@@ -14,13 +15,23 @@ import { registerFeedbackRoutes } from './routes/feedback.js';
 
 export function buildServer(prisma: PrismaClient, s3: S3Client) {
   const app = Fastify({
-    logger: true,
+    logger: {
+      redact: ['req.headers.authorization', 'req.body.password', 'req.body.refreshToken', 'req.body.accessToken', 'req.body.code'],
+    },
     requestIdHeader: 'x-request-id',
-    requestIdLogLabel: 'requestId'
+    requestIdLogLabel: 'requestId',
+    bodyLimit: 1048576 // 1MB
   });
 
-  const corsOrigin = config.corsOrigins.length > 0 ? config.corsOrigins : true;
-  app.register(cors, { origin: corsOrigin });
+  app.register(rateLimit, {
+    max: 100,
+    timeWindow: '1 minute'
+  });
+
+  const corsOptions = config.corsOrigins.length > 0
+    ? { origin: config.corsOrigins }
+    : { origin: false };
+  app.register(cors, corsOptions);
   app.register(helmet);
 
   app.setErrorHandler((error, request, reply) => {
