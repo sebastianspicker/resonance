@@ -147,6 +147,26 @@ To reset demo records only:
 ./scripts/demo/reset-local-demo.sh
 ```
 
+## RC Demo Screenshots
+
+Stored in `docs/assets/screenshots/rc/`.
+
+### Student Persona
+
+![Student Login](docs/assets/screenshots/rc/rc-0.1.0-rc-student-login-01.png)
+![Student Courses](docs/assets/screenshots/rc/rc-0.1.0-rc-student-courses-01.png)
+![Student Entry List](docs/assets/screenshots/rc/rc-0.1.0-rc-student-entry-list-01.png)
+![Student Entry Detail](docs/assets/screenshots/rc/rc-0.1.0-rc-student-entry-detail-01.png)
+![Student Export](docs/assets/screenshots/rc/rc-0.1.0-rc-student-export-01.png)
+![Student Settings](docs/assets/screenshots/rc/rc-0.1.0-rc-student-settings-01.png)
+![Student Queue](docs/assets/screenshots/rc/rc-0.1.0-rc-student-queue-01.png)
+
+### Teacher Persona
+
+![Teacher Courses](docs/assets/screenshots/rc/rc-0.1.0-rc-teacher-courses-01.png)
+![Teacher Review Queue](docs/assets/screenshots/rc/rc-0.1.0-rc-teacher-teacher-review-queue-01.png)
+![Teacher Feedback Editor](docs/assets/screenshots/rc/rc-0.1.0-rc-teacher-feedback-editor-01.png)
+
 ## Security
 
 - Dev auth endpoints (`/dev/*`) are disabled unless `AUTH_MODE=dev` and are restricted to localhost requests.
