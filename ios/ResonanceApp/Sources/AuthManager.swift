@@ -16,6 +16,7 @@ final class AuthManager: NSObject, ObservableObject {
     @Published var session: AuthSession?
     private var authSession: ASWebAuthenticationSession?
     private let apiClient: APIClient
+    private var refreshTask: Task<Void, Error>?
 
     init(apiClient: APIClient = APIClient()) {
         self.apiClient = apiClient
@@ -64,6 +65,19 @@ final class AuthManager: NSObject, ObservableObject {
     }
 
     func signOut() {
+        // Attempt server-side logout (revoke refresh tokens)
+        Task {
+            if let session = session {
+                do {
+                    try await apiClient.logout(accessToken: session.accessToken)
+                } catch {
+                    // Log but don't fail - local signout should still proceed
+                    print("Server logout failed: \(error)")
+                }
+            }
+        }
+        
+        // Clear local credentials
         KeychainStore.remove("accessToken")
         KeychainStore.remove("refreshToken")
         KeychainStore.remove("userId")
@@ -74,7 +88,14 @@ final class AuthManager: NSObject, ObservableObject {
 
     func refreshIfNeeded() async {
         guard let session else { return }
-        do {
+        
+        // If a refresh is already in progress, await it.
+        if let existingTask = refreshTask {
+            _ = try? await existingTask.value
+            return
+        }
+        
+        let task = Task {
             let refreshed = try await apiClient.refreshTokens(refreshToken: session.refreshToken)
             let newSession = AuthSession(
                 accessToken: refreshed.accessToken,
@@ -84,7 +105,15 @@ final class AuthManager: NSObject, ObservableObject {
                 globalRole: session.globalRole
             )
             persistSession(newSession)
+        }
+        
+        refreshTask = task
+        
+        do {
+            try await task.value
+            refreshTask = nil
         } catch {
+            refreshTask = nil
             print("Refresh failed: \(error)")
             signOut()
         }

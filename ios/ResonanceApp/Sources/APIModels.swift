@@ -65,6 +65,7 @@ struct PresignResponse: Decodable {
     let uploadUrl: String
     let storageKey: String
     let expiresInSeconds: Int
+    let requiredHeaders: [String: String]?
 }
 
 struct FeedbackResponse: Decodable {

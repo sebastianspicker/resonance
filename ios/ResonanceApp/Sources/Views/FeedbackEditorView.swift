@@ -37,6 +37,23 @@ struct FeedbackEditorView: View {
                     TextField("Comments", text: $commentsText, axis: .vertical)
                 }
 
+                Section("Snippets") {
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 8) {
+                            ForEach(FeedbackSnippet.defaults, id: \.self) { snippet in
+                                Button(snippet) {
+                                    if commentsText.isEmpty {
+                                        commentsText = snippet
+                                    } else {
+                                        commentsText += " " + snippet
+                                    }
+                                }
+                                .buttonStyle(.bordered)
+                            }
+                        }
+                    }
+                }
+
                 Section("Markers") {
                     ForEach($markers) { $marker in
                         HStack {
@@ -76,4 +93,14 @@ struct FeedbackEditorView: View {
             appState.reportError(error)
         }
     }
+}
+
+private enum FeedbackSnippet {
+    static let defaults: [String] = [
+        "Strong musical phrasing.",
+        "Great rhythm stability.",
+        "Please slow down and clean articulation.",
+        "Watch intonation in longer notes.",
+        "Excellent progress since last submission."
+    ]
 }

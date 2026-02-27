@@ -10,9 +10,24 @@ struct EntryDetailView: View {
     @StateObject private var recorder = AudioRecorder()
     @StateObject private var player = AudioPlayer()
     @State private var isLoadingFeedback = false
+    @State private var showDeleteConfirmation = false
 
     var body: some View {
         Form {
+            Section("Status") {
+                HStack {
+                    Text("Entry status")
+                    Spacer()
+                    Text(statusLabel(entry.status))
+                        .font(.caption.weight(.semibold))
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background(statusColor(entry.status).opacity(0.18))
+                        .foregroundStyle(statusColor(entry.status))
+                        .clipShape(Capsule())
+                }
+            }
+
             Section("Goal") {
                 Text(entry.goalText)
                 if let notes = entry.notes {
@@ -37,7 +52,7 @@ struct EntryDetailView: View {
                     HStack {
                         Text(artifact.type.rawValue.uppercased())
                         Spacer()
-                        Text(artifact.uploadState.rawValue)
+                        Text(artifact.syncPhase.rawValue)
                             .font(.caption)
                             .foregroundStyle(.secondary)
                         Button(player.isPlaying ? "Stop" : "Play") {
@@ -70,16 +85,22 @@ struct EntryDetailView: View {
                 Button("Submit") {
                     submitEntry()
                 }
-                .disabled(entry.status == .submitted)
+                .disabled(entry.status != .draft)
 
                 Button("Delete") {
-                    deleteEntry()
+                    showDeleteConfirmation = true
                 }
                 .foregroundStyle(.red)
             }
         }
         .navigationTitle("Entry")
         .task { await refreshFeedback() }
+        .alert("Delete entry?", isPresented: $showDeleteConfirmation) {
+            Button("Cancel", role: .cancel) {}
+            Button("Delete", role: .destructive) { deleteEntry() }
+        } message: {
+            Text("This removes the entry and queued uploads. This action cannot be undone.")
+        }
     }
 
     private func startRecording() {
@@ -129,6 +150,28 @@ struct EntryDetailView: View {
             try? modelContext.save()
         } catch {
             appState.reportError(error)
+        }
+    }
+
+    private func statusLabel(_ status: EntryStatus) -> String {
+        switch status {
+        case .draft:
+            return "Draft"
+        case .submitted:
+            return "Submitted"
+        case .reviewed:
+            return "Reviewed"
+        }
+    }
+
+    private func statusColor(_ status: EntryStatus) -> Color {
+        switch status {
+        case .draft:
+            return .secondary
+        case .submitted:
+            return .orange
+        case .reviewed:
+            return .green
         }
     }
 }

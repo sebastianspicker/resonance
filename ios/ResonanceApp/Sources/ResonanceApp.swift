@@ -18,6 +18,7 @@ struct ResonanceApp: App {
                 .environmentObject(appState)
                 .environmentObject(appState.authManager)
                 .environmentObject(appState.syncManager)
+                .environmentObject(appState.networkMonitor)
         }
         .modelContainer(container)
     }

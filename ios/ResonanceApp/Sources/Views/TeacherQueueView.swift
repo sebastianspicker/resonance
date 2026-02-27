@@ -16,18 +16,29 @@ struct TeacherQueueView: View {
             if isLoading && queue.isEmpty {
                 ProgressView("Loading queue…")
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else if queue.isEmpty {
+                ContentUnavailableView(
+                    "No submissions",
+                    systemImage: "checkmark.circle",
+                    description: Text("All submitted entries have been reviewed.")
+                )
             } else {
                 List(queue) { entry in
                     Button {
                         selected = entry
                     } label: {
-                        VStack(alignment: .leading) {
+                        VStack(alignment: .leading, spacing: 6) {
                             Text(entry.studentName)
                                 .font(.headline)
                             Text(entry.goalText)
-                            Text(entry.practiceDate, style: .date)
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
+                            HStack {
+                                Text(entry.practiceDate, style: .date)
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                                Text("• \(entry.artifacts.count) artifacts")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
                         }
                     }
                 }

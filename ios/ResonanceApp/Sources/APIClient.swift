@@ -27,6 +27,14 @@ final class APIClient {
         return (response.accessToken, response.refreshToken)
     }
 
+    func logout(accessToken: String) async throws {
+        let url = AppConfig.apiBaseURL.appendingPathComponent("auth/logout")
+        struct LogoutResponse: Decodable {
+            let success: Bool
+        }
+        let _: LogoutResponse = try await send(url: url, method: "POST", body: Optional<EmptyBody>.none, accessToken: accessToken)
+    }
+
     func fetchCourses(accessToken: String) async throws -> [CourseResponse] {
         let url = AppConfig.apiBaseURL.appendingPathComponent("courses")
         return try await send(url: url, method: "GET", body: Optional<EmptyBody>.none, accessToken: accessToken)
@@ -34,25 +42,58 @@ final class APIClient {
 
     func createEntry(accessToken: String, courseId: String, entry: LocalPracticeEntry) async throws -> EntryResponse {
         let url = AppConfig.apiBaseURL.appendingPathComponent("courses/\(courseId)/entries")
-        let body: [String: Any] = [
-            "id": entry.id,
-            "practiceDate": entry.practiceDate.iso8601String,
-            "goalText": entry.goalText,
-            "durationSeconds": entry.durationSeconds as Any,
-            "tags": entry.tags,
-            "notes": entry.notes as Any
-        ]
-        return try await sendAny(url: url, method: "POST", body: body, accessToken: accessToken)
+        struct Body: Encodable {
+            let id: String
+            let practiceDate: Date
+            let goalText: String
+            let durationSeconds: Int?
+            let tags: [String]
+            let notes: String?
+            
+            // Custom encoding to properly handle optional values
+            func encode(to encoder: Encoder) throws {
+                var container = encoder.container(keyedBy: CodingKeys.self)
+                try container.encode(id, forKey: .id)
+                try container.encode(practiceDate, forKey: .practiceDate)
+                try container.encode(goalText, forKey: .goalText)
+                try container.encode(tags, forKey: .tags)
+                // Only encode non-nil optionals
+                if let durationSeconds = durationSeconds {
+                    try container.encode(durationSeconds, forKey: .durationSeconds)
+                }
+                if let notes = notes {
+                    try container.encode(notes, forKey: .notes)
+                }
+            }
+            
+            enum CodingKeys: String, CodingKey {
+                case id, practiceDate, goalText, durationSeconds, tags, notes
+            }
+        }
+        let body = Body(
+            id: entry.id,
+            practiceDate: entry.practiceDate,
+            goalText: entry.goalText,
+            durationSeconds: entry.durationSeconds,
+            tags: entry.tags,
+            notes: entry.notes
+        )
+        return try await send(url: url, method: "POST", body: body, accessToken: accessToken)
     }
 
     func createArtifact(accessToken: String, entryId: String, artifact: LocalArtifact) async throws -> ArtifactResponse {
         let url = AppConfig.apiBaseURL.appendingPathComponent("entries/\(entryId)/artifacts")
-        let body: [String: Any] = [
-            "id": artifact.id,
-            "type": artifact.type.rawValue,
-            "durationSeconds": artifact.durationSeconds
-        ]
-        return try await sendAny(url: url, method: "POST", body: body, accessToken: accessToken)
+        struct Body: Encodable {
+            let id: String
+            let type: String
+            let durationSeconds: Int
+        }
+        let body = Body(
+            id: artifact.id,
+            type: artifact.type.rawValue,
+            durationSeconds: artifact.durationSeconds
+        )
+        return try await send(url: url, method: "POST", body: body, accessToken: accessToken)
     }
 
     func presignArtifact(accessToken: String, artifactId: String) async throws -> PresignResponse {
@@ -72,7 +113,10 @@ final class APIClient {
 
     func deleteEntry(accessToken: String, entryId: String) async throws {
         let url = AppConfig.apiBaseURL.appendingPathComponent("entries/\(entryId)")
-        let _: EntryResponse = try await send(url: url, method: "DELETE", body: Optional<EmptyBody>.none, accessToken: accessToken)
+        struct DeleteEntryResponse: Decodable {
+            let success: Bool
+        }
+        let _: DeleteEntryResponse = try await send(url: url, method: "DELETE", body: Optional<EmptyBody>.none, accessToken: accessToken)
     }
 
     func fetchReviewQueue(accessToken: String, courseId: String) async throws -> [ReviewQueueResponse] {
@@ -82,14 +126,25 @@ final class APIClient {
 
     func createFeedback(accessToken: String, targetType: String, targetId: String, status: FeedbackStatus, commentsText: String, markers: [LocalMarker]) async throws -> FeedbackResponse {
         let url = AppConfig.apiBaseURL.appendingPathComponent("feedback")
-        let body: [String: Any] = [
-            "targetType": targetType,
-            "targetId": targetId,
-            "status": status.rawValue,
-            "commentsText": commentsText,
-            "markers": markers.map { ["timeSeconds": $0.timeSeconds, "text": $0.text] }
-        ]
-        return try await sendAny(url: url, method: "POST", body: body, accessToken: accessToken)
+        struct MarkerBody: Encodable {
+            let timeSeconds: Int
+            let text: String
+        }
+        struct Body: Encodable {
+            let targetType: String
+            let targetId: String
+            let status: String
+            let commentsText: String
+            let markers: [MarkerBody]
+        }
+        let body = Body(
+            targetType: targetType,
+            targetId: targetId,
+            status: status.rawValue,
+            commentsText: commentsText,
+            markers: markers.map { MarkerBody(timeSeconds: $0.timeSeconds, text: $0.text) }
+        )
+        return try await send(url: url, method: "POST", body: body, accessToken: accessToken)
     }
 
     func fetchFeedback(accessToken: String, entryId: String) async throws -> [FeedbackResponse] {
@@ -128,18 +183,6 @@ final class APIClient {
         let data = try await perform(request)
         return try JSONDecoder.apiDecoder.decode(Response.self, from: data)
     }
-
-    private func sendAny<T: Decodable>(url: URL, method: String, body: [String: Any], accessToken: String?) async throws -> T {
-        var request = URLRequest(url: url)
-        request.httpMethod = method
-        if let accessToken {
-            request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
-        }
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.httpBody = try JSONSerialization.data(withJSONObject: body, options: [])
-        let data = try await perform(request)
-        return try JSONDecoder.apiDecoder.decode(T.self, from: data)
-    }
 }
 
 extension JSONEncoder {
@@ -153,7 +196,27 @@ extension JSONEncoder {
 extension JSONDecoder {
     static let apiDecoder: JSONDecoder = {
         let decoder = JSONDecoder()
-        decoder.dateDecodingStrategy = .iso8601
+        // Use custom date decoding strategy that handles fractional seconds
+        decoder.dateDecodingStrategy = .custom { decoder in
+            let container = try decoder.singleValueContainer()
+            let dateString = try container.decode(String.self)
+            
+            // Try ISO8601 with fractional seconds first
+            let formatterWithFractional = ISO8601DateFormatter()
+            formatterWithFractional.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+            if let date = formatterWithFractional.date(from: dateString) {
+                return date
+            }
+            
+            // Fall back to ISO8601 without fractional seconds
+            let formatterWithoutFractional = ISO8601DateFormatter()
+            formatterWithoutFractional.formatOptions = [.withInternetDateTime]
+            if let date = formatterWithoutFractional.date(from: dateString) {
+                return date
+            }
+            
+            throw DecodingError.dataCorruptedError(in: container, debugDescription: "Cannot decode date: \(dateString)")
+        }
         return decoder
     }()
 }

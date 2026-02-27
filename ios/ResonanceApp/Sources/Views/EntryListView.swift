@@ -18,14 +18,34 @@ struct EntryListView: View {
         List {
             ForEach(entries) { entry in
                 NavigationLink(destination: EntryDetailView(entry: entry)) {
-                    VStack(alignment: .leading) {
-                        Text(entry.goalText)
-                            .font(.headline)
-                        Text(entry.practiceDate, style: .date)
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
+                    VStack(alignment: .leading, spacing: 6) {
+                        HStack {
+                            Text(entry.goalText)
+                                .font(.headline)
+                            Spacer()
+                            StatusBadge(status: entry.status)
+                        }
+                        HStack {
+                            Text(entry.practiceDate, style: .date)
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                            if let duration = entry.durationSeconds {
+                                Text("• \(duration)s")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
                     }
                 }
+            }
+        }
+        .overlay {
+            if entries.isEmpty {
+                ContentUnavailableView(
+                    "No entries yet",
+                    systemImage: "music.note.list",
+                    description: Text("Create your first practice entry for this course.")
+                )
             }
         }
         .toolbar {
@@ -35,6 +55,36 @@ struct EntryListView: View {
         }
         .sheet(isPresented: $showNewEntry) {
             NewEntryView(courseId: courseId)
+        }
+    }
+}
+
+private struct StatusBadge: View {
+    let status: EntryStatus
+
+    var body: some View {
+        Text(label)
+            .font(.caption2.weight(.semibold))
+            .padding(.horizontal, 8)
+            .padding(.vertical, 4)
+            .background(color.opacity(0.18))
+            .foregroundStyle(color)
+            .clipShape(Capsule())
+    }
+
+    private var label: String {
+        switch status {
+        case .draft: return "Draft"
+        case .submitted: return "Submitted"
+        case .reviewed: return "Reviewed"
+        }
+    }
+
+    private var color: Color {
+        switch status {
+        case .draft: return .secondary
+        case .submitted: return .orange
+        case .reviewed: return .green
         }
     }
 }

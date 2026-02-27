@@ -34,6 +34,9 @@ final class AudioRecorder: NSObject, ObservableObject {
         recorder = nil
         isRecording = false
         stopTimer()
+        if let lastURL {
+            FileStore.setFileProtection(url: lastURL)
+        }
     }
 
     private func startTimer() {

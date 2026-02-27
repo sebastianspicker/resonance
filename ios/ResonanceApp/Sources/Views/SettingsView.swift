@@ -11,11 +11,22 @@ struct SettingsView: View {
                     TextField("Base URL", text: $apiBase)
                         .textInputAutocapitalization(.never)
                         .autocorrectionDisabled()
+                    Text("Active host: \(AppConfig.apiBaseURL.host() ?? AppConfig.apiBaseURL.absoluteString)")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
                     Button("Sign Out") {
                         authManager.signOut()
                     }
                     .foregroundStyle(.red)
                 }
+
+#if DEBUG
+                Section("Debug") {
+                    Text("Dev auth URL: \(AppConfig.devLoginURL.absoluteString)")
+                        .font(.caption)
+                        .textSelection(.enabled)
+                }
+#endif
 
                 Section("Privacy") {
                     Text("No analytics are collected by default. Media stays local until you submit.")

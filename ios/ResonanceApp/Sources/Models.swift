@@ -4,6 +4,7 @@ import SwiftData
 enum EntryStatus: String, Codable {
     case draft
     case submitted
+    case reviewed
 }
 
 enum ArtifactType: String, Codable {
@@ -14,6 +15,14 @@ enum ArtifactType: String, Codable {
 enum UploadState: String, Codable {
     case pending
     case uploading
+    case uploaded
+    case failed
+}
+
+enum ArtifactSyncPhase: String, Codable {
+    case queued
+    case uploading
+    case confirming
     case uploaded
     case failed
 }
@@ -113,6 +122,7 @@ final class LocalArtifact {
     var durationSeconds: Int
     var createdAt: Date
     var uploadStateRaw: String
+    var syncPhaseRaw: String
     var storageKey: String?
     var remoteUrl: String?
     var localPath: String
@@ -124,6 +134,7 @@ final class LocalArtifact {
         self.durationSeconds = durationSeconds
         self.createdAt = Date()
         self.uploadStateRaw = UploadState.pending.rawValue
+        self.syncPhaseRaw = ArtifactSyncPhase.queued.rawValue
         self.storageKey = nil
         self.remoteUrl = nil
         self.localPath = localPath
@@ -137,6 +148,11 @@ final class LocalArtifact {
     var uploadState: UploadState {
         get { UploadState(rawValue: uploadStateRaw) ?? .pending }
         set { uploadStateRaw = newValue.rawValue }
+    }
+
+    var syncPhase: ArtifactSyncPhase {
+        get { ArtifactSyncPhase(rawValue: syncPhaseRaw) ?? .queued }
+        set { syncPhaseRaw = newValue.rawValue }
     }
 }
 

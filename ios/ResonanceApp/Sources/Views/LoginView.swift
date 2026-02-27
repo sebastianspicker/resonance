@@ -12,6 +12,11 @@ struct LoginView: View {
             Text("Sign in with your university account")
                 .foregroundStyle(.secondary)
 
+            Text("Environment: \(AppConfig.apiBaseURL.host() ?? AppConfig.apiBaseURL.absoluteString)")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+
             Button("Sign In") {
                 authManager.signIn()
             }

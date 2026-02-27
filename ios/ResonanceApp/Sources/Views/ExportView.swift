@@ -16,6 +16,16 @@ struct ExportView: View {
                 DatePicker("Start", selection: $startDate, displayedComponents: [.date])
                 DatePicker("End", selection: $endDate, displayedComponents: [.date])
 
+                if let stats = buildStats(entries: entriesInRange()) {
+                    Section("Practice Stats") {
+                        statRow("Entries", value: "\(stats.entryCount)")
+                        statRow("Total Duration", value: "\(stats.totalDurationSeconds)s")
+                        statRow("Draft", value: "\(stats.draftCount)")
+                        statRow("Submitted", value: "\(stats.submittedCount)")
+                        statRow("Reviewed", value: "\(stats.reviewedCount)")
+                    }
+                }
+
                 Button("Generate PDF") {
                     generate()
                 }
@@ -40,11 +50,7 @@ struct ExportView: View {
 
     private func generate() {
         errorMessage = nil
-        var descriptor = FetchDescriptor<LocalPracticeEntry>(
-            predicate: #Predicate { $0.practiceDate >= startDate && $0.practiceDate <= endDate && $0.deletedAt == nil }
-        )
-        descriptor.sortBy = [SortDescriptor(\.practiceDate, order: .forward)]
-        let entries = (try? modelContext.fetch(descriptor)) ?? []
+        let entries = entriesInRange()
 
         if entries.isEmpty {
             showEmptyRangeMessage = true
@@ -65,4 +71,46 @@ struct ExportView: View {
             showErrorAlert = true
         }
     }
+
+    private func entriesInRange() -> [LocalPracticeEntry] {
+        var descriptor = FetchDescriptor<LocalPracticeEntry>(
+            predicate: #Predicate { $0.practiceDate >= startDate && $0.practiceDate <= endDate && $0.deletedAt == nil }
+        )
+        descriptor.sortBy = [SortDescriptor(\.practiceDate, order: .forward)]
+        return (try? modelContext.fetch(descriptor)) ?? []
+    }
+
+    private func buildStats(entries: [LocalPracticeEntry]) -> ExportStats? {
+        guard entries.isEmpty == false else { return nil }
+        let totalDuration = entries.reduce(0) { partial, entry in
+            partial + (entry.durationSeconds ?? 0)
+        }
+        let draftCount = entries.filter { $0.status == .draft }.count
+        let submittedCount = entries.filter { $0.status == .submitted }.count
+        let reviewedCount = entries.filter { $0.status == .reviewed }.count
+        return ExportStats(
+            entryCount: entries.count,
+            totalDurationSeconds: totalDuration,
+            draftCount: draftCount,
+            submittedCount: submittedCount,
+            reviewedCount: reviewedCount
+        )
+    }
+
+    private func statRow(_ label: String, value: String) -> some View {
+        HStack {
+            Text(label)
+            Spacer()
+            Text(value)
+                .foregroundStyle(.secondary)
+        }
+    }
+}
+
+private struct ExportStats {
+    let entryCount: Int
+    let totalDurationSeconds: Int
+    let draftCount: Int
+    let submittedCount: Int
+    let reviewedCount: Int
 }

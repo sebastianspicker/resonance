@@ -6,6 +6,7 @@ final class AppState: ObservableObject {
     let apiClient: APIClient
     let authManager: AuthManager
     let syncManager: SyncManager
+    let networkMonitor: NetworkMonitor
 
     @Published var lastErrorMessage: String?
     @Published var showErrorAlert: Bool = false
@@ -16,6 +17,7 @@ final class AppState: ObservableObject {
         let auth = AuthManager(apiClient: client)
         self.authManager = auth
         self.syncManager = SyncManager(modelContext: modelContext, authManager: auth, apiClient: client)
+        self.networkMonitor = NetworkMonitor()
     }
 
     func reportError(_ error: Error) {
