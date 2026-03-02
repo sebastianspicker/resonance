@@ -21,6 +21,9 @@ struct LoginView: View {
                     Text("Resonance")
                         .font(.system(size: 42, weight: .bold, design: .rounded))
                         .foregroundStyle(.white)
+                        .lineLimit(2)
+                        .minimumScaleFactor(0.7)
+                        .multilineTextAlignment(.center)
                     
                     Text("Practice & Feedback")
                         .font(.title3.weight(.medium))
@@ -31,10 +34,18 @@ struct LoginView: View {
                     Text("Sign in with your university account")
                         .font(.subheadline)
                         .foregroundStyle(.white.opacity(0.7))
+                        .multilineTextAlignment(.center)
+                        .lineLimit(2)
+                        .minimumScaleFactor(0.8)
+                        .fixedSize(horizontal: false, vertical: true)
                     
                     Text(AppConfig.demoUniversityName)
                         .font(.headline)
                         .foregroundStyle(.white)
+                        .multilineTextAlignment(.center)
+                        .lineLimit(2)
+                        .minimumScaleFactor(0.8)
+                        .fixedSize(horizontal: false, vertical: true)
                     
                     Button("Sign In") {
                         authManager.signIn()

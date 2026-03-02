@@ -26,42 +26,50 @@ struct MainSplitView: View {
                     VStack(alignment: .leading, spacing: 4) {
                         Text(course.title)
                             .font(.headline)
+                            .foregroundStyle(.white)
+                            .lineLimit(2)
+                            .minimumScaleFactor(0.85)
                         Text(course.roleInCourse.capitalized)
                             .font(.caption.weight(.medium))
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(.white.opacity(0.7))
                     }
+                    .padding(.leading, 8)
                     .padding(.vertical, 8)
                     .tag(course.id)
+                    .listRowInsets(EdgeInsets(top: 6, leading: 12, bottom: 6, trailing: 12))
                     .listRowBackground(Color.white.opacity(0.1).cornerRadius(12).padding(.vertical, 4))
                 }
                 .scrollContentBackground(.hidden)
-                .navigationTitle("Courses")
                 .overlay {
                     if isRefreshing { ProgressView().scaleEffect(1.2).tint(.white) }
                 }
             }
+            .navigationTitle("Courses")
+            .navigationBarTitleDisplayMode(.inline)
             .safeAreaInset(edge: .bottom, spacing: 0) {
-                VStack(spacing: 2) {
-                    HStack {
-                        Circle()
-                            .fill(networkMonitor.isOnline ? Color.green : Color.red)
-                            .frame(width: 8, height: 8)
-                        Text(networkMonitor.isOnline ? "Online" : "Offline")
-                        Spacer()
-                        Text("Queue P:\(syncManager.pendingQueueCount) F:\(syncManager.failedQueueCount)")
+                if ScreenshotScenario.current == nil {
+                    VStack(spacing: 2) {
+                        HStack {
+                            Circle()
+                                .fill(networkMonitor.isOnline ? Color.green : Color.red)
+                                .frame(width: 8, height: 8)
+                            Text(networkMonitor.isOnline ? "Online" : "Offline")
+                            Spacer()
+                            Text("Queue P:\(syncManager.pendingQueueCount) F:\(syncManager.failedQueueCount)")
+                        }
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        if let lastSync = syncManager.lastSyncedAt {
+                            Text("Last synced \(lastSync, style: .relative) ago")
+                                .font(.caption2)
+                                .foregroundStyle(.secondary)
+                        }
                     }
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    if let lastSync = syncManager.lastSyncedAt {
-                        Text("Last synced \(lastSync, style: .relative) ago")
-                            .font(.caption2)
-                            .foregroundStyle(.secondary)
-                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 4)
+                    .background(.ultraThinMaterial)
                 }
-                .frame(maxWidth: .infinity)
-                .padding(.horizontal, 10)
-                .padding(.vertical, 4)
-                .background(.ultraThinMaterial)
             }
             .toolbar {
                 ToolbarItem(placement: .primaryAction) {
@@ -76,25 +84,25 @@ struct MainSplitView: View {
                     .disabled(isRefreshing)
                 }
                 ToolbarItem(placement: .automatic) {
-                    Button("Queue") {
-                        showQueue = true
+                    Menu("Actions") {
+                        Button("Queue") {
+                            showQueue = true
+                        }
+                        Button("Retry Failed") {
+                            syncManager.retryFailedItems()
+                            Task { await syncManager.processQueue() }
+                        }
+                        .disabled(syncManager.failedQueueCount == 0)
+                        Button("Calendar") {
+                            showCalendar = true
+                        }
+                        Button("Export") {
+                            showExport = true
+                        }
+                        Button("Settings") {
+                            showSettings = true
+                        }
                     }
-                }
-                ToolbarItem(placement: .automatic) {
-                    Button("Retry Failed") {
-                        syncManager.retryFailedItems()
-                        Task { await syncManager.processQueue() }
-                    }
-                    .disabled(syncManager.failedQueueCount == 0)
-                }
-                ToolbarItem(placement: .automatic) {
-                    Button("Calendar") { showCalendar = true }
-                }
-                ToolbarItem(placement: .automatic) {
-                    Button("Export") { showExport = true }
-                }
-                ToolbarItem(placement: .automatic) {
-                    Button("Settings") { showSettings = true }
                 }
             }
         } detail: {

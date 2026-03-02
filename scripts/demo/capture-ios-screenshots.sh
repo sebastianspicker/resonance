@@ -7,8 +7,8 @@ SERVER_DIR="$ROOT_DIR/server"
 OUTPUT_DIR="${OUTPUT_DIR:-$ROOT_DIR/artifacts/screenshots/rc-local}"
 DERIVED_DATA_DIR="${DERIVED_DATA_DIR:-$ROOT_DIR/.tmp/derived-data-rc-screenshots}"
 RC_VERSION="${RC_VERSION:-0.1.0-rc}"
-DEVICE_NAME="${IOS_SIM_DEVICE_NAME:-Resonance RC iPad}"
-DEVICE_TYPE="${IOS_SIM_DEVICE_TYPE:-iPad Pro 11-inch (M5)}"
+DEVICE_NAME="${IOS_SIM_DEVICE_NAME:-Resonance RC iPad 10th Gen}"
+DEVICE_TYPE="${IOS_SIM_DEVICE_TYPE:-iPad (10th generation)}"
 API_BASE="${RESONANCE_API_BASE:-http://localhost:4000}"
 DEMO_UNIVERSITY_NAME="${RESONANCE_DEMO_UNIVERSITY_NAME:-Mock University Conservatory}"
 
@@ -34,6 +34,7 @@ require_cmd curl
 require_cmd npm
 require_cmd node
 require_cmd docker
+require_cmd jq
 
 mkdir -p "$OUTPUT_DIR" "$ROOT_DIR/.tmp"
 
@@ -77,8 +78,13 @@ if [[ -z "$RUNTIME_ID" ]]; then
 fi
 
 DEVICE_TYPE_ID="$(
-  xcrun simctl list devicetypes | awk -v wanted="$DEVICE_TYPE" '$0 ~ wanted { gsub(/[()]/, "", $NF); print $NF }' | head -n 1
+  xcrun simctl list devicetypes | awk -v wanted="$DEVICE_TYPE" 'index($0, wanted) { gsub(/[()]/, "", $NF); print $NF }' | head -n 1
 )"
+if [[ -z "$DEVICE_TYPE_ID" ]]; then
+  DEVICE_TYPE_ID="$(
+    xcrun simctl list devicetypes | awk '/^iPad \(/ { gsub(/[()]/, "", $NF); print $NF }' | head -n 1
+  )"
+fi
 if [[ -z "$DEVICE_TYPE_ID" ]]; then
   DEVICE_TYPE_ID="$(
     xcrun simctl list devicetypes | awk '/iPad/ { gsub(/[()]/, "", $NF); print $NF }' | head -n 1
@@ -90,8 +96,20 @@ if [[ -z "$DEVICE_TYPE_ID" ]]; then
 fi
 
 UDID="$(
-  xcrun simctl list devices available | awk -v wanted="$DEVICE_NAME" '$0 ~ wanted { gsub(/[()]/, "", $(NF-1)); print $(NF-1) }' | head -n 1
+  xcrun simctl list devices available | awk -v wanted="$DEVICE_NAME" 'index($0, wanted) { gsub(/[()]/, "", $(NF-1)); print $(NF-1) }' | head -n 1
 )"
+
+if [[ -n "$UDID" ]]; then
+  EXISTING_DEVICE_TYPE_ID="$(
+    xcrun simctl list devices -j | jq -r --arg udid "$UDID" '.. | objects | select(.udid? == $udid) | .deviceTypeIdentifier' | head -n 1
+  )"
+  if [[ -n "$EXISTING_DEVICE_TYPE_ID" && "$EXISTING_DEVICE_TYPE_ID" != "$DEVICE_TYPE_ID" ]]; then
+    echo "Existing simulator '$DEVICE_NAME' has type '$EXISTING_DEVICE_TYPE_ID' (expected '$DEVICE_TYPE_ID'); recreating."
+    xcrun simctl delete "$UDID" >/dev/null 2>&1 || true
+    UDID=""
+  fi
+fi
+
 if [[ -z "$UDID" ]]; then
   UDID="$(xcrun simctl create "$DEVICE_NAME" "$DEVICE_TYPE_ID" "$RUNTIME_ID")"
 fi
@@ -157,9 +175,39 @@ if [[ -z "$APP_PATH" ]]; then
   <key>CFBundleShortVersionString</key><string>0.1.0</string>
   <key>CFBundleVersion</key><string>1</string>
   <key>LSRequiresIPhoneOS</key><true/>
+  <key>UIRequiresFullScreen</key><true/>
+  <key>UISupportedInterfaceOrientations</key>
+  <array>
+    <string>UIInterfaceOrientationPortrait</string>
+    <string>UIInterfaceOrientationPortraitUpsideDown</string>
+  </array>
+  <key>UISupportedInterfaceOrientations~ipad</key>
+  <array>
+    <string>UIInterfaceOrientationPortrait</string>
+    <string>UIInterfaceOrientationPortraitUpsideDown</string>
+  </array>
 </dict>
 </plist>
 PLIST
+
+  codesign --force --sign - "$APP_PATH" >/dev/null 2>&1 || true
+fi
+
+# Enforce deterministic fullscreen + portrait captures.
+PLIST_PATH="$APP_PATH/Info.plist"
+if [[ -f "$PLIST_PATH" ]]; then
+  /usr/libexec/PlistBuddy -c "Set :UIRequiresFullScreen true" "$PLIST_PATH" >/dev/null 2>&1 || \
+    /usr/libexec/PlistBuddy -c "Add :UIRequiresFullScreen bool true" "$PLIST_PATH"
+
+  /usr/libexec/PlistBuddy -c "Delete :UISupportedInterfaceOrientations" "$PLIST_PATH" >/dev/null 2>&1 || true
+  /usr/libexec/PlistBuddy -c "Add :UISupportedInterfaceOrientations array" "$PLIST_PATH"
+  /usr/libexec/PlistBuddy -c "Add :UISupportedInterfaceOrientations:0 string UIInterfaceOrientationPortrait" "$PLIST_PATH"
+  /usr/libexec/PlistBuddy -c "Add :UISupportedInterfaceOrientations:1 string UIInterfaceOrientationPortraitUpsideDown" "$PLIST_PATH"
+
+  /usr/libexec/PlistBuddy -c "Delete :UISupportedInterfaceOrientations~ipad" "$PLIST_PATH" >/dev/null 2>&1 || true
+  /usr/libexec/PlistBuddy -c "Add :UISupportedInterfaceOrientations~ipad array" "$PLIST_PATH"
+  /usr/libexec/PlistBuddy -c "Add :UISupportedInterfaceOrientations~ipad:0 string UIInterfaceOrientationPortrait" "$PLIST_PATH"
+  /usr/libexec/PlistBuddy -c "Add :UISupportedInterfaceOrientations~ipad:1 string UIInterfaceOrientationPortraitUpsideDown" "$PLIST_PATH"
 
   codesign --force --sign - "$APP_PATH" >/dev/null 2>&1 || true
 fi

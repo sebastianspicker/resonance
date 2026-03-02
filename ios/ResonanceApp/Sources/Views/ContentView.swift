@@ -16,6 +16,7 @@ struct ContentView: View {
                 MainSplitView(modelContext: modelContext)
             }
         }
+        .dynamicTypeSize(.xSmall ... .large)
         .task {
             await prepareScreenshotModeIfNeeded()
             await syncManager.processQueue()
