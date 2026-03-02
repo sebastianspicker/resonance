@@ -153,6 +153,7 @@ Stored in `docs/assets/screenshots/rc/`.
 
 ### Student Persona
 
+![Student Sign In](docs/assets/screenshots/rc/rc-0.1.0-rc-student-login-01.png)
 ![Student Courses](docs/assets/screenshots/rc/rc-0.1.0-rc-student-courses-01.png)
 ![Student Entry List](docs/assets/screenshots/rc/rc-0.1.0-rc-student-entry-list-01.png)
 ![Student Entry Detail](docs/assets/screenshots/rc/rc-0.1.0-rc-student-entry-detail-01.png)

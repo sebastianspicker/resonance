@@ -1,7 +1,7 @@
 # Release Candidate Screenshot Playbook
 
 ## Device Baseline
-- Device: iPad (10th generation) simulator
+- Device: iPad (latest available simulator)
 - Orientation: Portrait
 - Appearance: Dark mode
 - Text size: Default

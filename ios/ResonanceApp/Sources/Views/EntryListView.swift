@@ -25,6 +25,8 @@ struct EntryListView: View {
                                     .font(.headline.weight(.semibold))
                                     .foregroundStyle(.white)
                                     .multilineTextAlignment(.leading)
+                                    .lineLimit(3)
+                                    .minimumScaleFactor(0.85)
                                 Spacer(minLength: 16)
                                 StatusBadge(status: entry.status)
                             }
@@ -44,9 +46,11 @@ struct EntryListView: View {
                     .buttonStyle(.plain)
                 }
             }
-            .padding()
+            .padding(.vertical, 16)
+            .padding(.horizontal, 20)
         }
         .scrollContentBackground(.hidden)
+        .safeAreaPadding(.horizontal, 8)
         .overlay {
             if entries.isEmpty {
                 ContentUnavailableView {

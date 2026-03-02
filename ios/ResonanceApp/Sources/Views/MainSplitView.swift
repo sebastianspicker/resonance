@@ -40,6 +40,7 @@ struct MainSplitView: View {
                     .listRowBackground(Color.white.opacity(0.1).cornerRadius(12).padding(.vertical, 4))
                 }
                 .scrollContentBackground(.hidden)
+                .safeAreaPadding(.horizontal, 12)
                 .overlay {
                     if isRefreshing { ProgressView().scaleEffect(1.2).tint(.white) }
                 }
@@ -110,6 +111,7 @@ struct MainSplitView: View {
                 AppTheme.PremiumBackground()
                 detailPane
             }
+            .safeAreaPadding(.horizontal, 12)
         }
         .sheet(isPresented: $showCalendar) {
             CalendarView()

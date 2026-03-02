@@ -134,8 +134,10 @@ struct FeedbackEditorView: View {
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .glassCard()
                     }
-                    .padding()
+                    .padding(.vertical, 16)
+                    .padding(.horizontal, 20)
                 }
+                .safeAreaPadding(.horizontal, 8)
             }
             .navigationTitle("Feedback")
             .navigationBarTitleDisplayMode(.inline)
