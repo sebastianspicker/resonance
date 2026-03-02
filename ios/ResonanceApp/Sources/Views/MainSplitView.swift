@@ -19,18 +19,26 @@ struct MainSplitView: View {
 
     var body: some View {
         NavigationSplitView {
-            List(courses, selection: $selectionId) { course in
-                VStack(alignment: .leading) {
-                    Text(course.title)
-                    Text(course.roleInCourse.capitalized)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+            ZStack {
+                AppTheme.PremiumBackground()
+                
+                List(courses, selection: $selectionId) { course in
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(course.title)
+                            .font(.headline)
+                        Text(course.roleInCourse.capitalized)
+                            .font(.caption.weight(.medium))
+                            .foregroundStyle(.secondary)
+                    }
+                    .padding(.vertical, 8)
+                    .tag(course.id)
+                    .listRowBackground(Color.white.opacity(0.1).cornerRadius(12).padding(.vertical, 4))
                 }
-                .tag(course.id)
-            }
-            .navigationTitle("Courses")
-            .overlay {
-                if isRefreshing { ProgressView().scaleEffect(1.2) }
+                .scrollContentBackground(.hidden)
+                .navigationTitle("Courses")
+                .overlay {
+                    if isRefreshing { ProgressView().scaleEffect(1.2).tint(.white) }
+                }
             }
             .safeAreaInset(edge: .bottom, spacing: 0) {
                 VStack(spacing: 2) {
@@ -53,6 +61,7 @@ struct MainSplitView: View {
                 .frame(maxWidth: .infinity)
                 .padding(.horizontal, 10)
                 .padding(.vertical, 4)
+                .background(.ultraThinMaterial)
             }
             .toolbar {
                 ToolbarItem(placement: .primaryAction) {
@@ -89,7 +98,10 @@ struct MainSplitView: View {
                 }
             }
         } detail: {
-            detailPane
+            ZStack {
+                AppTheme.PremiumBackground()
+                detailPane
+            }
         }
         .sheet(isPresented: $showCalendar) {
             CalendarView()
@@ -186,7 +198,13 @@ struct MainSplitView: View {
             let initialTab = (ScreenshotScenario.current?.screen == .teacherReviewQueue) ? 1 : 0
             CourseDetailView(course: course, initialTab: initialTab)
         } else {
-            ContentUnavailableView("Select a course", systemImage: "music.note.list", description: Text("Choose a course to begin."))
+            ContentUnavailableView {
+                Label("Select a course", systemImage: "music.note.list")
+                    .foregroundStyle(.white)
+            } description: {
+                Text("Choose a course to begin.")
+                    .foregroundStyle(.white.opacity(0.7))
+            }
         }
     }
 

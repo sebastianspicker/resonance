@@ -18,63 +18,138 @@ struct FeedbackEditorView: View {
 
     var body: some View {
         NavigationStack {
-            Form {
-                Section("Entry") {
-                    Text(entry.studentName)
-                    Text(entry.goalText)
-                }
+            ZStack {
+                AppTheme.PremiumBackground()
+                
+                ScrollView {
+                    VStack(spacing: 24) {
+                        // Entry Section
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("Entry")
+                                .font(.subheadline.weight(.semibold))
+                                .foregroundStyle(.white.opacity(0.6))
+                                .textCase(.uppercase)
+                            
+                            Text(entry.studentName)
+                                .font(.title3.weight(.bold))
+                                .foregroundStyle(.white)
+                            Text(entry.goalText)
+                                .font(.body)
+                                .foregroundStyle(.white.opacity(0.8))
+                        }
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .glassCard()
 
-                Section("Status") {
-                    Picker("Status", selection: $status) {
-                        Text("OK").tag(FeedbackStatus.ok)
-                        Text("Needs Revision").tag(FeedbackStatus.needsRevision)
-                        Text("Next Goal").tag(FeedbackStatus.nextGoal)
-                    }
-                    .pickerStyle(.segmented)
-                }
+                        // Status Section
+                        VStack(alignment: .leading, spacing: 16) {
+                            Text("Status")
+                                .font(.subheadline.weight(.semibold))
+                                .foregroundStyle(.white.opacity(0.6))
+                                .textCase(.uppercase)
+                            
+                            Picker("Status", selection: $status) {
+                                Text("OK").tag(FeedbackStatus.ok)
+                                Text("Needs Revision").tag(FeedbackStatus.needsRevision)
+                                Text("Next Goal").tag(FeedbackStatus.nextGoal)
+                            }
+                            .pickerStyle(.segmented)
+                            .colorScheme(.dark)
+                        }
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .glassCard()
 
-                Section("Feedback") {
-                    TextField("Comments", text: $commentsText, axis: .vertical)
-                }
+                        // Feedback Section
+                        VStack(alignment: .leading, spacing: 12) {
+                            Text("Feedback")
+                                .font(.subheadline.weight(.semibold))
+                                .foregroundStyle(.white.opacity(0.6))
+                                .textCase(.uppercase)
+                            
+                            TextField("Comments", text: $commentsText, axis: .vertical)
+                                .textFieldStyle(.plain)
+                                .padding()
+                                .background(Color.white.opacity(0.1))
+                                .clipShape(RoundedRectangle(cornerRadius: 12))
+                                .foregroundStyle(.white)
+                                .lineLimit(4...8)
+                        }
+                        .glassCard()
 
-                Section("Snippets") {
-                    ScrollView(.horizontal, showsIndicators: false) {
-                        HStack(spacing: 8) {
-                            ForEach(FeedbackSnippet.defaults, id: \.self) { snippet in
-                                Button(snippet) {
-                                    if commentsText.isEmpty {
-                                        commentsText = snippet
-                                    } else {
-                                        commentsText += " " + snippet
+                        // Snippets Section
+                        VStack(alignment: .leading, spacing: 12) {
+                            Text("Snippets")
+                                .font(.subheadline.weight(.semibold))
+                                .foregroundStyle(.white.opacity(0.6))
+                                .textCase(.uppercase)
+                            
+                            ScrollView(.horizontal, showsIndicators: false) {
+                                HStack(spacing: 8) {
+                                    ForEach(FeedbackSnippet.defaults, id: \.self) { snippet in
+                                        Button(snippet) {
+                                            if commentsText.isEmpty {
+                                                commentsText = snippet
+                                            } else {
+                                                commentsText += " " + snippet
+                                            }
+                                        }
+                                        .buttonStyle(SubtleGlassButtonStyle())
                                     }
                                 }
-                                .buttonStyle(.bordered)
                             }
                         }
-                    }
-                }
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .glassCard()
 
-                Section("Markers") {
-                    ForEach($markers) { $marker in
-                        HStack {
-                            TextField("Time (s)", text: $marker.timeSeconds)
-                                .keyboardType(.numberPad)
-                            TextField("Note", text: $marker.text)
+                        // Markers Section
+                        VStack(alignment: .leading, spacing: 16) {
+                            Text("Markers")
+                                .font(.subheadline.weight(.semibold))
+                                .foregroundStyle(.white.opacity(0.6))
+                                .textCase(.uppercase)
+                            
+                            ForEach($markers) { $marker in
+                                HStack {
+                                    TextField("Time (s)", text: $marker.timeSeconds)
+                                        .keyboardType(.numberPad)
+                                        .textFieldStyle(.plain)
+                                        .padding()
+                                        .background(Color.white.opacity(0.1))
+                                        .clipShape(RoundedRectangle(cornerRadius: 8))
+                                        .foregroundStyle(.white)
+                                        .frame(width: 80)
+                                    
+                                    TextField("Note", text: $marker.text)
+                                        .textFieldStyle(.plain)
+                                        .padding()
+                                        .background(Color.white.opacity(0.1))
+                                        .clipShape(RoundedRectangle(cornerRadius: 8))
+                                        .foregroundStyle(.white)
+                                }
+                            }
+                            Button("Add Marker") {
+                                markers.append(MarkerDraft(timeSeconds: "", text: ""))
+                            }
+                            .buttonStyle(SubtleGlassButtonStyle())
                         }
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .glassCard()
                     }
-                    Button("Add Marker") {
-                        markers.append(MarkerDraft(timeSeconds: "", text: ""))
-                    }
+                    .padding()
                 }
             }
             .navigationTitle("Feedback")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbarBackground(.visible, for: .navigationBar)
+            .toolbarColorScheme(.dark, for: .navigationBar)
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Send") { Task { await sendFeedback() } }
                         .disabled(commentsText.isEmpty)
+                        .foregroundStyle(commentsText.isEmpty ? .white.opacity(0.5) : .white)
                 }
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") { dismiss() }
+                        .foregroundStyle(.white)
                 }
             }
         }

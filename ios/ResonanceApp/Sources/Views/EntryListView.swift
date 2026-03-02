@@ -15,37 +15,47 @@ struct EntryListView: View {
     }
 
     var body: some View {
-        List {
-            ForEach(entries) { entry in
-                NavigationLink(destination: EntryDetailView(entry: entry)) {
-                    VStack(alignment: .leading, spacing: 6) {
-                        HStack {
-                            Text(entry.goalText)
-                                .font(.headline)
-                            Spacer()
-                            StatusBadge(status: entry.status)
-                        }
-                        HStack {
-                            Text(entry.practiceDate, style: .date)
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                            if let duration = entry.durationSeconds {
-                                Text("• \(duration)s")
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
+        ScrollView {
+            LazyVStack(spacing: 16) {
+                ForEach(entries) { entry in
+                    NavigationLink(destination: EntryDetailView(entry: entry)) {
+                        VStack(alignment: .leading, spacing: 8) {
+                            HStack(alignment: .top) {
+                                Text(entry.goalText)
+                                    .font(.headline.weight(.semibold))
+                                    .foregroundStyle(.white)
+                                    .multilineTextAlignment(.leading)
+                                Spacer(minLength: 16)
+                                StatusBadge(status: entry.status)
+                            }
+                            HStack {
+                                Text(entry.practiceDate, style: .date)
+                                    .font(.subheadline)
+                                    .foregroundStyle(.white.opacity(0.7))
+                                if let duration = entry.durationSeconds {
+                                    Text("• \(duration)s")
+                                        .font(.subheadline)
+                                        .foregroundStyle(.white.opacity(0.7))
+                                }
                             }
                         }
+                        .glassCard()
                     }
+                    .buttonStyle(.plain)
                 }
             }
+            .padding()
         }
+        .scrollContentBackground(.hidden)
         .overlay {
             if entries.isEmpty {
-                ContentUnavailableView(
-                    "No entries yet",
-                    systemImage: "music.note.list",
-                    description: Text("Create your first practice entry for this course.")
-                )
+                ContentUnavailableView {
+                    Label("No entries yet", systemImage: "music.note.list")
+                        .foregroundStyle(.white)
+                } description: {
+                    Text("Create your first practice entry for this course.")
+                        .foregroundStyle(.white.opacity(0.7))
+                }
             }
         }
         .toolbar {
@@ -64,25 +74,28 @@ private struct StatusBadge: View {
 
     var body: some View {
         Text(label)
-            .font(.caption2.weight(.semibold))
-            .padding(.horizontal, 8)
-            .padding(.vertical, 4)
-            .background(color.opacity(0.18))
+            .font(.caption.weight(.bold))
+            .padding(.horizontal, 10)
+            .padding(.vertical, 5)
+            .background(color.opacity(0.2))
             .foregroundStyle(color)
             .clipShape(Capsule())
+            .overlay(
+                Capsule().stroke(color.opacity(0.5), lineWidth: 1)
+            )
     }
 
     private var label: String {
         switch status {
-        case .draft: return "Draft"
-        case .submitted: return "Submitted"
-        case .reviewed: return "Reviewed"
+        case .draft: return "DRAFT"
+        case .submitted: return "SUBMITTED"
+        case .reviewed: return "REVIEWED"
         }
     }
 
     private var color: Color {
         switch status {
-        case .draft: return .secondary
+        case .draft: return .white.opacity(0.6)
         case .submitted: return .orange
         case .reviewed: return .green
         }

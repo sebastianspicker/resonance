@@ -3,7 +3,7 @@
 ## Device Baseline
 - Device: iPad (latest available simulator)
 - Orientation: Landscape
-- Appearance: Light mode
+- Appearance: Dark mode
 - Text size: Default
 
 ## File Naming Convention

@@ -17,41 +17,127 @@ struct NewEntryView: View {
 
     var body: some View {
         NavigationStack {
-            Form {
-                Section("Template") {
-                    Picker("Preset", selection: $selectedTemplateId) {
-                        ForEach(EntryTemplate.defaults) { template in
-                            Text(template.name).tag(template.id)
+            ZStack {
+                AppTheme.PremiumBackground()
+                
+                ScrollView {
+                    VStack(spacing: 24) {
+                        // Template Section
+                        VStack(alignment: .leading, spacing: 16) {
+                            Text("Template")
+                                .font(.subheadline.weight(.semibold))
+                                .foregroundStyle(.white.opacity(0.6))
+                                .textCase(.uppercase)
+                            
+                            Picker("Preset", selection: $selectedTemplateId) {
+                                ForEach(EntryTemplate.defaults) { template in
+                                    Text(template.name).tag(template.id)
+                                }
+                            }
+                            .tint(.white)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            
+                            Button("Apply Template") {
+                                applySelectedTemplate()
+                            }
+                            .buttonStyle(SubtleGlassButtonStyle())
+                            .frame(maxWidth: .infinity)
                         }
-                    }
-                    Button("Apply Template") {
-                        applySelectedTemplate()
-                    }
-                }
+                        .glassCard()
+                        
+                        // Goal Section
+                        VStack(alignment: .leading, spacing: 12) {
+                            Text("Goal")
+                                .font(.subheadline.weight(.semibold))
+                                .foregroundStyle(.white.opacity(0.6))
+                                .textCase(.uppercase)
+                            
+                            TextField("Goal text", text: $goalText)
+                                .textFieldStyle(.plain)
+                                .padding()
+                                .background(Color.white.opacity(0.1))
+                                .clipShape(RoundedRectangle(cornerRadius: 12))
+                                .foregroundStyle(.white)
+                        }
+                        .glassCard()
 
-                Section("Goal") {
-                    TextField("Goal text", text: $goalText)
-                }
-                Section("Practice") {
-                    DatePicker("Date", selection: $practiceDate, displayedComponents: [.date, .hourAndMinute])
-                    TextField("Duration (seconds)", text: $durationSeconds)
-                        .keyboardType(.numberPad)
-                }
-                Section("Tags") {
-                    TextField("Comma-separated tags", text: $tags)
-                }
-                Section("Notes") {
-                    TextField("Notes", text: $notes, axis: .vertical)
+                        // Practice Section
+                        VStack(alignment: .leading, spacing: 16) {
+                            Text("Practice")
+                                .font(.subheadline.weight(.semibold))
+                                .foregroundStyle(.white.opacity(0.6))
+                                .textCase(.uppercase)
+                            
+                            DatePicker("Date", selection: $practiceDate, displayedComponents: [.date, .hourAndMinute])
+                                .colorScheme(.dark)
+                            
+                            HStack {
+                                Text("Duration (sec)")
+                                    .foregroundStyle(.white)
+                                Spacer()
+                                TextField("0", text: $durationSeconds)
+                                    .keyboardType(.numberPad)
+                                    .multilineTextAlignment(.trailing)
+                                    .textFieldStyle(.plain)
+                                    .padding(.vertical, 8)
+                                    .padding(.horizontal, 12)
+                                    .background(Color.white.opacity(0.1))
+                                    .clipShape(RoundedRectangle(cornerRadius: 8))
+                                    .foregroundStyle(.white)
+                                    .frame(width: 100)
+                            }
+                        }
+                        .glassCard()
+
+                        // Tags Section
+                        VStack(alignment: .leading, spacing: 12) {
+                            Text("Tags")
+                                .font(.subheadline.weight(.semibold))
+                                .foregroundStyle(.white.opacity(0.6))
+                                .textCase(.uppercase)
+                            
+                            TextField("Comma-separated tags", text: $tags)
+                                .textFieldStyle(.plain)
+                                .padding()
+                                .background(Color.white.opacity(0.1))
+                                .clipShape(RoundedRectangle(cornerRadius: 12))
+                                .foregroundStyle(.white)
+                        }
+                        .glassCard()
+
+                        // Notes Section
+                        VStack(alignment: .leading, spacing: 12) {
+                            Text("Notes")
+                                .font(.subheadline.weight(.semibold))
+                                .foregroundStyle(.white.opacity(0.6))
+                                .textCase(.uppercase)
+                            
+                            TextField("Notes", text: $notes, axis: .vertical)
+                                .textFieldStyle(.plain)
+                                .padding()
+                                .background(Color.white.opacity(0.1))
+                                .clipShape(RoundedRectangle(cornerRadius: 12))
+                                .foregroundStyle(.white)
+                                .lineLimit(4...8)
+                        }
+                        .glassCard()
+                    }
+                    .padding()
                 }
             }
             .navigationTitle("New Entry")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbarBackground(.visible, for: .navigationBar)
+            .toolbarColorScheme(.dark, for: .navigationBar)
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Save") { saveEntry() }
                         .disabled(goalText.isEmpty)
+                        .foregroundStyle(goalText.isEmpty ? .white.opacity(0.5) : .white)
                 }
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") { dismiss() }
+                        .foregroundStyle(.white)
                 }
             }
         }

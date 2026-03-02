@@ -109,7 +109,7 @@ if ! xcrun simctl list devices | grep -q "$UDID.*(Booted)"; then
   echo "Simulator failed to reach Booted state: $UDID" >&2
   exit 1
 fi
-xcrun simctl ui "$UDID" appearance light || true
+xcrun simctl ui "$UDID" appearance dark || true
 xcrun simctl ui "$UDID" content_size large || true
 
 echo "[5/8] Building iOS app"
