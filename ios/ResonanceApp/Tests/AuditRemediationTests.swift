@@ -37,3 +37,5 @@
 # forced-dir-18
 
 # forced-echo-19
+
+# forced-npm-20
