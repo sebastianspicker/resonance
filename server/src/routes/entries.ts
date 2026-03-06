@@ -1,9 +1,8 @@
 import type { FastifyInstance } from 'fastify';
 import type { PrismaClient } from '@prisma/client';
 import type { S3Client } from '@aws-sdk/client-s3';
-import { DeleteObjectCommand } from '@aws-sdk/client-s3';
-import { config } from '../config.js';
 import { ApiError } from '../errors.js';
+import { ErrorCodes } from '../errorCodes.js';
 import {
   requireField,
   requireString,
@@ -11,8 +10,10 @@ import {
   requireValidDate,
   requireNumber,
   requireCourseRole,
-  requireEntryAccess
+  requireEntryAccess,
+  requireStudentOwner
 } from '../validation.js';
+import { cascadeDeleteEntry, cleanupS3Objects } from '../services/entryCascade.js';
 
 export function registerEntryRoutes(
   app: FastifyInstance,
@@ -25,7 +26,7 @@ export function registerEntryRoutes(
     const courseId = (request.params as { courseId: string }).courseId;
     const role = await requireCourseRole(prisma, user.id, courseId);
     if (role !== 'student') {
-      throw new ApiError(403, 'ONLY_STUDENTS', 'Only students can create entries');
+      throw new ApiError(403, ErrorCodes.STUDENT_ONLY, 'Only students can create entries');
     }
     const body = request.body as Record<string, unknown>;
     const entryId = requireString(requireField(body?.id, 'id'), 'id');
@@ -60,44 +61,35 @@ export function registerEntryRoutes(
     const user = request.user!;
     const entryId = (request.params as { entryId: string }).entryId;
     const entry = await requireEntryAccess(prisma, user, entryId);
-    
-    // Use course role for authorization
-    const roleInCourse = await requireCourseRole(prisma, user.id, entry.courseId);
-    if (roleInCourse !== 'student') {
-      throw new ApiError(403, 'ONLY_STUDENTS', 'Only students can edit entries');
-    }
-    // Only the owner can edit
-    if (entry.studentId !== user.id) {
-      throw new ApiError(403, 'ENTRY_ACCESS_DENIED', 'Entry does not belong to student');
-    }
-    
+    await requireStudentOwner(prisma, user.id, entry, 'edit entries');
+
     const body = request.body as Record<string, unknown>;
-    
+
     // Check submitted-entry lock using "field present in body" instead of truthiness
     // This prevents bypassing the lock with falsy values like "" or 0
     if (entry.status !== 'draft') {
-      const hasRestrictedField = 
+      const hasRestrictedField =
         'goalText' in body ||
         'practiceDate' in body ||
         'tags' in body ||
         'durationSeconds' in body ||
         'notes' in body;
       if (hasRestrictedField) {
-        throw new ApiError(409, 'ENTRY_LOCKED', 'Only draft entries can be edited');
+        throw new ApiError(409, ErrorCodes.ENTRY_LOCKED, 'Only draft entries can be edited');
       }
     }
-    
+
     // Build update data with proper null handling
     const updateData: Record<string, unknown> = {};
-    
+
     if ('goalText' in body) {
       updateData.goalText = requireString(body.goalText, 'goalText');
     }
-    
+
     if ('practiceDate' in body) {
       updateData.practiceDate = requireValidDate(body.practiceDate, 'practiceDate');
     }
-    
+
     if ('durationSeconds' in body) {
       // Allow explicit null to clear the field
       if (body.durationSeconds === null) {
@@ -106,16 +98,16 @@ export function registerEntryRoutes(
         updateData.durationSeconds = requireNumber(body.durationSeconds, 'durationSeconds', { min: 0 });
       }
     }
-    
+
     if ('tags' in body) {
       updateData.tags = requireStringArray(body.tags, 'tags');
     }
-    
+
     if ('notes' in body) {
       // Allow explicit null to clear the field
       updateData.notes = body.notes === null ? null : requireString(body.notes, 'notes');
     }
-    
+
     const updated = await prisma.practiceEntry.update({
       where: { id: entryId },
       data: updateData
@@ -127,62 +119,10 @@ export function registerEntryRoutes(
     const user = request.user!;
     const entryId = (request.params as { entryId: string }).entryId;
     const entry = await requireEntryAccess(prisma, user, entryId);
-    
-    // Get course role for authorization
-    const roleInCourse = await requireCourseRole(prisma, user.id, entry.courseId);
-    if (roleInCourse !== 'student' || entry.studentId !== user.id) {
-      throw new ApiError(403, 'ONLY_STUDENTS', 'Only the student owner can delete');
-    }
+    await requireStudentOwner(prisma, user.id, entry, 'delete');
 
-    // 1. First, perform DB cleanup in a transaction
-    // Collect storage keys for later S3 cleanup
-    const artifacts = await prisma.artifact.findMany({ 
-      where: { entryId },
-      select: { id: true, storageKey: true }
-    });
-    const storageKeys = artifacts
-      .map(a => a.storageKey)
-      .filter((key): key is string => key !== null);
-
-    await prisma.$transaction(async (tx) => {
-      const artifactIds = artifacts.map((a) => a.id);
-      if (artifactIds.length > 0) {
-        const artifactFeedback = await tx.feedback.findMany({
-          where: { targetType: 'artifact', targetId: { in: artifactIds } },
-          select: { id: true }
-        });
-        const artifactFeedbackIds = artifactFeedback.map((f) => f.id);
-        if (artifactFeedbackIds.length > 0) {
-          await tx.marker.deleteMany({ where: { feedbackId: { in: artifactFeedbackIds } } });
-          await tx.feedback.deleteMany({ where: { id: { in: artifactFeedbackIds } } });
-        }
-        await tx.artifact.deleteMany({ where: { id: { in: artifactIds } } });
-      }
-
-      const entryFeedback = await tx.feedback.findMany({
-        where: { targetType: 'entry', targetId: entryId },
-        select: { id: true }
-      });
-      const entryFeedbackIds = entryFeedback.map((f) => f.id);
-      if (entryFeedbackIds.length > 0) {
-        await tx.marker.deleteMany({ where: { feedbackId: { in: entryFeedbackIds } } });
-        await tx.feedback.deleteMany({ where: { id: { in: entryFeedbackIds } } });
-      }
-      await tx.practiceEntry.delete({ where: { id: entryId } });
-    });
-
-    // 2. After successful DB deletion, clean up S3 storage
-    // If this fails, we log the error but don't fail the request (DB is already clean)
-    // These orphaned objects can be cleaned up later via a maintenance job
-    for (const storageKey of storageKeys) {
-      try {
-        await s3.send(
-          new DeleteObjectCommand({ Bucket: config.s3.bucket, Key: storageKey })
-        );
-      } catch (err) {
-        request.log.error({ err, storageKey }, 'Failed to delete S3 object after entry deletion');
-      }
-    }
+    const storageKeys = await cascadeDeleteEntry(prisma, entryId);
+    await cleanupS3Objects(s3, storageKeys, request.log);
 
     return { success: true };
   });
@@ -191,16 +131,13 @@ export function registerEntryRoutes(
     const user = request.user!;
     const entryId = (request.params as { entryId: string }).entryId;
     const entry = await requireEntryAccess(prisma, user, entryId);
-    const roleInCourse = await requireCourseRole(prisma, user.id, entry.courseId);
-    if (roleInCourse !== 'student' || entry.studentId !== user.id) {
-      throw new ApiError(403, 'ONLY_STUDENTS', 'Only the student owner can submit');
-    }
+    await requireStudentOwner(prisma, user.id, entry, 'submit');
     if (entry.status !== 'draft') {
-      throw new ApiError(409, 'ENTRY_LOCKED', 'Only draft entries can be submitted');
+      throw new ApiError(409, ErrorCodes.ENTRY_LOCKED, 'Only draft entries can be submitted');
     }
     const artifacts = await prisma.artifact.findMany({ where: { entryId } });
     if (artifacts.length === 0 || artifacts.some((a) => a.uploadState !== 'uploaded')) {
-      throw new ApiError(409, 'ARTIFACTS_NOT_UPLOADED', 'Upload artifacts before submitting');
+      throw new ApiError(409, ErrorCodes.ARTIFACTS_NOT_UPLOADED, 'Upload artifacts before submitting');
     }
     const updated = await prisma.practiceEntry.update({
       where: { id: entryId },

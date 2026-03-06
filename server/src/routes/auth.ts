@@ -1,7 +1,9 @@
 import type { FastifyInstance, FastifyRequest } from 'fastify';
 import type { PrismaClient } from '@prisma/client';
+import type { S3Client } from '@aws-sdk/client-s3';
 import { config } from '../config.js';
 import { ApiError } from '../errors.js';
+import { ErrorCodes } from '../errorCodes.js';
 import { requireField } from '../validation.js';
 import {
   issueTokens,
@@ -14,7 +16,7 @@ import {
 export function registerAuthRoutes(
   app: FastifyInstance,
   prisma: PrismaClient,
-  _s3: unknown,
+  _s3: S3Client,
   requireAuth: (request: unknown) => Promise<void>
 ) {
   const isLoopbackAddress = (ip: string | undefined) => {
@@ -26,12 +28,12 @@ export function registerAuthRoutes(
 
   const requireLocalDevAuth = (request: FastifyRequest) => {
     if (config.authMode !== 'dev') {
-      throw new ApiError(404, 'NOT_FOUND', 'Not found');
+      throw new ApiError(404, ErrorCodes.NOT_FOUND, 'Not found');
     }
     if (!isLoopbackAddress(request.ip)) {
       throw new ApiError(
         403,
-        'DEV_AUTH_LOCAL_ONLY',
+        ErrorCodes.DEV_AUTH_LOCAL_ONLY,
         'Dev auth routes are only available from localhost'
       );
     }
@@ -59,7 +61,7 @@ export function registerAuthRoutes(
     requireLocalDevAuth(request);
     const role = (request.query as { role?: string }).role as 'student' | 'teacher' | undefined;
     if (!role || (role !== 'student' && role !== 'teacher')) {
-      throw new ApiError(400, 'INVALID_ROLE', 'Invalid role');
+      throw new ApiError(400, ErrorCodes.INVALID_ROLE, 'Invalid role');
     }
     const user = await upsertDevUser(prisma, role);
     const code = issueDevAuthCode(user.id);
@@ -76,7 +78,7 @@ export function registerAuthRoutes(
     if (body?.userId) {
       user = await prisma.user.findUnique({ where: { id: body.userId } });
       if (!user) {
-        throw new ApiError(404, 'USER_NOT_FOUND', 'User not found');
+        throw new ApiError(404, ErrorCodes.USER_NOT_FOUND, 'User not found');
       }
     } else {
       user = await upsertDevUser(prisma, role);
@@ -89,26 +91,26 @@ export function registerAuthRoutes(
     const body = request.body as { code?: string; redirectUri?: string };
     const code = requireField(body?.code, 'code');
     const _redirectUri = body?.redirectUri;
-    
+
     if (config.authMode !== 'dev') {
       // Production auth: validate redirectUri against allowlist
       // The redirectUri must match one of the registered callback URLs for the client
       // Example: if (!config.allowedRedirectUris.includes(redirectUri)) { throw ... }
       // For now, production auth is not implemented
-      throw new ApiError(501, 'AUTH_NOT_CONFIGURED', 'Production auth not configured');
+      throw new ApiError(501, ErrorCodes.AUTH_NOT_CONFIGURED, 'Production auth not configured');
     }
-    
+
     // Dev mode: redirectUri validation is intentionally skipped for development convenience
     // The redirectUri is not used in dev mode - tokens are returned directly
     // SECURITY NOTE: When implementing production auth, redirectUri MUST be validated
-    
+
     const userId = consumeDevAuthCode(code);
     if (!userId) {
-      throw new ApiError(401, 'INVALID_CODE', 'Invalid or expired auth code');
+      throw new ApiError(401, ErrorCodes.INVALID_CODE, 'Invalid or expired auth code');
     }
     const user = await prisma.user.findUnique({ where: { id: userId } });
     if (!user) {
-      throw new ApiError(401, 'USER_NOT_FOUND', 'User not found');
+      throw new ApiError(401, ErrorCodes.USER_NOT_FOUND, 'User not found');
     }
     const tokens = await issueTokens(prisma, user);
     return {
@@ -128,7 +130,7 @@ export function registerAuthRoutes(
     const user = request.user!;
     const userRecord = await prisma.user.findUnique({ where: { id: user.id } });
     if (!userRecord) {
-      throw new ApiError(404, 'USER_NOT_FOUND', 'User not found');
+      throw new ApiError(404, ErrorCodes.USER_NOT_FOUND, 'User not found');
     }
     return {
       id: userRecord.id,
@@ -139,7 +141,7 @@ export function registerAuthRoutes(
 
   app.post('/auth/logout', { preHandler: requireAuth }, async (request) => {
     const user = request.user!;
-    
+
     // Revoke all refresh tokens for this user
     await prisma.refreshToken.updateMany({
       where: {
@@ -150,7 +152,7 @@ export function registerAuthRoutes(
         revokedAt: new Date()
       }
     });
-    
+
     return { success: true };
   });
 }

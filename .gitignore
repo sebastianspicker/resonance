@@ -1,4 +1,4 @@
-.DS_Store
+**/.DS_Store
 node_modules/
 .env
 .env.*
@@ -55,6 +55,9 @@ DerivedData/
 
 # Prisma
 server/prisma/dev.db
+
+# Screenshot capture output (staged here, copy to docs/assets/ before committing)
+artifacts/screenshots/
 
 # Coverage
 coverage/

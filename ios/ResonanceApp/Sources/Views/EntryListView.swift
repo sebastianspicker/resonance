@@ -35,7 +35,7 @@ struct EntryListView: View {
                                     .font(.subheadline)
                                     .foregroundStyle(.white.opacity(0.7))
                                 if let duration = entry.durationSeconds {
-                                    Text("• \(duration)s")
+                                    Text("\u{2022} \(duration)s")
                                         .font(.subheadline)
                                         .foregroundStyle(.white.opacity(0.7))
                                 }
@@ -44,6 +44,8 @@ struct EntryListView: View {
                         .glassCard()
                     }
                     .buttonStyle(.plain)
+                    .accessibilityElement(children: .combine)
+                    .accessibilityLabel("\(entry.goalText), \(entry.status.rawValue)")
                 }
             }
             .padding(.vertical, 16)
@@ -53,12 +55,13 @@ struct EntryListView: View {
         .safeAreaPadding(.horizontal, 8)
         .overlay {
             if entries.isEmpty {
-                ContentUnavailableView {
-                    Label("No entries yet", systemImage: "music.note.list")
-                        .foregroundStyle(.white)
-                } description: {
-                    Text("Create your first practice entry for this course.")
-                        .foregroundStyle(.white.opacity(0.7))
+                EmptyStateView(
+                    icon: "music.note.list",
+                    title: "No entries yet",
+                    description: "Create your first practice entry for this course.",
+                    actionLabel: "New Entry"
+                ) {
+                    showNewEntry = true
                 }
             }
         }
@@ -87,6 +90,7 @@ private struct StatusBadge: View {
             .overlay(
                 Capsule().stroke(color.opacity(0.5), lineWidth: 1)
             )
+            .accessibilityLabel("Status: \(label)")
     }
 
     private var label: String {

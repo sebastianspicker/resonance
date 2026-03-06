@@ -36,12 +36,14 @@ struct NewEntryView: View {
                             }
                             .tint(.white)
                             .frame(maxWidth: .infinity, alignment: .leading)
-                            
+                            .accessibilityLabel("Practice template")
+
                             Button("Apply Template") {
                                 applySelectedTemplate()
                             }
                             .buttonStyle(SubtleGlassButtonStyle())
                             .frame(maxWidth: .infinity)
+                            .accessibilityHint("Fills in goal, tags, and notes from the selected template")
                         }
                         .glassCard()
                         
@@ -52,12 +54,7 @@ struct NewEntryView: View {
                                 .foregroundStyle(.white.opacity(0.6))
                                 .textCase(.uppercase)
                             
-                            TextField("Goal text", text: $goalText)
-                                .textFieldStyle(.plain)
-                                .padding()
-                                .background(Color.white.opacity(0.1))
-                                .clipShape(RoundedRectangle(cornerRadius: 12))
-                                .foregroundStyle(.white)
+                            GlassTextField(placeholder: "Goal text", text: $goalText)
                         }
                         .glassCard()
 
@@ -75,16 +72,8 @@ struct NewEntryView: View {
                                 Text("Duration (sec)")
                                     .foregroundStyle(.white)
                                 Spacer()
-                                TextField("0", text: $durationSeconds)
-                                    .keyboardType(.numberPad)
+                                GlassTextField(placeholder: "0", text: $durationSeconds, keyboardType: .numberPad, cornerRadius: 8, width: 100)
                                     .multilineTextAlignment(.trailing)
-                                    .textFieldStyle(.plain)
-                                    .padding(.vertical, 8)
-                                    .padding(.horizontal, 12)
-                                    .background(Color.white.opacity(0.1))
-                                    .clipShape(RoundedRectangle(cornerRadius: 8))
-                                    .foregroundStyle(.white)
-                                    .frame(width: 100)
                             }
                         }
                         .glassCard()
@@ -96,12 +85,7 @@ struct NewEntryView: View {
                                 .foregroundStyle(.white.opacity(0.6))
                                 .textCase(.uppercase)
                             
-                            TextField("Comma-separated tags", text: $tags)
-                                .textFieldStyle(.plain)
-                                .padding()
-                                .background(Color.white.opacity(0.1))
-                                .clipShape(RoundedRectangle(cornerRadius: 12))
-                                .foregroundStyle(.white)
+                            GlassTextField(placeholder: "Comma-separated tags", text: $tags)
                         }
                         .glassCard()
 
@@ -112,13 +96,7 @@ struct NewEntryView: View {
                                 .foregroundStyle(.white.opacity(0.6))
                                 .textCase(.uppercase)
                             
-                            TextField("Notes", text: $notes, axis: .vertical)
-                                .textFieldStyle(.plain)
-                                .padding()
-                                .background(Color.white.opacity(0.1))
-                                .clipShape(RoundedRectangle(cornerRadius: 12))
-                                .foregroundStyle(.white)
-                                .lineLimit(4...8)
+                            GlassTextField(placeholder: "Notes", text: $notes, axis: .vertical, lineLimit: 4...8)
                         }
                         .glassCard()
                     }
@@ -134,6 +112,7 @@ struct NewEntryView: View {
                     Button("Save") { saveEntry() }
                         .disabled(goalText.isEmpty)
                         .foregroundStyle(goalText.isEmpty ? .white.opacity(0.5) : .white)
+                        .accessibilityHint(goalText.isEmpty ? "Enter a goal first" : "Saves this practice entry as a draft")
                 }
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") { dismiss() }

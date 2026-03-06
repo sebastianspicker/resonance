@@ -2,8 +2,9 @@ import crypto from 'crypto';
 import jwt from 'jsonwebtoken';
 import { nanoid } from 'nanoid';
 import { PrismaClient, User } from '@prisma/client';
-import { config } from './config.js';
+import { config, limits } from './config.js';
 import { ApiError } from './errors.js';
+import { ErrorCodes } from './errorCodes.js';
 
 const devAuthCodes = new Map<string, { userId: string; expiresAt: number }>();
 
@@ -21,7 +22,7 @@ export function signAccessToken(user: User) {
   return jwt.sign(
     { sub: user.id, role: user.globalRole },
     config.jwtSecret,
-    { 
+    {
       expiresIn,
       issuer: JWT_ISSUER,
       audience: JWT_AUDIENCE,
@@ -35,7 +36,7 @@ export function signRefreshToken(user: User, tokenId: string) {
   return jwt.sign(
     { sub: user.id, jti: tokenId },
     config.jwtSecret,
-    { 
+    {
       expiresIn,
       issuer: JWT_ISSUER,
       audience: JWT_AUDIENCE,
@@ -46,29 +47,32 @@ export function signRefreshToken(user: User, tokenId: string) {
 
 export function verifyAccessToken(token: string) {
   try {
-    return jwt.verify(token, config.jwtSecret, { 
+    return jwt.verify(token, config.jwtSecret, {
       algorithms: [JWT_ALGORITHM],
       issuer: JWT_ISSUER,
       audience: JWT_AUDIENCE
     }) as jwt.JwtPayload;
   } catch {
-    throw new ApiError(401, 'INVALID_TOKEN', 'Invalid or expired token');
+    throw new ApiError(401, ErrorCodes.INVALID_TOKEN, 'Invalid or expired token');
   }
 }
 
 export function verifyRefreshToken(token: string) {
   try {
-    return jwt.verify(token, config.jwtSecret, { 
+    return jwt.verify(token, config.jwtSecret, {
       algorithms: [JWT_ALGORITHM],
       issuer: JWT_ISSUER,
       audience: JWT_AUDIENCE
     }) as jwt.JwtPayload;
   } catch {
-    throw new ApiError(401, 'INVALID_REFRESH', 'Invalid or expired refresh token');
+    throw new ApiError(401, ErrorCodes.INVALID_REFRESH, 'Invalid or expired refresh token');
   }
 }
 
-export async function issueTokens(prisma: PrismaClient, user: User) {
+/** Accepts PrismaClient or a Prisma transaction (which exposes the same model methods). */
+type PrismaLike = Pick<PrismaClient, 'refreshToken'>;
+
+export async function issueTokens(prisma: PrismaLike, user: User) {
   const tokenId = `rt_${nanoid(24)}`;
   const refreshToken = signRefreshToken(user, tokenId);
   const accessToken = signAccessToken(user);
@@ -93,7 +97,7 @@ export async function rotateRefreshToken(prisma: PrismaClient, refreshToken: str
   const userId = payload.sub as string | undefined;
 
   if (!tokenId || !userId) {
-    throw new ApiError(401, 'INVALID_REFRESH', 'Invalid refresh token payload');
+    throw new ApiError(401, ErrorCodes.INVALID_REFRESH, 'Invalid refresh token payload');
   }
 
   return await prisma.$transaction(async (tx) => {
@@ -103,20 +107,20 @@ export async function rotateRefreshToken(prisma: PrismaClient, refreshToken: str
     });
 
     if (!record || record.expiresAt.getTime() < Date.now()) {
-      throw new ApiError(401, 'REFRESH_REVOKED', 'Refresh token is invalid or expired');
+      throw new ApiError(401, ErrorCodes.REFRESH_REVOKED, 'Refresh token is invalid or expired');
     }
 
     const providedHash = Buffer.from(hashToken(refreshToken), 'hex');
     const storedHash = Buffer.from(record.tokenHash, 'hex');
 
     if (providedHash.length !== storedHash.length || !crypto.timingSafeEqual(providedHash, storedHash)) {
-      throw new ApiError(401, 'REFRESH_MISMATCH', 'Refresh token mismatch');
+      throw new ApiError(401, ErrorCodes.REFRESH_MISMATCH, 'Refresh token mismatch');
     }
 
     // Atomic conditional update: only revoke if not already revoked
     // This prevents race conditions where two concurrent requests could both succeed
     const updateResult = await tx.refreshToken.updateMany({
-      where: { 
+      where: {
         id: tokenId,
         revokedAt: null  // Only update if not already revoked
       },
@@ -125,21 +129,21 @@ export async function rotateRefreshToken(prisma: PrismaClient, refreshToken: str
 
     // If no rows were updated, the token was already used (race condition detected)
     if (updateResult.count === 0) {
-      throw new ApiError(401, 'REFRESH_ALREADY_USED', 'Refresh token was already used');
+      throw new ApiError(401, ErrorCodes.REFRESH_ALREADY_USED, 'Refresh token was already used');
     }
 
     const user = await tx.user.findUnique({ where: { id: userId } });
     if (!user) {
-      throw new ApiError(401, 'USER_NOT_FOUND', 'User not found');
+      throw new ApiError(401, ErrorCodes.USER_NOT_FOUND, 'User not found');
     }
 
-    return issueTokens(tx as any, user);
+    return issueTokens(tx, user);
   });
 }
 
 export function issueDevAuthCode(userId: string) {
   const code = `dev_${nanoid(18)}`;
-  devAuthCodes.set(code, { userId, expiresAt: Date.now() + 5 * 60 * 1000 });
+  devAuthCodes.set(code, { userId, expiresAt: Date.now() + limits.devAuthCodeTtlMs });
   return code;
 }
 

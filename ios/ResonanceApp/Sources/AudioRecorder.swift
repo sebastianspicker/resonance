@@ -34,6 +34,7 @@ final class AudioRecorder: NSObject, ObservableObject {
         recorder = nil
         isRecording = false
         stopTimer()
+        try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
         if let lastURL {
             FileStore.setFileProtection(url: lastURL)
         }

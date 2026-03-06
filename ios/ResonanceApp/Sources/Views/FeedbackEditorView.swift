@@ -54,6 +54,7 @@ struct FeedbackEditorView: View {
                             }
                             .pickerStyle(.segmented)
                             .colorScheme(.dark)
+                            .accessibilityLabel("Feedback status")
                         }
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .glassCard()
@@ -65,13 +66,7 @@ struct FeedbackEditorView: View {
                                 .foregroundStyle(.white.opacity(0.6))
                                 .textCase(.uppercase)
                             
-                            TextField("Comments", text: $commentsText, axis: .vertical)
-                                .textFieldStyle(.plain)
-                                .padding()
-                                .background(Color.white.opacity(0.1))
-                                .clipShape(RoundedRectangle(cornerRadius: 12))
-                                .foregroundStyle(.white)
-                                .lineLimit(4...8)
+                            GlassTextField(placeholder: "Comments", text: $commentsText, axis: .vertical, lineLimit: 4...8)
                         }
                         .glassCard()
 
@@ -93,6 +88,7 @@ struct FeedbackEditorView: View {
                                             }
                                         }
                                         .buttonStyle(SubtleGlassButtonStyle())
+                                        .accessibilityHint("Appends this text to comments")
                                     }
                                 }
                             }
@@ -109,21 +105,11 @@ struct FeedbackEditorView: View {
                             
                             ForEach($markers) { $marker in
                                 HStack {
-                                    TextField("Time (s)", text: $marker.timeSeconds)
-                                        .keyboardType(.numberPad)
-                                        .textFieldStyle(.plain)
-                                        .padding()
-                                        .background(Color.white.opacity(0.1))
-                                        .clipShape(RoundedRectangle(cornerRadius: 8))
-                                        .foregroundStyle(.white)
-                                        .frame(width: 80)
-                                    
-                                    TextField("Note", text: $marker.text)
-                                        .textFieldStyle(.plain)
-                                        .padding()
-                                        .background(Color.white.opacity(0.1))
-                                        .clipShape(RoundedRectangle(cornerRadius: 8))
-                                        .foregroundStyle(.white)
+                                    GlassTextField(placeholder: "Time (s)", text: $marker.timeSeconds, keyboardType: .numberPad, cornerRadius: 8, width: 80)
+                                        .accessibilityLabel("Marker time in seconds")
+
+                                    GlassTextField(placeholder: "Note", text: $marker.text, cornerRadius: 8)
+                                        .accessibilityLabel("Marker note")
                                 }
                             }
                             Button("Add Marker") {

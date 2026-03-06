@@ -39,7 +39,7 @@ Examples:
 
 ## Capture Flow
 1. Run `./scripts/demo/capture-ios-screenshots.sh` for the semi-automatic capture flow.
-2. Script output folder is `artifacts/screenshots/rc-local` by default.
+2. Script output folder is `artifacts/screenshots/rc-local` by default (gitignored). Copy final screenshots to `docs/assets/screenshots/rc/` before committing.
 3. Optionally override folder via `OUTPUT_DIR=/absolute/path ./scripts/demo/capture-ios-screenshots.sh`.
 4. Validate filenames against the naming convention.
 

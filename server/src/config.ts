@@ -55,3 +55,15 @@ if (Number.isNaN(config.accessTokenTtlMinutes) || config.accessTokenTtlMinutes <
 if (Number.isNaN(config.refreshTokenTtlDays) || config.refreshTokenTtlDays <= 0) {
   throw new Error('REFRESH_TOKEN_TTL_DAYS must be a positive number.');
 }
+
+/** Application limits — extracted from inline magic numbers. */
+export const limits = {
+  /** Maximum number of markers per feedback item */
+  maxMarkers: 50,
+  /** Maximum length of individual marker text */
+  maxMarkerTextLength: 1000,
+  /** HTTP body size limit in bytes (1 MB) */
+  bodyLimitBytes: 1_048_576,
+  /** Dev auth code time-to-live in milliseconds (5 minutes) */
+  devAuthCodeTtlMs: 5 * 60 * 1000,
+} as const;

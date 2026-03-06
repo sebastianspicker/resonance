@@ -11,11 +11,12 @@ struct EntryDetailView: View {
     @StateObject private var player = AudioPlayer()
     @State private var isLoadingFeedback = false
     @State private var showDeleteConfirmation = false
+    @State private var showSubmitConfirmation = false
 
     var body: some View {
         ZStack {
             AppTheme.PremiumBackground()
-            
+
             ScrollView {
                 VStack(spacing: 24) {
                     // Status
@@ -32,9 +33,10 @@ struct EntryDetailView: View {
                             .foregroundStyle(statusColor(entry.status))
                             .clipShape(Capsule())
                             .overlay(Capsule().stroke(statusColor(entry.status).opacity(0.5), lineWidth: 1))
+                            .accessibilityLabel("Status: \(statusLabel(entry.status))")
                     }
                     .glassCard()
-                    
+
                     // Goal
                     VStack(alignment: .leading, spacing: 8) {
                         Text("Goal")
@@ -60,7 +62,7 @@ struct EntryDetailView: View {
                             .font(.subheadline.weight(.semibold))
                             .foregroundStyle(.white.opacity(0.6))
                             .textCase(.uppercase)
-                        
+
                         if recorder.isRecording {
                             HStack {
                                 Circle()
@@ -72,9 +74,11 @@ struct EntryDetailView: View {
                                     .font(.headline)
                                     .foregroundStyle(.white)
                             }
+                            .accessibilityElement(children: .combine)
+                            .accessibilityLabel("Recording in progress, \(Int(recorder.duration)) seconds")
                             .padding(.bottom, 8)
                         }
-                        
+
                         if recorder.isRecording {
                             Button(action: stopRecording) {
                                 HStack {
@@ -84,6 +88,7 @@ struct EntryDetailView: View {
                                 .frame(maxWidth: .infinity)
                             }
                             .buttonStyle(SubtleGlassButtonStyle())
+                            .accessibilityLabel("Stop recording")
                         } else {
                             Button(action: startRecording) {
                                 HStack {
@@ -93,6 +98,7 @@ struct EntryDetailView: View {
                                 .frame(maxWidth: .infinity)
                             }
                             .buttonStyle(VibrantGlassButtonStyle())
+                            .accessibilityLabel("Start audio recording")
                         }
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -105,22 +111,55 @@ struct EntryDetailView: View {
                                 .font(.subheadline.weight(.semibold))
                                 .foregroundStyle(.white.opacity(0.6))
                                 .textCase(.uppercase)
-                            
+
                             ForEach(entry.artifacts) { artifact in
-                                HStack {
-                                    VStack(alignment: .leading, spacing: 4) {
-                                        Text(artifact.type.rawValue.uppercased())
-                                            .font(.headline)
-                                            .foregroundStyle(.white)
-                                        Text(artifact.syncPhase.rawValue.capitalized)
-                                            .font(.caption)
-                                            .foregroundStyle(.white.opacity(0.5))
+                                VStack(spacing: 8) {
+                                    HStack {
+                                        VStack(alignment: .leading, spacing: 4) {
+                                            Text(artifact.type.rawValue.uppercased())
+                                                .font(.headline)
+                                                .foregroundStyle(.white)
+                                            Text(artifact.syncPhase.rawValue.capitalized)
+                                                .font(.caption)
+                                                .foregroundStyle(.white.opacity(0.5))
+                                        }
+                                        Spacer()
+                                        Button(player.isPlaying ? "Stop" : "Play") {
+                                            if player.isPlaying {
+                                                player.stop()
+                                            } else {
+                                                player.play(url: URL(fileURLWithPath: artifact.localPath))
+                                            }
+                                        }
+                                        .buttonStyle(SubtleGlassButtonStyle())
+                                        .accessibilityLabel(player.isPlaying ? "Stop playback" : "Play \(artifact.type.rawValue) recording")
                                     }
-                                    Spacer()
-                                    Button(player.isPlaying ? "Stop" : "Play") {
-                                        player.isPlaying ? player.stop() : player.play(url: URL(fileURLWithPath: artifact.localPath))
+
+                                    // Mini player with seek
+                                    if player.isPlaying && player.duration > 0 {
+                                        VStack(spacing: 4) {
+                                            Slider(
+                                                value: Binding(
+                                                    get: { player.currentTime },
+                                                    set: { player.seek(to: $0) }
+                                                ),
+                                                in: 0...max(player.duration, 0.01)
+                                            )
+                                            .tint(.white)
+                                            .accessibilityLabel("Seek position")
+                                            .accessibilityValue(formatTime(player.currentTime))
+
+                                            HStack {
+                                                Text(formatTime(player.currentTime))
+                                                    .font(.caption.monospacedDigit())
+                                                    .foregroundStyle(.white.opacity(0.6))
+                                                Spacer()
+                                                Text(formatTime(player.duration))
+                                                    .font(.caption.monospacedDigit())
+                                                    .foregroundStyle(.white.opacity(0.6))
+                                            }
+                                        }
                                     }
-                                    .buttonStyle(SubtleGlassButtonStyle())
                                 }
                                 if artifact.id != entry.artifacts.last?.id {
                                     Divider().background(Color.white.opacity(0.2))
@@ -137,7 +176,7 @@ struct EntryDetailView: View {
                             .font(.subheadline.weight(.semibold))
                             .foregroundStyle(.white.opacity(0.6))
                             .textCase(.uppercase)
-                        
+
                         if isLoadingFeedback {
                             ProgressView()
                                 .tint(.white)
@@ -169,6 +208,8 @@ struct EntryDetailView: View {
                                 .padding()
                                 .background(Color.white.opacity(0.05))
                                 .clipShape(RoundedRectangle(cornerRadius: 12))
+                                .accessibilityElement(children: .combine)
+                                .accessibilityLabel("Feedback from \(feedback.teacherName): \(feedback.status.rawValue). \(feedback.commentsText)")
                             }
                         }
                     }
@@ -178,17 +219,20 @@ struct EntryDetailView: View {
                     // Actions
                     VStack(spacing: 16) {
                         Button("Submit") {
-                            submitEntry()
+                            showSubmitConfirmation = true
                         }
                         .buttonStyle(VibrantGlassButtonStyle())
                         .disabled(entry.status != .draft)
                         .opacity(entry.status != .draft ? 0.5 : 1.0)
+                        .accessibilityLabel("Submit entry for review")
+                        .accessibilityHint(entry.status != .draft ? "Entry already submitted" : "Submits this practice entry to your teacher")
 
                         Button("Delete") {
                             showDeleteConfirmation = true
                         }
                         .buttonStyle(SubtleGlassButtonStyle())
                         .foregroundStyle(.red)
+                        .accessibilityLabel("Delete entry")
                     }
                     .padding(.top, 16)
                     .padding(.bottom, 40)
@@ -199,6 +243,12 @@ struct EntryDetailView: View {
         .navigationTitle("EntryDetail")
         .navigationBarTitleDisplayMode(.inline)
         .task { await refreshFeedback() }
+        .alert("Submit entry?", isPresented: $showSubmitConfirmation) {
+            Button("Cancel", role: .cancel) {}
+            Button("Submit") { submitEntry() }
+        } message: {
+            Text("Once submitted, the entry cannot be edited. Your teacher will be able to review it.")
+        }
         .alert("Delete entry?", isPresented: $showDeleteConfirmation) {
             Button("Cancel", role: .cancel) {}
             Button("Delete", role: .destructive) { deleteEntry() }
@@ -256,6 +306,12 @@ struct EntryDetailView: View {
         } catch {
             appState.reportError(error)
         }
+    }
+
+    private func formatTime(_ seconds: TimeInterval) -> String {
+        let mins = Int(seconds) / 60
+        let secs = Int(seconds) % 60
+        return String(format: "%d:%02d", mins, secs)
     }
 
     private func statusLabel(_ status: EntryStatus) -> String {

@@ -4,8 +4,9 @@ import helmet from '@fastify/helmet';
 import rateLimit from '@fastify/rate-limit';
 import type { PrismaClient } from '@prisma/client';
 import type { S3Client } from '@aws-sdk/client-s3';
-import { config } from './config.js';
+import { config, limits } from './config.js';
 import { ApiError, sendError } from './errors.js';
+import { ErrorCodes } from './errorCodes.js';
 import { verifyAccessToken } from './auth.js';
 import { registerAuthRoutes } from './routes/auth.js';
 import { registerCourseRoutes } from './routes/courses.js';
@@ -20,7 +21,7 @@ export function buildServer(prisma: PrismaClient, s3: S3Client) {
     },
     requestIdHeader: 'x-request-id',
     requestIdLogLabel: 'requestId',
-    bodyLimit: 1048576 // 1MB
+    bodyLimit: limits.bodyLimitBytes
   });
 
   app.register(rateLimit, {
@@ -41,7 +42,7 @@ export function buildServer(prisma: PrismaClient, s3: S3Client) {
     request.log.error(error);
     return reply.code(500).send({
       error: {
-        code: 'INTERNAL_ERROR',
+        code: ErrorCodes.INTERNAL_ERROR,
         message: 'Unexpected error',
         details: {}
       }
@@ -49,21 +50,21 @@ export function buildServer(prisma: PrismaClient, s3: S3Client) {
   });
 
   app.setNotFoundHandler((_request, reply) => {
-    sendError(reply, new ApiError(404, 'NOT_FOUND', 'Route not found'));
+    sendError(reply, new ApiError(404, ErrorCodes.NOT_FOUND, 'Route not found'));
   });
 
   const requireAuth = async (request: unknown) => {
     const req = request as { headers: { authorization?: string }; user?: unknown };
     const header = req.headers.authorization;
     if (!header) {
-      throw new ApiError(401, 'MISSING_AUTH', 'Missing Authorization header');
+      throw new ApiError(401, ErrorCodes.MISSING_AUTH, 'Missing Authorization header');
     }
     const token = header.replace('Bearer ', '');
     const payload = verifyAccessToken(token);
     const userId = payload.sub as string | undefined;
     const role = payload.role as 'student' | 'teacher' | undefined;
     if (!userId || !role) {
-      throw new ApiError(401, 'INVALID_TOKEN', 'Invalid token payload');
+      throw new ApiError(401, ErrorCodes.INVALID_TOKEN, 'Invalid token payload');
     }
     req.user = { id: userId, role };
   };

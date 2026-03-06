@@ -13,13 +13,24 @@ struct ExportView: View {
     var body: some View {
         NavigationStack {
             Form {
-                DatePicker("Start", selection: $startDate, displayedComponents: [.date])
-                DatePicker("End", selection: $endDate, displayedComponents: [.date])
+                Section("Date Range") {
+                    DatePicker("Start", selection: $startDate, displayedComponents: [.date])
+                        .accessibilityLabel("Start date")
+                    DatePicker("End", selection: $endDate, displayedComponents: [.date])
+                        .accessibilityLabel("End date")
+
+                    HStack(spacing: 8) {
+                        quickFilterButton("Last 7 Days", days: -7)
+                        quickFilterButton("Last 30 Days", days: -30)
+                        quickFilterButton("This Semester", days: -180)
+                    }
+                    .buttonStyle(.borderless)
+                }
 
                 if let stats = buildStats(entries: entriesInRange()) {
                     Section("Practice Stats") {
                         statRow("Entries", value: "\(stats.entryCount)")
-                        statRow("Total Duration", value: "\(stats.totalDurationSeconds)s")
+                        statRow("Total Duration", value: formatDuration(stats.totalDurationSeconds))
                         statRow("Draft", value: "\(stats.draftCount)")
                         statRow("Submitted", value: "\(stats.submittedCount)")
                         statRow("Reviewed", value: "\(stats.reviewedCount)")
@@ -29,6 +40,7 @@ struct ExportView: View {
                 Button("Generate PDF") {
                     generate()
                 }
+                .accessibilityHint("Creates a PDF report of practice entries in the selected date range")
 
                 if let exportURL {
                     ShareLink("Share PDF", item: exportURL)
@@ -46,6 +58,14 @@ struct ExportView: View {
                 Text("No entries in the selected date range.")
             }
         }
+    }
+
+    private func quickFilterButton(_ label: String, days: Int) -> some View {
+        Button(label) {
+            startDate = Calendar.current.date(byAdding: .day, value: days, to: Date()) ?? Date()
+            endDate = Date()
+        }
+        .font(.caption)
     }
 
     private func generate() {
@@ -95,6 +115,19 @@ struct ExportView: View {
             submittedCount: submittedCount,
             reviewedCount: reviewedCount
         )
+    }
+
+    private func formatDuration(_ totalSeconds: Int) -> String {
+        if totalSeconds < 60 {
+            return "\(totalSeconds)s"
+        }
+        let hours = totalSeconds / 3600
+        let minutes = (totalSeconds % 3600) / 60
+        let seconds = totalSeconds % 60
+        if hours > 0 {
+            return minutes > 0 ? "\(hours)h \(minutes)m" : "\(hours)h"
+        }
+        return seconds > 0 ? "\(minutes)m \(seconds)s" : "\(minutes)m"
     }
 
     private func statRow(_ label: String, value: String) -> some View {
