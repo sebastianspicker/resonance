@@ -77,3 +77,13 @@ infra/minio-data/
 
 # Postgres (if using local bind mounts)
 infra/postgres-data/
+
+# Secrets & credentials (defense in depth)
+*.pem
+*.key
+*.p12
+*.pfx
+*.jks
+credentials.json
+service-account*.json
+*-secret*.json
