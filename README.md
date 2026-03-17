@@ -2,7 +2,7 @@
 
 Offline-first, iPad-first MVP for a university of music. Students capture short practice evidence (audio/video snippets), submit to a course, receive structured teacher feedback, and export summaries.
 
-> Note: this is App, API-Skeleton and Frontend. You need to provide your own Backend/Connector.
+> Production auth (university SSO via Shibboleth/OIDC) is documented but not wired up. The included server handles everything else; connect your SSO bridge when deploying.
 
 ## Features (MVP)
 - Offline-first iPad app with local storage and sync queue

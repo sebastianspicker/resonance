@@ -1,4 +1,5 @@
 import Fastify from 'fastify';
+import type { FastifyRequest } from 'fastify';
 import cors from '@fastify/cors';
 import helmet from '@fastify/helmet';
 import rateLimit from '@fastify/rate-limit';
@@ -53,20 +54,19 @@ export function buildServer(prisma: PrismaClient, s3: S3Client) {
     sendError(reply, new ApiError(404, ErrorCodes.NOT_FOUND, 'Route not found'));
   });
 
-  const requireAuth = async (request: unknown) => {
-    const req = request as { headers: { authorization?: string }; user?: unknown };
-    const header = req.headers.authorization;
-    if (!header) {
-      throw new ApiError(401, ErrorCodes.MISSING_AUTH, 'Missing Authorization header');
+  const requireAuth = async (request: FastifyRequest) => {
+    const header = request.headers.authorization;
+    if (!header || !header.startsWith('Bearer ')) {
+      throw new ApiError(401, ErrorCodes.MISSING_AUTH, 'Missing or invalid Authorization header');
     }
-    const token = header.replace('Bearer ', '');
+    const token = header.slice(7);
     const payload = verifyAccessToken(token);
     const userId = payload.sub as string | undefined;
     const role = payload.role as 'student' | 'teacher' | undefined;
     if (!userId || !role) {
       throw new ApiError(401, ErrorCodes.INVALID_TOKEN, 'Invalid token payload');
     }
-    req.user = { id: userId, role };
+    request.user = { id: userId, role };
   };
 
   app.get('/health', async () => ({ status: 'ok' }));

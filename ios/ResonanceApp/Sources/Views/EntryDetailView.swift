@@ -260,7 +260,11 @@ struct EntryDetailView: View {
 
     private func startRecording() {
         let url = FileStore.createAudioFileURL(entryId: entry.id)
-        try? recorder.startRecording(to: url)
+        do {
+            try recorder.startRecording(to: url)
+        } catch {
+            appState.reportError(error)
+        }
     }
 
     private func stopRecording() {
@@ -269,7 +273,12 @@ struct EntryDetailView: View {
         let artifact = LocalArtifact(id: UUID().uuidString, entryId: entry.id, type: .audio, durationSeconds: Int(recorder.duration), localPath: url.path)
         entry.artifacts.append(artifact)
         modelContext.insert(artifact)
-        try? modelContext.save()
+        do {
+            try modelContext.save()
+        } catch {
+            appState.reportError(error)
+            return
+        }
         syncManager.enqueue(type: .createArtifact, payload: ["artifactId": artifact.id])
         syncManager.enqueue(type: .uploadArtifact, payload: ["artifactId": artifact.id])
         syncManager.enqueue(type: .confirmArtifact, payload: ["artifactId": artifact.id])
@@ -277,14 +286,24 @@ struct EntryDetailView: View {
 
     private func submitEntry() {
         entry.status = .submitted
+        do {
+            try modelContext.save()
+        } catch {
+            appState.reportError(error)
+            return
+        }
         syncManager.enqueue(type: .submitEntry, payload: ["entryId": entry.id])
-        try? modelContext.save()
     }
 
     private func deleteEntry() {
         entry.deletedAt = Date()
+        do {
+            try modelContext.save()
+        } catch {
+            appState.reportError(error)
+            return
+        }
         syncManager.enqueue(type: .deleteEntry, payload: ["entryId": entry.id])
-        try? modelContext.save()
     }
 
     private func refreshFeedback() async {
@@ -302,7 +321,7 @@ struct EntryDetailView: View {
                 entry.feedback.append(local)
                 modelContext.insert(local)
             }
-            try? modelContext.save()
+            try modelContext.save()
         } catch {
             appState.reportError(error)
         }

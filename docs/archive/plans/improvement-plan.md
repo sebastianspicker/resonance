@@ -2,7 +2,7 @@
 
 ## Overview
 
-This comprehensive plan covers repo cleanup, documentation consolidation, code improvements, deduplication, refactoring, QoL improvements, new features, and UI enhancements for the Resonance project - an iPad-first, offline-first practice evidence and feedback app for a music university.
+This plan covers repo cleanup, documentation consolidation, code improvements, deduplication, refactoring, QoL improvements, new features, and UI enhancements for the Resonance project — an iPad-first, offline-first practice evidence and feedback app for a music university.
 
 ---
 

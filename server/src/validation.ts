@@ -47,8 +47,10 @@ export function requireStringArray(value: unknown, name: string, options?: { max
 
 export function requireValidDate(value: unknown, name: string): Date {
   const str = String(value);
-  // Basic ISO 8601 regex (YYYY-MM-DDTHH:mm:ss.sssZ)
-  const isoRegex = /^\d{4}-\d{2}-\d{2}(T\d{2}:\d{2}:\d{2}(\.\d{3})?Z?)?$/;
+  // ISO 8601: date-only (parsed as UTC midnight) or full datetime with explicit timezone.
+  // Requiring Z or ±HH:MM when a time component is present avoids Node.js treating
+  // timezone-less strings as local time, which would cause silent drift on non-UTC servers.
+  const isoRegex = /^\d{4}-\d{2}-\d{2}(T\d{2}:\d{2}:\d{2}(\.\d{3})?(Z|[+-]\d{2}:\d{2}))?$/;
   if (!isoRegex.test(str)) {
     throw new ApiError(400, ErrorCodes.VALIDATION_ERROR, `Invalid date format: ${name}. Expected ISO 8601.`);
   }

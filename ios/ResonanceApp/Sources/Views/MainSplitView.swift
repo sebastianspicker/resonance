@@ -166,7 +166,7 @@ struct MainSplitView: View {
                     modelContext.insert(record)
                 }
             }
-            try? modelContext.save()
+            try modelContext.save()
         } catch {
             appState.reportError(error)
         }

@@ -11,6 +11,7 @@ Thanks for contributing to Resonance.
 ./scripts/secret-scan.sh
 cd server
 npm run lint
+npm run format
 npm test
 ```
 

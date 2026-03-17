@@ -4,6 +4,7 @@ import SwiftData
 struct NewEntryView: View {
     let courseId: String
     @Environment(\.dismiss) private var dismiss
+    @EnvironmentObject var appState: AppState
     @EnvironmentObject var authManager: AuthManager
     @EnvironmentObject var syncManager: SyncManager
     @Environment(\.modelContext) private var modelContext
@@ -136,7 +137,12 @@ struct NewEntryView: View {
             status: .draft
         )
         modelContext.insert(entry)
-        try? modelContext.save()
+        do {
+            try modelContext.save()
+        } catch {
+            appState.reportError(error)
+            return
+        }
         syncManager.enqueue(type: .createEntry, payload: ["entryId": entry.id])
         dismiss()
     }

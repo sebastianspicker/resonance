@@ -65,19 +65,40 @@ enum ICalParser {
         return result
     }
 
+    // DateFormatter is expensive to construct; reuse static instances across all parse calls.
+    private static let utcDateTimeFormatter: DateFormatter = {
+        let f = DateFormatter()
+        f.dateFormat = "yyyyMMdd'T'HHmmss"
+        f.timeZone = TimeZone(identifier: "UTC")
+        return f
+    }()
+
+    private static let allDayFormatter: DateFormatter = {
+        let f = DateFormatter()
+        f.dateFormat = "yyyyMMdd"
+        f.timeZone = TimeZone.current
+        return f
+    }()
+
+    private static let floatingDateTimeFormatter: DateFormatter = {
+        let f = DateFormatter()
+        f.dateFormat = "yyyyMMdd'T'HHmmss"
+        f.timeZone = TimeZone.current
+        return f
+    }()
+
     private static func parseDate(_ value: String) -> Date? {
-        let cleaned = value.replacingOccurrences(of: "Z", with: "")
-        if cleaned.count == 8 {
-            let formatter = DateFormatter()
-            formatter.dateFormat = "yyyyMMdd"
-            formatter.timeZone = TimeZone.current
-            return formatter.date(from: cleaned)
+        if value.hasSuffix("Z") {
+            // UTC datetime: e.g. "20250301T120000Z" — parse as UTC, not local time.
+            return utcDateTimeFormatter.date(from: String(value.dropLast()))
         }
-        if cleaned.count >= 15 {
-            let formatter = DateFormatter()
-            formatter.dateFormat = "yyyyMMdd'T'HHmmss"
-            formatter.timeZone = TimeZone.current
-            return formatter.date(from: cleaned)
+        if value.count == 8 {
+            // All-day date: "20250301" — use local timezone (no clock time).
+            return allDayFormatter.date(from: value)
+        }
+        if value.count >= 15 {
+            // Floating datetime (no timezone indicator): treat as local.
+            return floatingDateTimeFormatter.date(from: String(value.prefix(15)))
         }
         return nil
     }

@@ -4,7 +4,6 @@ import SwiftData
 struct SettingsView: View {
     @Environment(\.modelContext) private var modelContext
     @EnvironmentObject var authManager: AuthManager
-    @State private var apiBase = AppConfig.apiBaseURL.absoluteString
     @State private var demoStatusMessage: String?
     @State private var showDemoStatusAlert = false
 
@@ -12,9 +11,10 @@ struct SettingsView: View {
         NavigationStack {
             Form {
                 Section("API") {
-                    TextField("Base URL", text: $apiBase)
-                        .textInputAutocapitalization(.never)
-                        .autocorrectionDisabled()
+                    Text("Base URL: \(AppConfig.apiBaseURL.absoluteString)")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .textSelection(.enabled)
                     Text("Active host: \(AppConfig.apiBaseURL.host() ?? AppConfig.apiBaseURL.absoluteString)")
                         .font(.caption)
                         .foregroundStyle(.secondary)

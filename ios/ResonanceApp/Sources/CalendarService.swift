@@ -19,7 +19,7 @@ final class CalendarService: ObservableObject {
                 let record = CalendarEvent(id: event.id, summary: event.summary, startDate: event.startDate, endDate: event.endDate, location: event.location)
                 modelContext.insert(record)
             }
-            try? modelContext.save()
+            try modelContext.save()
             lastUpdated = Date()
         } catch {
             print("Calendar refresh failed: \(error)")

@@ -1,7 +1,7 @@
 # Architecture
 
 ## Components
-- iOS iPad app (SwiftUI): offline-first UI, Core Data store, background sync queue.
+- iOS iPad app (SwiftUI): offline-first UI, SwiftData store, background sync queue.
 - API server (Fastify + Prisma): auth, course context, entries, feedback, media pre-signed URLs.
 - Postgres: metadata and access control.
 - Object storage (S3-compatible, MinIO in dev): media artifacts.
@@ -14,13 +14,13 @@
 
 ## Data Flow
 1. User signs in via ASWebAuthenticationSession -> app receives auth callback -> exchanges for tokens.
-2. App syncs course/membership list into Core Data.
+2. App syncs course/membership list into SwiftData.
 3. Student creates entry offline -> stored locally -> queued for sync.
 4. Sync worker sends metadata to server -> requests pre-signed PUT URL -> uploads media -> confirms upload.
 5. Teacher fetches queue -> posts feedback -> student sees feedback on next sync.
 
 ## Offline Strategy
-- Local-first writes to Core Data with a persistent sync queue.
+- Local-first writes to SwiftData with a persistent sync queue.
 - Background sync using URLSession background configuration and exponential backoff.
 - Last-write-wins for entry edits; feedback is append-only server-side.
 

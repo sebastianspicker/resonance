@@ -61,7 +61,7 @@ final class SyncManager: ObservableObject {
               let json = String(data: data, encoding: .utf8) else { return }
         let item = SyncQueueItem(id: UUID().uuidString, type: type.rawValue, payloadJSON: json)
         modelContext.insert(item)
-        try? modelContext.save()
+        saveContext()
         updateQueueMetrics()
     }
 
@@ -73,13 +73,20 @@ final class SyncManager: ObservableObject {
             item.nextAttemptAt = nil
             item.lastError = nil
         }
-        try? modelContext.save()
+        saveContext()
         updateQueueMetrics()
     }
 
     func processQueue() async {
         let taskId = UIApplication.shared.beginBackgroundTask(withName: "ResonanceSync") {
-            // Task expiration handler
+            // Background time expired: reset any stuck "processing" items so they retry next launch.
+            let stuckDescriptor = FetchDescriptor<SyncQueueItem>(predicate: #Predicate { $0.status == "processing" })
+            let stuck = (try? self.modelContext.fetch(stuckDescriptor)) ?? []
+            for item in stuck {
+                item.status = "pending"
+                item.nextAttemptAt = nil
+            }
+            if !stuck.isEmpty { self.saveContext() }
         }
         
         defer {
@@ -107,7 +114,9 @@ final class SyncManager: ObservableObject {
                 if let apiError = error as? APIError, apiError.error.code == "VALIDATION_ERROR" {
                     item.status = "failed"
                 } else if (error as NSError).domain == "SyncLocal" && (error as NSError).code == 404 {
-                    item.status = "failed" // Item missing locally, can't sync.
+                    item.status = "failed" // Item missing locally (via fetchFirst), can't sync.
+                } else if error is SyncError {
+                    item.status = "failed" // Any typed SyncError (missing local data, bad payload) is non-retryable.
                 } else {
                     item.status = "pending"
                     let delay = min(pow(2.0, Double(item.retryCount)), 300)
@@ -119,7 +128,7 @@ final class SyncManager: ObservableObject {
         if !items.isEmpty {
             lastSyncedAt = Date()
         }
-        try? modelContext.save()
+        saveContext()
         updateQueueMetrics()
     }
 
@@ -149,34 +158,33 @@ final class SyncManager: ObservableObject {
             let artifact = try fetchArtifact(id: artifactId)
             _ = try await apiClient.createArtifact(accessToken: accessToken, entryId: artifact.entryId, artifact: artifact)
             artifact.syncPhase = .queued
-            try? modelContext.save()
+            saveContext()
 
         case .uploadArtifact:
             let artifactId = payload["artifactId"] as? String ?? ""
             let artifact = try fetchArtifact(id: artifactId)
             artifact.uploadState = .uploading
             artifact.syncPhase = .uploading
-            try? modelContext.save()
+            saveContext()
             
-            // Critical check: Does the file actually exist?
+            // Fail fast before requesting a presign URL: missing file can't be recovered by retry.
             guard FileManager.default.fileExists(atPath: artifact.localPath) else {
                 throw SyncError.localFileNotFound("Local file not found for artifact \(artifactId) at \(artifact.localPath)")
             }
-            
+
             let presign = try await apiClient.presignArtifact(accessToken: accessToken, artifactId: artifact.id)
-            
-            // Validate presign URL before upload
-            guard let url = URL(string: presign.uploadUrl), url.scheme != nil else {
+
+            guard let uploadURL = URL(string: presign.uploadUrl), uploadURL.scheme != nil else {
                 throw SyncError.invalidPresignUrl("Invalid presign URL for artifact \(artifactId)")
             }
-            
+
             try await uploadFile(
-                urlString: presign.uploadUrl,
+                url: uploadURL,
                 fileURL: URL(fileURLWithPath: artifact.localPath),
                 requiredHeaders: presign.requiredHeaders ?? [:]
             )
             artifact.syncPhase = .confirming
-            try? modelContext.save()
+            saveContext()
 
         case .confirmArtifact:
             let artifactId = payload["artifactId"] as? String ?? ""
@@ -186,14 +194,14 @@ final class SyncManager: ObservableObject {
             artifact.syncPhase = .uploaded
             artifact.storageKey = response.storageKey
             artifact.remoteUrl = response.remoteUrl
-            try? modelContext.save()
+            saveContext()
 
         case .submitEntry:
             let entryId = payload["entryId"] as? String ?? ""
             _ = try await apiClient.submitEntry(accessToken: accessToken, entryId: entryId)
             let entry = try fetchEntry(id: entryId)
             entry.status = .submitted
-            try? modelContext.save()
+            saveContext()
 
         case .deleteEntry:
             let entryId = payload["entryId"] as? String ?? ""
@@ -215,10 +223,10 @@ final class SyncManager: ObservableObject {
             _ = try await apiClient.createFeedback(accessToken: accessToken, targetType: targetType, targetId: targetId, status: status, commentsText: commentsText, markers: markers)
             if targetType == "entry", let entry = try? fetchEntry(id: targetId) {
                 entry.status = .reviewed
-                try? modelContext.save()
+                saveContext()
             } else if targetType == "artifact", let artifact = try? fetchArtifact(id: targetId), let entry = try? fetchEntry(id: artifact.entryId) {
                 entry.status = .reviewed
-                try? modelContext.save()
+                saveContext()
             }
         }
     }
@@ -252,7 +260,15 @@ final class SyncManager: ObservableObject {
         }
         artifact.uploadState = .failed
         artifact.syncPhase = .failed
-        try? modelContext.save()
+        saveContext()
+    }
+
+    private func saveContext() {
+        do {
+            try modelContext.save()
+        } catch {
+            print("SyncManager: failed to save model context: \(error)")
+        }
     }
 
     private func updateQueueMetrics() {
@@ -265,24 +281,18 @@ final class SyncManager: ObservableObject {
     }
 
     private func uploadFile(
-        urlString: String,
+        url: URL,
         fileURL: URL,
         requiredHeaders: [String: String]
     ) async throws {
-        guard let url = URL(string: urlString) else {
-            throw SyncError.invalidPresignUrl("Invalid presign URL: \(urlString)")
-        }
         var request = URLRequest(url: url)
         request.httpMethod = "PUT"
         for (header, value) in requiredHeaders {
             request.setValue(value, forHTTPHeaderField: header)
         }
-        let (data, response) = try await session.upload(for: request, fromFile: fileURL)
+        let (_, response) = try await session.upload(for: request, fromFile: fileURL)
         if let http = response as? HTTPURLResponse, http.statusCode >= 400 {
             throw URLError(.badServerResponse)
-        }
-        if data.isEmpty == false {
-            _ = data
         }
     }
 }

@@ -214,25 +214,26 @@ extension JSONEncoder {
 extension JSONDecoder {
     static let apiDecoder: JSONDecoder = {
         let decoder = JSONDecoder()
-        // Use custom date decoding strategy that handles fractional seconds
+        // Hoist formatters outside the closure so they are created once, not on every decode call.
+        let formatterWithFractional: ISO8601DateFormatter = {
+            let f = ISO8601DateFormatter()
+            f.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+            return f
+        }()
+        let formatterWithoutFractional: ISO8601DateFormatter = {
+            let f = ISO8601DateFormatter()
+            f.formatOptions = [.withInternetDateTime]
+            return f
+        }()
         decoder.dateDecodingStrategy = .custom { decoder in
             let container = try decoder.singleValueContainer()
             let dateString = try container.decode(String.self)
-            
-            // Try ISO8601 with fractional seconds first
-            let formatterWithFractional = ISO8601DateFormatter()
-            formatterWithFractional.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
             if let date = formatterWithFractional.date(from: dateString) {
                 return date
             }
-            
-            // Fall back to ISO8601 without fractional seconds
-            let formatterWithoutFractional = ISO8601DateFormatter()
-            formatterWithoutFractional.formatOptions = [.withInternetDateTime]
             if let date = formatterWithoutFractional.date(from: dateString) {
                 return date
             }
-            
             throw DecodingError.dataCorruptedError(in: container, debugDescription: "Cannot decode date: \(dateString)")
         }
         return decoder

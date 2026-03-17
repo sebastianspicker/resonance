@@ -15,6 +15,7 @@ struct FeedbackEditorView: View {
     @State private var status: FeedbackStatus = .ok
     @State private var commentsText: String = ""
     @State private var markers: [MarkerDraft] = []
+    @State private var isSending = false
 
     var body: some View {
         NavigationStack {
@@ -132,8 +133,8 @@ struct FeedbackEditorView: View {
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Send") { Task { await sendFeedback() } }
-                        .disabled(commentsText.isEmpty)
-                        .foregroundStyle(commentsText.isEmpty ? .white.opacity(0.5) : .white)
+                        .disabled(commentsText.isEmpty || isSending)
+                        .foregroundStyle(commentsText.isEmpty || isSending ? .white.opacity(0.5) : .white)
                 }
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") { dismiss() }
@@ -144,7 +145,9 @@ struct FeedbackEditorView: View {
     }
 
     private func sendFeedback() async {
-        guard let session = authManager.session else { return }
+        guard !isSending, let session = authManager.session else { return }
+        isSending = true
+        defer { isSending = false }
         let markerModels = markers.compactMap { draft -> LocalMarker? in
             guard let seconds = Int(draft.timeSeconds), !draft.text.isEmpty else { return nil }
             return LocalMarker(id: UUID().uuidString, timeSeconds: seconds, text: draft.text)

@@ -80,10 +80,10 @@ struct ExportView: View {
         let filename = "Resonance_Export_\(Int(Date().timeIntervalSince1970))_\(UUID().uuidString.prefix(8)).pdf"
         let exportDir = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
             .appendingPathComponent("Exports", isDirectory: true)
-        try? FileManager.default.createDirectory(at: exportDir, withIntermediateDirectories: true)
         let url = exportDir.appendingPathComponent(filename)
 
         do {
+            try FileManager.default.createDirectory(at: exportDir, withIntermediateDirectories: true)
             try PDFExporter.export(entries: entries, to: url)
             exportURL = url
         } catch {

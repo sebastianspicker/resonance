@@ -8,7 +8,6 @@ import { ErrorCodes } from './errorCodes.js';
 
 const devAuthCodes = new Map<string, { userId: string; expiresAt: number }>();
 
-// JWT configuration constants
 const JWT_ISSUER = 'resonance-api';
 const JWT_AUDIENCE = 'resonance-app';
 const JWT_ALGORITHM = 'HS256' as const;
@@ -142,8 +141,13 @@ export async function rotateRefreshToken(prisma: PrismaClient, refreshToken: str
 }
 
 export function issueDevAuthCode(userId: string) {
+  // Evict expired entries before issuing a new code to prevent unbounded growth.
+  const now = Date.now();
+  for (const [k, v] of devAuthCodes) {
+    if (v.expiresAt < now) devAuthCodes.delete(k);
+  }
   const code = `dev_${nanoid(18)}`;
-  devAuthCodes.set(code, { userId, expiresAt: Date.now() + limits.devAuthCodeTtlMs });
+  devAuthCodes.set(code, { userId, expiresAt: now + limits.devAuthCodeTtlMs });
   return code;
 }
 

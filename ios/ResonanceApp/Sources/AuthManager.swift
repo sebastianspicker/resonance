@@ -101,13 +101,16 @@ final class AuthManager: NSObject, ObservableObject {
 
     func refreshIfNeeded() async {
         guard let session else { return }
-        
+
         // If a refresh is already in progress, await it.
         if let existingTask = refreshTask {
             _ = try? await existingTask.value
             return
         }
-        
+
+        // Only refresh if the access token is expired or within 60 seconds of expiry.
+        guard isAccessTokenExpired(session.accessToken) else { return }
+
         let task = Task {
             let refreshed = try await apiClient.refreshTokens(refreshToken: session.refreshToken)
             let newSession = AuthSession(
@@ -130,6 +133,23 @@ final class AuthManager: NSObject, ObservableObject {
             print("Refresh failed: \(error)")
             signOut()
         }
+    }
+
+    /// Returns true if the JWT access token is expired or will expire within 60 seconds.
+    private func isAccessTokenExpired(_ token: String) -> Bool {
+        let parts = token.split(separator: ".", omittingEmptySubsequences: false)
+        guard parts.count >= 2 else { return true }
+        var base64 = parts[1]
+            .replacingOccurrences(of: "-", with: "+")
+            .replacingOccurrences(of: "_", with: "/")
+        let remainder = base64.count % 4
+        if remainder != 0 { base64 += String(repeating: "=", count: 4 - remainder) }
+        guard let data = Data(base64Encoded: base64),
+              let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let exp = json["exp"] as? TimeInterval else {
+            return true
+        }
+        return Date(timeIntervalSince1970: exp).timeIntervalSinceNow < 60
     }
 
     private func persistSession(_ session: AuthSession) {

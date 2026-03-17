@@ -54,15 +54,15 @@ Each item can be turned into a separate issue.
 
 ---
 
-### 5. [Bug] Entry delete: S3 delete before DB transaction (inconsistent state on failure)
+### 5. [Bug] Entry delete: S3 delete before DB transaction (inconsistent state on failure) — ✅ Fixed (ordering)
 
 **Description:** `DELETE /entries/:entryId` deletes S3 objects first, then runs a Prisma transaction for DB deletes. If the transaction fails (or S3 delete partially fails), DB can still reference deleted objects, or artifacts can remain in DB with storage already removed.
 
 **Impact:** Irrecoverable DB/storage mismatch; broken playback or orphaned blobs; partial deletion with no clear recovery.
 
-**Fix:** Prefer "DB transaction first" (soft-delete or mark-for-deletion, then delete storage, then hard-delete), or use a two-phase approach with clear rollback/retry. Ensure artifact list used for S3 delete is inside the same transactional view (e.g. delete in transaction, then delete storage for the same set).
+**Fix applied:** Delete logic moved to `server/src/services/entryCascade.ts`. `cascadeDeleteEntry` runs all DB deletes in a single Prisma `$transaction`; `cleanupS3Objects` is called only after the transaction succeeds. S3 failures are logged but don't throw — orphaned objects can be cleaned up separately. Artifact enumeration (for storage key collection) still happens outside the transaction; see #20 for the remaining prefetch concern.
 
-**Sources:** `server/src/server.ts:351-391`
+**Sources:** `server/src/services/entryCascade.ts`
 
 ---
 
@@ -206,11 +206,13 @@ Same as (2): Implement and document `redirectUri` validation when production aut
 
 ---
 
-### 20. [Bug] Entry delete: orphaned feedback and storage (non-transactional prefetch + S3 before DB)
+### 20. [Bug] Entry delete: orphaned feedback and storage (non-transactional prefetch + S3 before DB) — Partially fixed
 
 **Description:** Artifacts are fetched outside the transaction; feedback is deleted by prefetched artifact IDs; then entry (and artifacts) are deleted. Cascade can remove artifacts not in the prefetch list, orphaning their feedback. S3 delete runs before transaction; DB failure leaves DB referencing missing storage.
 
-**Fix:** Move artifact enumeration and feedback/artifact/entry deletion into a single transactional boundary; delete storage only after transaction commits, or use a two-phase "mark then delete storage then finalize" with retry. **Sources:** `server/src/server.ts`
+**Status:** S3-before-DB ordering is fixed (see #5). Artifact enumeration in `entryCascade.ts` still runs outside the `$transaction`, so the prefetch race condition remains.
+
+**Fix:** Move the `prisma.artifact.findMany` call inside the `$transaction` callback to ensure the artifact list and cascade deletes are atomic. **Sources:** `server/src/services/entryCascade.ts`
 
 ---
 
@@ -418,7 +420,7 @@ The following high-priority items were implemented:
 | Unexpected sign-out | Refresh race, Keychain write failure | Single-flight refresh; check Keychain status |
 | Teacher sees all entries (incl. drafts) | No status filter on GET entries | Filter by status or document intent; see §6 |
 | Student can confirm others' artifacts | No ownership check on confirm | Add student-owner check; see §10, §17 |
-| Entry delete leaves orphaned data / broken storage | S3 before DB; prefetch outside transaction | Delete in transaction; delete storage after commit; see §5, §20 |
+| Entry delete leaves orphaned data / broken storage | Prefetch outside transaction (S3 ordering now fixed) | Move artifact enumeration inside `$transaction`; see §20 |
 | Upload "succeeds" but artifact not uploaded | Presign URL invalid or no Content-Type | Validate URL; set Content-Type on PUT; see §21 |
 | Sync queue item disappears, no error | Parse failure or unknown type treated as success | Throw on parse/unknown type; see §22 |
 | createEntry fails on iOS (encoding) | Optional.none in JSON body | Omit nil optionals or encode explicitly; see §27 |
@@ -431,7 +433,7 @@ The following high-priority items were implemented:
 ## Using this list for issues
 
 - **Labels:** `bug`, `enhancement`, `documentation`, `operational`, `security` as appropriate.
-- **Title:** Use the **[Bug]** / **[Enhancement]** part as a prefix or label.
+- **Title:** Use the [Bug] / [Enhancement] bracket prefix from the section header.
 - **Body:** Copy the relevant section (description, impact, fix, sources) into the issue.
 - The **quick reference** table can be linked from the README or a meta-issue for troubleshooting.
 

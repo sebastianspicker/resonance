@@ -17,7 +17,7 @@ export function registerAuthRoutes(
   app: FastifyInstance,
   prisma: PrismaClient,
   _s3: S3Client,
-  requireAuth: (request: unknown) => Promise<void>
+  requireAuth: (request: FastifyRequest) => Promise<void>
 ) {
   const isLoopbackAddress = (ip: string | undefined) => {
     if (!ip) {

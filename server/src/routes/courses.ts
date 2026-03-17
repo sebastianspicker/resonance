@@ -1,4 +1,4 @@
-import type { FastifyInstance } from 'fastify';
+import type { FastifyInstance, FastifyRequest } from 'fastify';
 import type { PrismaClient } from '@prisma/client';
 import type { S3Client } from '@aws-sdk/client-s3';
 import { ApiError } from '../errors.js';
@@ -9,7 +9,7 @@ export function registerCourseRoutes(
   app: FastifyInstance,
   prisma: PrismaClient,
   _s3: S3Client,
-  requireAuth: (request: unknown) => Promise<void>
+  requireAuth: (request: FastifyRequest) => Promise<void>
 ) {
   app.get('/courses', { preHandler: requireAuth }, async (request) => {
     const user = request.user!;

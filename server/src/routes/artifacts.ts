@@ -1,4 +1,4 @@
-import type { FastifyInstance } from 'fastify';
+import type { FastifyInstance, FastifyRequest } from 'fastify';
 import type { PrismaClient } from '@prisma/client';
 import type { S3Client } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
@@ -18,7 +18,7 @@ export function registerArtifactRoutes(
   app: FastifyInstance,
   prisma: PrismaClient,
   s3: S3Client,
-  requireAuth: (request: unknown) => Promise<void>
+  requireAuth: (request: FastifyRequest) => Promise<void>
 ) {
   app.post('/entries/:entryId/artifacts', { preHandler: requireAuth }, async (request) => {
     const user = request.user!;
@@ -99,16 +99,17 @@ export function registerArtifactRoutes(
     if (!artifact.storageKey) {
       throw new ApiError(400, ErrorCodes.MISSING_STORAGE_KEY, 'Artifact missing storage key');
     }
+    let head;
     try {
-      const head = await s3.send(
+      head = await s3.send(
         new HeadObjectCommand({ Bucket: config.s3.bucket, Key: artifact.storageKey })
       );
-      if (!head.ContentLength || head.ContentLength === 0) {
-        throw new Error('Empty file');
-      }
     } catch (err) {
       request.log.error(err);
-      throw new ApiError(409, ErrorCodes.UPLOAD_INVALID, 'Upload not found or empty in storage');
+      throw new ApiError(409, ErrorCodes.UPLOAD_INVALID, 'Upload not found in storage');
+    }
+    if (!head.ContentLength || head.ContentLength === 0) {
+      throw new ApiError(409, ErrorCodes.UPLOAD_INVALID, 'Uploaded file is empty');
     }
     const updated = await prisma.artifact.update({
       where: { id: artifactId },

@@ -34,7 +34,7 @@ jobs:
         env:
           POSTGRES_USER: resonance
           POSTGRES_PASSWORD: resonance
-          POSTGRES_DB: resonance
+          POSTGRES_DB: resonance_test
         ports:
           - 5432:5432
         options: >-
@@ -44,7 +44,7 @@ jobs:
           --health-retries=5
 
     env:
-      DATABASE_URL: postgresql://resonance:resonance@localhost:5432/resonance
+      DATABASE_URL: postgresql://resonance:resonance@localhost:5432/resonance_test
 
     steps:
       - name: Checkout
@@ -68,6 +68,10 @@ jobs:
       - name: Lint
         working-directory: server
         run: npm run lint
+
+      - name: Format check
+        working-directory: server
+        run: npm run format:check
 
       - name: Secret scan
         run: ./scripts/secret-scan.sh
