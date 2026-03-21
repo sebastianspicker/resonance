@@ -2,35 +2,44 @@ import type { S3Client } from '@aws-sdk/client-s3';
 import { DeleteObjectCommand } from '@aws-sdk/client-s3';
 import type { PrismaClient, FeedbackTargetType } from '@prisma/client';
 import { config } from '../config.js';
+import { ErrorCodes } from '../errorCodes.js';
+import { ApiError, isPrismaError } from '../errors.js';
 
 /**
  * Delete an entry and all associated data (artifacts, feedback, markers)
  * in a single transaction. Returns storage keys for subsequent S3 cleanup.
  */
 export async function cascadeDeleteEntry(prisma: PrismaClient, entryId: string): Promise<string[]> {
-  const storageKeys = await prisma.$transaction(async (tx) => {
-    // Artifact enumeration is now inside the transaction to prevent race
-    // conditions where artifacts could be added between the prefetch and
-    // the cascade deletes (fixes bug #20).
-    const artifacts = await tx.artifact.findMany({
-      where: { entryId },
-      select: { id: true, storageKey: true },
+  try {
+    const storageKeys = await prisma.$transaction(async (tx) => {
+      // Artifact enumeration is now inside the transaction to prevent race
+      // conditions where artifacts could be added between the prefetch and
+      // the cascade deletes (fixes bug #20).
+      const artifacts = await tx.artifact.findMany({
+        where: { entryId },
+        select: { id: true, storageKey: true },
+      });
+      const keys = artifacts.map((a) => a.storageKey).filter((key): key is string => key !== null);
+
+      const artifactIds = artifacts.map((a) => a.id);
+      if (artifactIds.length > 0) {
+        await deleteFeedbackCascade(tx, artifactIds);
+        await tx.artifact.deleteMany({ where: { id: { in: artifactIds } } });
+      }
+
+      await deleteFeedbackCascade(tx, [entryId], 'entry');
+      await tx.practiceEntry.delete({ where: { id: entryId } });
+
+      return keys;
     });
-    const keys = artifacts.map((a) => a.storageKey).filter((key): key is string => key !== null);
 
-    const artifactIds = artifacts.map((a) => a.id);
-    if (artifactIds.length > 0) {
-      await deleteFeedbackCascade(tx, artifactIds);
-      await tx.artifact.deleteMany({ where: { id: { in: artifactIds } } });
+    return storageKeys;
+  } catch (err: unknown) {
+    if (isPrismaError(err, 'P2025')) {
+      throw new ApiError(404, ErrorCodes.ENTRY_NOT_FOUND, 'Entry not found');
     }
-
-    await deleteFeedbackCascade(tx, [entryId], 'entry');
-    await tx.practiceEntry.delete({ where: { id: entryId } });
-
-    return keys;
-  });
-
-  return storageKeys;
+    throw err;
+  }
 }
 
 /**

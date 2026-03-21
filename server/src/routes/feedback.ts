@@ -4,7 +4,7 @@ import type { FastifyInstance, FastifyRequest } from 'fastify';
 import { nanoid } from 'nanoid';
 import { limits } from '../config.js';
 import { ErrorCodes } from '../errorCodes.js';
-import { ApiError } from '../errors.js';
+import { ApiError, withPrismaErrors } from '../errors.js';
 import {
   requireCourseRole,
   requireEnum,
@@ -105,33 +105,40 @@ export function registerFeedbackRoutes(
     }
 
     const feedbackId = `fb_${nanoid(12)}`;
-    const feedback = await prisma.$transaction(async (tx) => {
-      const created = await tx.feedback.create({
-        data: {
-          id: feedbackId,
-          targetType,
-          targetId,
-          teacherId: user.id,
-          status,
-          commentsText,
-          markers: {
-            create: markers.map((marker: Record<string, unknown>) => ({
-              id: `mk_${nanoid(10)}`,
-              timeSeconds: marker.timeSeconds as number,
-              text: marker.text as string,
-            })),
-          },
-        },
-        include: { markers: true, teacher: true },
-      });
+    const feedback = await withPrismaErrors(
+      () =>
+        prisma.$transaction(async (tx) => {
+          const created = await tx.feedback.create({
+            data: {
+              id: feedbackId,
+              targetType,
+              targetId,
+              teacherId: user.id,
+              status,
+              commentsText,
+              markers: {
+                create: markers.map((marker: Record<string, unknown>) => ({
+                  id: `mk_${nanoid(10)}`,
+                  timeSeconds: marker.timeSeconds as number,
+                  text: marker.text as string,
+                })),
+              },
+            },
+            include: { markers: true, teacher: true },
+          });
 
-      await tx.practiceEntry.update({
-        where: { id: reviewEntryId },
-        data: { status: 'reviewed' },
-      });
+          await tx.practiceEntry.update({
+            where: { id: reviewEntryId },
+            data: { status: 'reviewed' },
+          });
 
-      return created;
-    });
+          return created;
+        }),
+      {
+        notFoundCode: ErrorCodes.ENTRY_NOT_FOUND,
+        notFoundMessage: 'Entry was deleted during feedback creation',
+      }
+    );
     return {
       ...feedback,
       teacherName: feedback.teacher.displayName,

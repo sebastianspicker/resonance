@@ -132,3 +132,92 @@ describe('errors (unit)', () => {
     });
   });
 });
+
+import { isPrismaError, withPrismaErrors } from '../src/errors.js';
+import { ErrorCodes } from '../src/errorCodes.js';
+
+describe('isPrismaError', () => {
+  it('returns true for matching Prisma error code', () => {
+    const err = { code: 'P2002', message: 'Unique constraint failed' };
+    expect(isPrismaError(err, 'P2002')).toBe(true);
+  });
+
+  it('returns false for non-matching code', () => {
+    const err = { code: 'P2002', message: 'Unique constraint failed' };
+    expect(isPrismaError(err, 'P2025')).toBe(false);
+  });
+
+  it('returns false for null', () => {
+    expect(isPrismaError(null, 'P2002')).toBe(false);
+  });
+
+  it('returns false for non-object', () => {
+    expect(isPrismaError('string', 'P2002')).toBe(false);
+    expect(isPrismaError(42, 'P2002')).toBe(false);
+    expect(isPrismaError(undefined, 'P2002')).toBe(false);
+  });
+
+  it('returns false for object without code property', () => {
+    expect(isPrismaError({ message: 'error' }, 'P2002')).toBe(false);
+  });
+});
+
+describe('withPrismaErrors', () => {
+  it('returns the result on success', async () => {
+    const result = await withPrismaErrors(() => Promise.resolve({ id: '1' }));
+    expect(result).toEqual({ id: '1' });
+  });
+
+  it('maps P2002 to 409 ID_CONFLICT', async () => {
+    const operation = () => Promise.reject({ code: 'P2002' });
+    await expect(withPrismaErrors(operation)).rejects.toMatchObject({
+      statusCode: 409,
+      code: ErrorCodes.ID_CONFLICT,
+    });
+  });
+
+  it('maps P2002 with custom conflict message', async () => {
+    const operation = () => Promise.reject({ code: 'P2002' });
+    await expect(
+      withPrismaErrors(operation, { conflictMessage: 'Duplicate entry' })
+    ).rejects.toMatchObject({
+      statusCode: 409,
+      code: ErrorCodes.ID_CONFLICT,
+      message: 'Duplicate entry',
+    });
+  });
+
+  it('maps P2025 to 404 NOT_FOUND', async () => {
+    const operation = () => Promise.reject({ code: 'P2025' });
+    await expect(withPrismaErrors(operation)).rejects.toMatchObject({
+      statusCode: 404,
+      code: ErrorCodes.NOT_FOUND,
+    });
+  });
+
+  it('maps P2025 with custom code and message', async () => {
+    const operation = () => Promise.reject({ code: 'P2025' });
+    await expect(
+      withPrismaErrors(operation, {
+        notFoundCode: ErrorCodes.ENTRY_NOT_FOUND,
+        notFoundMessage: 'Entry not found',
+      })
+    ).rejects.toMatchObject({
+      statusCode: 404,
+      code: ErrorCodes.ENTRY_NOT_FOUND,
+      message: 'Entry not found',
+    });
+  });
+
+  it('re-throws non-Prisma errors', async () => {
+    const originalError = new Error('DB connection failed');
+    const operation = () => Promise.reject(originalError);
+    await expect(withPrismaErrors(operation)).rejects.toBe(originalError);
+  });
+
+  it('re-throws unknown Prisma codes', async () => {
+    const unknownErr = { code: 'P2003' };
+    const operation = () => Promise.reject(unknownErr);
+    await expect(withPrismaErrors(operation)).rejects.toBe(unknownErr);
+  });
+});

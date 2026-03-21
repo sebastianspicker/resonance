@@ -119,13 +119,29 @@ export function buildServer(prisma: PrismaClient, s3: S3Client) {
       });
     }
 
-    // Fastify content-type parser errors (unsupported media type, invalid JSON, etc.)
-    if (
-      fastifyErr.code === 'FST_ERR_CTP_INVALID_MEDIA_TYPE' ||
-      fastifyErr.code === 'FST_ERR_CTP_INVALID_TYPE' ||
-      fastifyErr.code === 'FST_ERR_CTP_EMPTY_TYPE' ||
-      (typeof fastifyErr.code === 'string' && fastifyErr.code.startsWith('FST_ERR_CTP'))
-    ) {
+    // Fastify content-type parser errors -- differentiate by sub-type
+    if (typeof fastifyErr.code === 'string' && fastifyErr.code.startsWith('FST_ERR_CTP')) {
+      // Invalid JSON body -> 400
+      if (fastifyErr.code === 'FST_ERR_CTP_INVALID_JSON_BODY') {
+        return reply.code(400).send({
+          error: {
+            code: ErrorCodes.VALIDATION_ERROR,
+            message: 'Invalid JSON in request body',
+            details: {},
+          },
+        });
+      }
+      // Body too large -> 413
+      if (fastifyErr.code === 'FST_ERR_CTP_BODY_TOO_LARGE') {
+        return reply.code(413).send({
+          error: {
+            code: ErrorCodes.VALIDATION_ERROR,
+            message: 'Request body is too large',
+            details: {},
+          },
+        });
+      }
+      // All other CTP errors (invalid media type, empty type, etc.) -> 415
       return reply.code(415).send({
         error: {
           code: ErrorCodes.VALIDATION_ERROR,
@@ -135,11 +151,17 @@ export function buildServer(prisma: PrismaClient, s3: S3Client) {
       });
     }
 
-    request.log.error(error);
-    return reply.code(500).send({
+    // Log only unexpected (5xx) errors at error level; 4xx are client mistakes
+    const status = fastifyErr.statusCode ?? 500;
+    if (status >= 500) {
+      request.log.error(error);
+    } else {
+      request.log.warn(error);
+    }
+    return reply.code(status).send({
       error: {
-        code: ErrorCodes.INTERNAL_ERROR,
-        message: 'Unexpected error',
+        code: status >= 500 ? ErrorCodes.INTERNAL_ERROR : ErrorCodes.VALIDATION_ERROR,
+        message: status >= 500 ? 'Unexpected error' : (error as Error).message || 'Bad request',
         details: {},
       },
     });

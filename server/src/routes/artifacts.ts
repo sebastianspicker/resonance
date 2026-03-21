@@ -5,7 +5,7 @@ import type { PrismaClient } from '@prisma/client';
 import type { FastifyInstance, FastifyRequest } from 'fastify';
 import { config, limits } from '../config.js';
 import { ErrorCodes } from '../errorCodes.js';
-import { ApiError } from '../errors.js';
+import { ApiError, withPrismaErrors } from '../errors.js';
 import {
   requireClientId,
   requireEnum,
@@ -43,22 +43,13 @@ export function registerArtifactRoutes(
       'durationSeconds',
       { min: 0, max: limits.maxDurationSeconds }
     );
-    try {
-      const artifact = await prisma.artifact.create({
-        data: { id: artifactId, entryId, type, durationSeconds },
-      });
-      return artifact;
-    } catch (err: unknown) {
-      if (
-        typeof err === 'object' &&
-        err !== null &&
-        'code' in err &&
-        (err as { code: string }).code === 'P2002'
-      ) {
-        throw new ApiError(409, ErrorCodes.ID_CONFLICT, 'An artifact with this ID already exists');
-      }
-      throw err;
-    }
+    return withPrismaErrors(
+      () =>
+        prisma.artifact.create({
+          data: { id: artifactId, entryId, type, durationSeconds },
+        }),
+      { conflictMessage: 'An artifact with this ID already exists' }
+    );
   });
 
   app.post('/artifacts/:artifactId/presign', { preHandler: requireAuth }, async (request) => {
@@ -88,10 +79,17 @@ export function registerArtifactRoutes(
     });
     // Only update storageKey and uploadState if not already uploaded
     if (artifact.uploadState !== 'uploaded') {
-      await prisma.artifact.update({
-        where: { id: artifactId },
-        data: { storageKey, uploadState: 'uploading' },
-      });
+      await withPrismaErrors(
+        () =>
+          prisma.artifact.update({
+            where: { id: artifactId },
+            data: { storageKey, uploadState: 'uploading' },
+          }),
+        {
+          notFoundCode: ErrorCodes.ARTIFACT_NOT_FOUND,
+          notFoundMessage: 'Artifact not found',
+        }
+      );
     }
     return {
       uploadUrl,
@@ -124,19 +122,26 @@ export function registerArtifactRoutes(
         new HeadObjectCommand({ Bucket: config.s3.bucket, Key: artifact.storageKey })
       );
     } catch (err) {
-      request.log.error(err);
+      request.log.warn(err, 'S3 HeadObject failed during upload confirmation');
       throw new ApiError(409, ErrorCodes.UPLOAD_INVALID, 'Upload not found in storage');
     }
     if (!head.ContentLength || head.ContentLength === 0) {
       throw new ApiError(409, ErrorCodes.UPLOAD_INVALID, 'Uploaded file is empty');
     }
-    const updated = await prisma.artifact.update({
-      where: { id: artifactId },
-      data: {
-        uploadState: 'uploaded',
-        remoteUrl: `s3://${config.s3.bucket}/${artifact.storageKey}`,
-      },
-    });
+    const updated = await withPrismaErrors(
+      () =>
+        prisma.artifact.update({
+          where: { id: artifactId },
+          data: {
+            uploadState: 'uploaded',
+            remoteUrl: `s3://${config.s3.bucket}/${artifact.storageKey}`,
+          },
+        }),
+      {
+        notFoundCode: ErrorCodes.ARTIFACT_NOT_FOUND,
+        notFoundMessage: 'Artifact not found',
+      }
+    );
     return updated;
   });
 }

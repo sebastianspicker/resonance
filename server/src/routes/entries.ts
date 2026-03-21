@@ -3,7 +3,7 @@ import type { PrismaClient } from '@prisma/client';
 import type { FastifyInstance, FastifyRequest } from 'fastify';
 import { limits } from '../config.js';
 import { ErrorCodes } from '../errorCodes.js';
-import { ApiError } from '../errors.js';
+import { ApiError, withPrismaErrors } from '../errors.js';
 import { cascadeDeleteEntry, cleanupS3Objects } from '../services/entryCascade.js';
 import {
   requireClientId,
@@ -50,32 +50,23 @@ export function registerEntryRoutes(
           });
     const notes =
       body?.notes === undefined || body?.notes === null ? null : requireString(body.notes, 'notes');
-    try {
-      const entry = await prisma.practiceEntry.create({
-        data: {
-          id: entryId,
-          courseId,
-          studentId: user.id,
-          practiceDate,
-          goalText,
-          durationSeconds,
-          tags,
-          notes,
-          status: 'draft',
-        },
-      });
-      return entry;
-    } catch (err: unknown) {
-      if (
-        typeof err === 'object' &&
-        err !== null &&
-        'code' in err &&
-        (err as { code: string }).code === 'P2002'
-      ) {
-        throw new ApiError(409, ErrorCodes.ID_CONFLICT, 'An entry with this ID already exists');
-      }
-      throw err;
-    }
+    return withPrismaErrors(
+      () =>
+        prisma.practiceEntry.create({
+          data: {
+            id: entryId,
+            courseId,
+            studentId: user.id,
+            practiceDate,
+            goalText,
+            durationSeconds,
+            tags,
+            notes,
+            status: 'draft',
+          },
+        }),
+      { conflictMessage: 'An entry with this ID already exists' }
+    );
   });
 
   app.patch('/entries/:entryId', { preHandler: requireAuth }, async (request) => {
@@ -136,10 +127,17 @@ export function registerEntryRoutes(
       updateData.notes = body.notes === null ? null : requireString(body.notes, 'notes');
     }
 
-    const updated = await prisma.practiceEntry.update({
-      where: { id: entryId },
-      data: updateData,
-    });
+    const updated = await withPrismaErrors(
+      () =>
+        prisma.practiceEntry.update({
+          where: { id: entryId },
+          data: updateData,
+        }),
+      {
+        notFoundCode: ErrorCodes.ENTRY_NOT_FOUND,
+        notFoundMessage: 'Entry not found',
+      }
+    );
     return updated;
   });
 
@@ -171,10 +169,17 @@ export function registerEntryRoutes(
         'Upload artifacts before submitting'
       );
     }
-    const updated = await prisma.practiceEntry.update({
-      where: { id: entryId },
-      data: { status: 'submitted' },
-    });
+    const updated = await withPrismaErrors(
+      () =>
+        prisma.practiceEntry.update({
+          where: { id: entryId },
+          data: { status: 'submitted' },
+        }),
+      {
+        notFoundCode: ErrorCodes.ENTRY_NOT_FOUND,
+        notFoundMessage: 'Entry not found',
+      }
+    );
     return updated;
   });
 
