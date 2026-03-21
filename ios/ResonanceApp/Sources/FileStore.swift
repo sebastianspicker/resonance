@@ -1,15 +1,21 @@
 import Foundation
+import os
+
+private let logger = Logger(subsystem: Bundle.main.bundleIdentifier ?? "resonance", category: "FileStore")
 
 enum FileStore {
     static func mediaDirectory() -> URL {
-        let base = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
+        guard let base = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first else {
+            logger.fault("Documents directory unavailable; falling back to temporary directory for media storage.")
+            return URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("Media", isDirectory: true)
+        }
         let dir = base.appendingPathComponent("Media", isDirectory: true)
         if !FileManager.default.fileExists(atPath: dir.path) {
             do {
                 try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
                 setFileProtection(url: dir)
             } catch {
-                print("Failed to create media directory: \(error)")
+                logger.error("Failed to create media directory at \(dir.path): \(error.localizedDescription)")
             }
         }
         return dir
@@ -21,6 +27,12 @@ enum FileStore {
     }
 
     static func setFileProtection(url: URL) {
+        // Guard against applying attributes to a path that does not yet exist on disk.
+        guard FileManager.default.fileExists(atPath: url.path) else {
+            logger.warning("Skipping file protection for non-existent path: \(url.path)")
+            return
+        }
+
         do {
             var values = URLResourceValues()
             values.isExcludedFromBackup = true
@@ -32,7 +44,7 @@ enum FileStore {
             ]
             try FileManager.default.setAttributes(attributes, ofItemAtPath: url.path)
         } catch {
-            print("Failed to set data protection for \(url.path): \(error)")
+            logger.error("Failed to set data protection for \(url.path): \(error.localizedDescription)")
         }
     }
 }
