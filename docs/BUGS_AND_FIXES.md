@@ -350,9 +350,11 @@ Same as (2): Code exchange does not bind or validate `redirectUri`. **Sources:**
 
 ---
 
-### 38. [Bug] ensureBucket treats any HeadBucket error as "missing" (CreateBucket race/wrong error)
+### 38. [Bug] ensureBucket treats any HeadBucket error as "missing" (CreateBucket race/wrong error) — ✅ Fixed
 
 **Description:** Any error from HeadBucket leads to CreateBucket; access denied or TLS errors can cause wrong behavior or multi-instance race. **Fix:** Only create on 404/NoSuchBucket; rethrow others; or use idempotent create where supported. **Sources:** `server/src/storage.ts`
+
+**Status:** Fixed. `ensureBucket` now only attempts `CreateBucket` when the error is `NotFound`, `NoSuchBucket`, or HTTP 404. All other errors (403 AccessDenied, network/TLS, etc.) are rethrown.
 
 ---
 
