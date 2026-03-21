@@ -52,7 +52,11 @@ export function requireValidDate(value: unknown, name: string): Date {
   // timezone-less strings as local time, which would cause silent drift on non-UTC servers.
   const isoRegex = /^\d{4}-\d{2}-\d{2}(T\d{2}:\d{2}:\d{2}(\.\d{3})?(Z|[+-]\d{2}:\d{2}))?$/;
   if (!isoRegex.test(str)) {
-    throw new ApiError(400, ErrorCodes.VALIDATION_ERROR, `Invalid date format: ${name}. Expected ISO 8601.`);
+    throw new ApiError(
+      400,
+      ErrorCodes.VALIDATION_ERROR,
+      `Invalid date format: ${name}, expected ISO 8601`
+    );
   }
   const date = new Date(str);
   if (Number.isNaN(date.getTime())) {
@@ -61,7 +65,11 @@ export function requireValidDate(value: unknown, name: string): Date {
   return date;
 }
 
-export function requireNumber(value: unknown, name: string, options?: { min?: number; max?: number }) {
+export function requireNumber(
+  value: unknown,
+  name: string,
+  options?: { min?: number; max?: number }
+) {
   if (typeof value !== 'number' || Number.isNaN(value)) {
     throw new ApiError(400, ErrorCodes.VALIDATION_ERROR, `Invalid number: ${name}`);
   }
@@ -76,7 +84,7 @@ export function requireNumber(value: unknown, name: string, options?: { min?: nu
 
 export async function requireCourseRole(prisma: PrismaClient, userId: string, courseId: string) {
   const membership = await prisma.membership.findUnique({
-    where: { userId_courseId: { userId, courseId } }
+    where: { userId_courseId: { userId, courseId } },
   });
   if (!membership) {
     throw new ApiError(403, ErrorCodes.COURSE_ACCESS_DENIED, 'User is not a member of this course');
@@ -160,7 +168,11 @@ export function hasField(body: unknown, field: string): boolean {
  */
 export function requireDraftEntry(entry: { status: string }) {
   if (entry.status !== 'draft') {
-    throw new ApiError(400, ErrorCodes.ENTRY_NOT_EDITABLE, 'Entry has already been submitted and cannot be modified');
+    throw new ApiError(
+      400,
+      ErrorCodes.ENTRY_NOT_EDITABLE,
+      'Entry has already been submitted and cannot be modified'
+    );
   }
   return entry;
 }
@@ -171,7 +183,11 @@ export function requireDraftEntry(entry: { status: string }) {
  */
 export function requireSubmittedEntry(entry: { status: string }) {
   if (entry.status !== 'submitted') {
-    throw new ApiError(400, ErrorCodes.ENTRY_NOT_SUBMITTED, 'Entry must be submitted before feedback can be added');
+    throw new ApiError(
+      400,
+      ErrorCodes.ENTRY_NOT_SUBMITTED,
+      'Entry must be submitted before feedback can be added'
+    );
   }
   return entry;
 }
