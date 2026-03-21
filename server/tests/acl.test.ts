@@ -539,4 +539,73 @@ describe('acl', () => {
     const updatedEntry = await prisma.practiceEntry.findUnique({ where: { id: entry.id } });
     expect(updatedEntry?.status).toBe('reviewed');
   });
+
+  it('rejects artifact creation on submitted entries', async () => {
+    const entry = await prisma.practiceEntry.create({
+      data: {
+        id: 'entry-submitted-no-artifact',
+        courseId: 'COURSE_TEST',
+        studentId: 'student-1',
+        practiceDate: new Date(),
+        goalText: 'Already submitted',
+        tags: ['tag'],
+        status: 'submitted',
+      },
+    });
+
+    const token = await login('student');
+    const res = await request(app.server)
+      .post(`/entries/${entry.id}/artifacts`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ id: 'artifact-blocked', type: 'audio', durationSeconds: 10 });
+
+    expect(res.status).toBe(409);
+    expect(res.body.error.code).toBe('ENTRY_LOCKED');
+  });
+
+  it('rejects artifact creation on reviewed entries', async () => {
+    const entry = await prisma.practiceEntry.create({
+      data: {
+        id: 'entry-reviewed-no-artifact',
+        courseId: 'COURSE_TEST',
+        studentId: 'student-1',
+        practiceDate: new Date(),
+        goalText: 'Already reviewed',
+        tags: ['tag'],
+        status: 'reviewed',
+      },
+    });
+
+    const token = await login('student');
+    const res = await request(app.server)
+      .post(`/entries/${entry.id}/artifacts`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ id: 'artifact-blocked-2', type: 'audio', durationSeconds: 10 });
+
+    expect(res.status).toBe(409);
+    expect(res.body.error.code).toBe('ENTRY_LOCKED');
+  });
+
+  it('allows artifact creation on draft entries', async () => {
+    const entry = await prisma.practiceEntry.create({
+      data: {
+        id: 'entry-draft-artifact-ok',
+        courseId: 'COURSE_TEST',
+        studentId: 'student-1',
+        practiceDate: new Date(),
+        goalText: 'Draft entry',
+        tags: ['tag'],
+        status: 'draft',
+      },
+    });
+
+    const token = await login('student');
+    const res = await request(app.server)
+      .post(`/entries/${entry.id}/artifacts`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ id: 'artifact-allowed', type: 'audio', durationSeconds: 10 });
+
+    expect(res.status).toBe(200);
+    expect(res.body.id).toBe('artifact-allowed');
+  });
 });

@@ -461,6 +461,18 @@ The following high-priority items were implemented:
 - **Body:** Copy the relevant section (description, impact, fix, sources) into the issue.
 - The **quick reference** table can be linked from the README or a meta-issue for troubleshooting.
 
+### 48. [Bug] Artifact creation allowed on submitted/reviewed entries (state machine violation) — ✅ Fixed
+
+**Description:** `POST /entries/:entryId/artifacts` did not check `entry.status`. A student could add new artifacts to an entry that was already `submitted` or `reviewed`, bypassing the entry lock. The PATCH endpoint correctly blocked edits to non-draft entries, and the submit endpoint required draft status, but artifact creation was missing the same guard.
+
+**Impact:** Data integrity violation — artifacts could be added after teacher review, changing the entry's content post-review without re-triggering the review workflow.
+
+**Fix:** Added a status check in the artifact creation route: if `entry.status !== 'draft'`, the request is rejected with 409 `ENTRY_LOCKED`. Added regression tests for submitted, reviewed, and draft entry artifact creation.
+
+**Sources:** `server/src/routes/artifacts.ts`, `server/tests/acl.test.ts`
+
+---
+
 ## 2026-02-27 Masterplan Execution (P0-P2 focus)
 
 ### Fixed

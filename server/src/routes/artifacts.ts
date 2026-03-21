@@ -28,6 +28,13 @@ export function registerArtifactRoutes(
       throw new ApiError(404, ErrorCodes.ENTRY_NOT_FOUND, 'Entry not found');
     }
     await requireStudentOwner(prisma, user.id, entry, 'add artifacts');
+    if (entry.status !== 'draft') {
+      throw new ApiError(
+        409,
+        ErrorCodes.ENTRY_LOCKED,
+        'Artifacts can only be added to draft entries'
+      );
+    }
     const body = request.body as Record<string, unknown>;
     const artifactId = requireClientId(requireField(body?.id, 'id'), 'id');
     const type = requireEnum(requireField(body?.type, 'type'), 'type', ['audio', 'video'] as const);
