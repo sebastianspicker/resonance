@@ -2,7 +2,7 @@ import Foundation
 import AuthenticationServices
 import os
 import SwiftUI
-import UIKit
+
 
 struct AuthSession: Codable {
     var accessToken: String
