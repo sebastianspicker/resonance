@@ -1,6 +1,5 @@
 import request from 'supertest';
 import { beforeAll, afterAll, beforeEach, describe, expect, it } from 'vitest';
-import { HeadObjectCommand } from '@aws-sdk/client-s3';
 import {
   app,
   setupApp,
