@@ -7,10 +7,10 @@ import { config } from '../config.js';
 import { ErrorCodes } from '../errorCodes.js';
 import { ApiError } from '../errors.js';
 import {
+  requireClientId,
   requireEnum,
   requireField,
   requireNumber,
-  requireString,
   requireStudentOwner,
 } from '../validation.js';
 
@@ -29,17 +29,33 @@ export function registerArtifactRoutes(
     }
     await requireStudentOwner(prisma, user.id, entry, 'add artifacts');
     const body = request.body as Record<string, unknown>;
-    const artifactId = requireString(requireField(body?.id, 'id'), 'id');
+    const artifactId = requireClientId(requireField(body?.id, 'id'), 'id');
     const type = requireEnum(requireField(body?.type, 'type'), 'type', ['audio', 'video'] as const);
     const durationSeconds = requireNumber(
       requireField(body?.durationSeconds, 'durationSeconds'),
       'durationSeconds',
       { min: 0 }
     );
-    const artifact = await prisma.artifact.create({
-      data: { id: artifactId, entryId, type, durationSeconds },
-    });
-    return artifact;
+    try {
+      const artifact = await prisma.artifact.create({
+        data: { id: artifactId, entryId, type, durationSeconds },
+      });
+      return artifact;
+    } catch (err: unknown) {
+      if (
+        typeof err === 'object' &&
+        err !== null &&
+        'code' in err &&
+        (err as { code: string }).code === 'P2002'
+      ) {
+        throw new ApiError(
+          409,
+          ErrorCodes.ID_CONFLICT,
+          'An artifact with this ID already exists'
+        );
+      }
+      throw err;
+    }
   });
 
   app.post('/artifacts/:artifactId/presign', { preHandler: requireAuth }, async (request) => {

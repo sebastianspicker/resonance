@@ -10,6 +10,26 @@ export function requireField<T>(value: T | undefined | null, name: string) {
   return value;
 }
 
+/**
+ * Validate a client-supplied resource ID.
+ * Accepts 1-128 characters of alphanumeric, hyphens, and underscores.
+ * Rejects empty strings, overly long IDs, and characters that could
+ * cause injection or path-traversal issues.
+ */
+const CLIENT_ID_REGEX = /^[a-zA-Z0-9_-]{1,128}$/;
+
+export function requireClientId(value: unknown, name: string): string {
+  const str = requireString(value, name, { max: 128 });
+  if (!CLIENT_ID_REGEX.test(str)) {
+    throw new ApiError(
+      400,
+      ErrorCodes.VALIDATION_ERROR,
+      `Invalid ID format: ${name} (must be 1-128 alphanumeric, hyphen, or underscore characters)`
+    );
+  }
+  return str;
+}
+
 export function requireString(value: unknown, name: string, options?: { max?: number }) {
   if (typeof value !== 'string') {
     throw new ApiError(400, ErrorCodes.VALIDATION_ERROR, `Invalid string: ${name}`);

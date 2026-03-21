@@ -40,6 +40,7 @@ export const ErrorCodes = {
 
   // Validation
   VALIDATION_ERROR: 'VALIDATION_ERROR',
+  ID_CONFLICT: 'ID_CONFLICT',
 
   // Generic
   INTERNAL_ERROR: 'INTERNAL_ERROR',

@@ -5,6 +5,7 @@ import { ErrorCodes } from '../errorCodes.js';
 import { ApiError } from '../errors.js';
 import { cascadeDeleteEntry, cleanupS3Objects } from '../services/entryCascade.js';
 import {
+  requireClientId,
   requireCourseRole,
   requireEntryAccess,
   requireField,
@@ -29,7 +30,7 @@ export function registerEntryRoutes(
       throw new ApiError(403, ErrorCodes.STUDENT_ONLY, 'Only students can create entries');
     }
     const body = request.body as Record<string, unknown>;
-    const entryId = requireString(requireField(body?.id, 'id'), 'id');
+    const entryId = requireClientId(requireField(body?.id, 'id'), 'id');
     const practiceDate = requireValidDate(body?.practiceDate, 'practiceDate');
     const goalText = requireString(requireField(body?.goalText, 'goalText'), 'goalText');
     const tags = body?.tags === undefined ? [] : requireStringArray(body.tags, 'tags');
@@ -39,20 +40,32 @@ export function registerEntryRoutes(
         : requireNumber(body?.durationSeconds, 'durationSeconds', { min: 0 });
     const notes =
       body?.notes === undefined || body?.notes === null ? null : requireString(body.notes, 'notes');
-    const entry = await prisma.practiceEntry.create({
-      data: {
-        id: entryId,
-        courseId,
-        studentId: user.id,
-        practiceDate,
-        goalText,
-        durationSeconds,
-        tags,
-        notes,
-        status: 'draft',
-      },
-    });
-    return entry;
+    try {
+      const entry = await prisma.practiceEntry.create({
+        data: {
+          id: entryId,
+          courseId,
+          studentId: user.id,
+          practiceDate,
+          goalText,
+          durationSeconds,
+          tags,
+          notes,
+          status: 'draft',
+        },
+      });
+      return entry;
+    } catch (err: unknown) {
+      if (
+        typeof err === 'object' &&
+        err !== null &&
+        'code' in err &&
+        (err as { code: string }).code === 'P2002'
+      ) {
+        throw new ApiError(409, ErrorCodes.ID_CONFLICT, 'An entry with this ID already exists');
+      }
+      throw err;
+    }
   });
 
   app.patch('/entries/:entryId', { preHandler: requireAuth }, async (request) => {

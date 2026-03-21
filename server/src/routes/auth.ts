@@ -120,6 +120,9 @@ export function registerAuthRoutes(
   });
 
   app.post('/auth/refresh', async (request) => {
+    if (config.authMode !== 'dev') {
+      throw new ApiError(501, ErrorCodes.AUTH_NOT_CONFIGURED, 'Production auth not configured');
+    }
     const body = request.body as { refreshToken?: string };
     const refreshToken = requireField(body?.refreshToken, 'refreshToken');
     const tokens = await rotateRefreshToken(prisma, refreshToken);
