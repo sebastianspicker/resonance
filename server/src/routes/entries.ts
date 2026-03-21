@@ -184,7 +184,10 @@ export function registerEntryRoutes(
     const entry = await requireEntryAccess(prisma, user, entryId);
     const feedback = await prisma.feedback.findMany({
       where: { targetType: 'entry', targetId: entry.id },
-      include: { markers: true, teacher: true },
+      include: {
+        markers: true,
+        teacher: { select: { displayName: true } },
+      },
     });
     return feedback.map((item) => ({
       id: item.id,

@@ -59,7 +59,10 @@ export function registerCourseRoutes(
     }
     const entries = await prisma.practiceEntry.findMany({
       where: { courseId, status: 'submitted', deletedAt: null },
-      include: { artifacts: true, student: true },
+      include: {
+        artifacts: true,
+        student: { select: { displayName: true } },
+      },
       orderBy: [{ practiceDate: 'desc' }, { createdAt: 'desc' }],
     });
     return entries.map((entry) => ({
