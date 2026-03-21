@@ -1,5 +1,8 @@
 import Foundation
 import AVFoundation
+import os
+
+private let logger = Logger(subsystem: Bundle.main.bundleIdentifier ?? "resonance", category: "AudioPlayer")
 
 @MainActor
 final class AudioPlayer: NSObject, ObservableObject {
@@ -23,7 +26,7 @@ final class AudioPlayer: NSObject, ObservableObject {
             isPlaying = true
             startTimer()
         } catch {
-            print("Audio play error: \(error)")
+            logger.error("Audio playback failed for \(url.lastPathComponent): \(error.localizedDescription)")
         }
     }
 
@@ -33,7 +36,7 @@ final class AudioPlayer: NSObject, ObservableObject {
         player = nil
         isPlaying = false
         currentTime = 0
-        try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
+        deactivateAudioSession()
     }
 
     func seek(to time: TimeInterval) {
@@ -54,15 +57,24 @@ final class AudioPlayer: NSObject, ObservableObject {
         timer?.invalidate()
         timer = nil
     }
+
+    private func deactivateAudioSession() {
+        do {
+            try AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
+        } catch {
+            logger.warning("Failed to deactivate audio session: \(error.localizedDescription)")
+        }
+    }
 }
 
 extension AudioPlayer: AVAudioPlayerDelegate {
     nonisolated func audioPlayerDidFinishPlaying(_ player: AVAudioPlayer, successfully flag: Bool) {
-        Task { @MainActor in
+        Task { [weak self] @MainActor in
+            guard let self else { return }
             self.isPlaying = false
             self.currentTime = 0
             self.stopTimer()
-            try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
+            self.deactivateAudioSession()
         }
     }
 }
