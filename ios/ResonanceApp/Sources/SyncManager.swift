@@ -20,9 +20,7 @@ enum SyncError: LocalizedError {
     case localFileNotFound(String)
     case invalidPresignUrl(String)
     case localFeedbackNotFound(String)
-    case localEntryNotFound(String)
-    case localArtifactNotFound(String)
-    
+
     var errorDescription: String? {
         switch self {
         case .payloadParseError(let message): return message
@@ -30,8 +28,6 @@ enum SyncError: LocalizedError {
         case .localFileNotFound(let message): return message
         case .invalidPresignUrl(let message): return message
         case .localFeedbackNotFound(let message): return message
-        case .localEntryNotFound(let message): return message
-        case .localArtifactNotFound(let message): return message
         }
     }
 }
