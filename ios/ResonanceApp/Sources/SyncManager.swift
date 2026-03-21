@@ -84,16 +84,21 @@ final class SyncManager: ObservableObject {
     func processQueue() async {
         let taskId = UIApplication.shared.beginBackgroundTask(withName: "ResonanceSync") {
             // Background time expired: reset any stuck "processing" items so they retry next launch.
-            let stuckDescriptor = FetchDescriptor<SyncQueueItem>(predicate: #Predicate { $0.status == "processing" })
-            do {
-                let stuck = try self.modelContext.fetch(stuckDescriptor)
-                for item in stuck {
-                    item.status = "pending"
-                    item.nextAttemptAt = nil
+            // The expiration handler runs on an arbitrary thread, but ModelContext and @MainActor
+            // state must only be accessed on the main actor to avoid data races.
+            Task { @MainActor [weak self] in
+                guard let self else { return }
+                let stuckDescriptor = FetchDescriptor<SyncQueueItem>(predicate: #Predicate { $0.status == "processing" })
+                do {
+                    let stuck = try self.modelContext.fetch(stuckDescriptor)
+                    for item in stuck {
+                        item.status = "pending"
+                        item.nextAttemptAt = nil
+                    }
+                    if !stuck.isEmpty { self.saveContext() }
+                } catch {
+                    Self.logger.error("Failed to fetch stuck sync items on background expiry: \(error.localizedDescription)")
                 }
-                if !stuck.isEmpty { self.saveContext() }
-            } catch {
-                Self.logger.error("Failed to fetch stuck sync items on background expiry: \(error.localizedDescription)")
             }
         }
         
