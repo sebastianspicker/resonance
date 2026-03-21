@@ -42,13 +42,15 @@ Each item can be turned into a separate issue.
 
 ---
 
-### 4. [Bug] Refresh token rotation is not atomic
+### 4. [Bug] Refresh token rotation is not atomic — ✅ Fixed
 
 **Description:** `rotateRefreshToken` reads the refresh token record, updates `revokedAt`, then issues new tokens. Steps are not in a transaction and revocation is not conditional on `revokedAt` being null. Two concurrent requests with the same refresh token can both pass validation and each get new tokens.
 
 **Impact:** Single-use refresh token guarantee can be violated; token duplication and harder containment after theft.
 
 **Fix:** Wrap read → conditional update (e.g. "revoke where revokedAt is null") → issue in a transaction, or use a single atomic "claim and revoke" (e.g. conditional update by id + revokedAt).
+
+**Status:** Fixed. `rotateRefreshToken` now wraps the entire flow in `prisma.$transaction`, uses `updateMany` with `revokedAt: null` conditional, and checks `updateResult.count === 0` to detect race conditions.
 
 **Sources:** `server/src/auth.ts`
 
@@ -294,33 +296,43 @@ Same as (2): Code exchange does not bind or validate `redirectUri`. **Sources:**
 
 ## High
 
-### 31. [Bug] JWT no iss/aud/algorithms constraints
+### 31. [Bug] JWT no iss/aud/algorithms constraints — ✅ Fixed
 
 **Description:** Sign/verify use minimal options; no issuer, audience, or algorithm allowlist. **Fix:** Set and verify `iss`/`aud` where applicable; pass `algorithms` to `jwt.verify`. **Sources:** `server/src/auth.ts`
 
+**Status:** Fixed. `JWT_ISSUER`, `JWT_AUDIENCE`, and `JWT_ALGORITHM` constants are defined and passed to all `jwt.sign` and `jwt.verify` calls. `algorithms` allowlist is set to `['HS256']` in verify.
+
 ---
 
-### 32. [Bug] Token TTL env (ACCESS_TOKEN_TTL_MINUTES, REFRESH_TOKEN_TTL_DAYS) unvalidated
+### 32. [Bug] Token TTL env (ACCESS_TOKEN_TTL_MINUTES, REFRESH_TOKEN_TTL_DAYS) unvalidated — ✅ Fixed
 
 **Description:** `Number(...)` can yield NaN; negative/zero accepted. **Fix:** Validate range and numeric; fail startup on invalid. **Sources:** `server/src/config.ts`
 
----
-
-### 33. [Bug] /auth/refresh not gated by AUTH_MODE
-
-**Description:** In prod, `/auth/session` returns 501 but `/auth/refresh` is still callable. **Fix:** Gate refresh by auth mode or document intentional behavior. **Sources:** `server/src/server.ts`
+**Status:** Fixed. `config.ts` now validates both values with `Number.isNaN` and `<= 0` checks, throwing on invalid input.
 
 ---
 
-### 34. [Bug] deletedAt not enforced on artifact/feedback routes
+### 33. [Bug] /auth/refresh not gated by AUTH_MODE — ✅ Fixed
 
-**Description:** Artifact and feedback routes do not check `entry.deletedAt` (or artifact's entry deleted). **Fix:** After loading entry/artifact, reject with 410 if entry is deleted. **Sources:** `server/src/server.ts`
+**Description:** In prod, `/auth/session` returns 501 but `/auth/refresh` is still callable. **Fix:** Gate refresh by auth mode or document intentional behavior. **Sources:** `server/src/routes/auth.ts`
+
+**Status:** Fixed. `/auth/refresh` now checks `config.authMode !== 'dev'` and returns 501 when production auth is not configured.
 
 ---
 
-### 35. [Bug] Client-controlled entry/artifact IDs with no format validation
+### 34. [Bug] deletedAt not enforced on artifact/feedback routes — ✅ Fixed
 
-**Description:** Client supplies primary keys; no format/length validation; duplicate ID can 500. **Fix:** Validate format (e.g. UUID or allowlist); return 409 on conflict. **Sources:** `server/src/server.ts`
+**Description:** Artifact and feedback routes do not check `entry.deletedAt` (or artifact's entry deleted). **Fix:** After loading entry/artifact, reject with 410 if entry is deleted. **Sources:** `server/src/routes/artifacts.ts`, `server/src/routes/feedback.ts`
+
+**Status:** Fixed. All artifact routes (create, presign, confirm) and feedback routes check `entry.deletedAt` and return 410 if the entry has been deleted.
+
+---
+
+### 35. [Bug] Client-controlled entry/artifact IDs with no format validation — ✅ Fixed
+
+**Description:** Client supplies primary keys; no format/length validation; duplicate ID can 500. **Fix:** Validate format (e.g. UUID or allowlist); return 409 on conflict. **Sources:** `server/src/routes/entries.ts`, `server/src/routes/artifacts.ts`, `server/src/validation.ts`
+
+**Status:** Fixed. `requireClientId` validates IDs against `/^[a-zA-Z0-9_-]{1,128}$/`. Both entry and artifact creation catch Prisma P2002 and return 409.
 
 ---
 
@@ -330,9 +342,11 @@ Same as (2): Code exchange does not bind or validate `redirectUri`. **Sources:**
 
 ---
 
-### 37. [Bug] Presign reuses storageKey and sets uploadState to uploading (overwrite + state regression)
+### 37. [Bug] Presign reuses storageKey and sets uploadState to uploading (overwrite + state regression) — ✅ Fixed
 
-**Description:** Repeated presign overwrites same key and can set already-uploaded artifact back to uploading. **Fix:** Do not overwrite storageKey if already set; do not set uploadState to uploading if already uploaded; or issue new key for each presign. **Sources:** `server/src/server.ts`
+**Description:** Repeated presign overwrites same key and can set already-uploaded artifact back to uploading. **Fix:** Do not overwrite storageKey if already set; do not set uploadState to uploading if already uploaded; or issue new key for each presign. **Sources:** `server/src/routes/artifacts.ts`
+
+**Status:** Fixed. Presign now uses `artifact.storageKey ?? <generated>` (preserves existing key) and only updates `uploadState` to `'uploading'` when `artifact.uploadState !== 'uploaded'`.
 
 ---
 
@@ -354,9 +368,11 @@ Same as (2): Code exchange does not bind or validate `redirectUri`. **Sources:**
 
 ---
 
-### 41. [Bug] SyncManager predicate force-unwrap nextAttemptAt in #Predicate
+### 41. [Bug] SyncManager predicate force-unwrap nextAttemptAt in #Predicate — ✅ Fixed
 
 **Description:** `item.nextAttemptAt! <= now` in predicate can be unsafe under SwiftData translation. **Fix:** Avoid force-unwrap in predicate; use optional binding or a safe expression. **Sources:** `ios/ResonanceApp/Sources/SyncManager.swift`
+
+**Status:** Fixed. Predicate now uses `(item.nextAttemptAt ?? .distantFuture) <= now` instead of force-unwrap.
 
 ---
 
@@ -366,9 +382,11 @@ Same as (2): Code exchange does not bind or validate `redirectUri`. **Sources:**
 
 ---
 
-### 43. [Bug] ModelContainer failure → fatalError (crash at launch)
+### 43. [Bug] ModelContainer failure → fatalError (crash at launch) — ✅ Fixed
 
 **Description:** SwiftData container creation failure calls `fatalError`. **Fix:** Surface error to user (e.g. alert + safe state) or recover; avoid fatalError in production. **Sources:** `ios/ResonanceApp/Sources/Persistence.swift`
+
+**Status:** Fixed. `createContainer` now attempts recovery: deletes corrupt store files and retries, then falls back to in-memory store. Only fatalErrors if even an in-memory container fails (schema-level programmer error).
 
 ---
 
