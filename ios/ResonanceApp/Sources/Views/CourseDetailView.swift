@@ -3,12 +3,14 @@ import SwiftData
 
 struct CourseDetailView: View {
     let course: LocalCourse
-    let initialTab: Int
-    @State private var selectedTab: Int = 0
+    @State private var selectedTab: Int
 
     init(course: LocalCourse, initialTab: Int = 0) {
         self.course = course
-        self.initialTab = initialTab
+        // Initialize @State directly so the initial tab is set once at view
+        // creation. Using onAppear to set it would reset the user's tab
+        // selection every time the view re-appears (e.g., navigating back).
+        _selectedTab = State(initialValue: initialTab)
     }
 
     var body: some View {
@@ -31,10 +33,5 @@ struct CourseDetailView: View {
             }
         }
         .navigationTitle(course.title)
-        .onAppear {
-            if course.roleInCourse == "teacher" {
-                selectedTab = initialTab
-            }
-        }
     }
 }
