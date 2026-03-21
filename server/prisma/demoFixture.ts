@@ -80,7 +80,9 @@ function assertArray(value: unknown, name: string): asserts value is unknown[] {
 
 function ensureDemoId(id: string, fieldName: string) {
   if (!id.startsWith(DEMO_ID_PREFIX)) {
-    throw new Error(`Invalid demo fixture: ${fieldName} must start with "${DEMO_ID_PREFIX}" (got "${id}")`);
+    throw new Error(
+      `Invalid demo fixture: ${fieldName} must start with "${DEMO_ID_PREFIX}" (got "${id}")`
+    );
   }
 }
 
@@ -127,9 +129,9 @@ export async function resetDemoData(prisma: PrismaClient): Promise<void> {
       where: {
         OR: [
           { id: { startsWith: DEMO_ID_PREFIX } },
-          { feedbackId: { startsWith: DEMO_ID_PREFIX } }
-        ]
-      }
+          { feedbackId: { startsWith: DEMO_ID_PREFIX } },
+        ],
+      },
     });
 
     await tx.feedback.deleteMany({
@@ -137,18 +139,15 @@ export async function resetDemoData(prisma: PrismaClient): Promise<void> {
         OR: [
           { id: { startsWith: DEMO_ID_PREFIX } },
           { targetId: { startsWith: DEMO_ID_PREFIX } },
-          { teacherId: { startsWith: DEMO_ID_PREFIX } }
-        ]
-      }
+          { teacherId: { startsWith: DEMO_ID_PREFIX } },
+        ],
+      },
     });
 
     await tx.artifact.deleteMany({
       where: {
-        OR: [
-          { id: { startsWith: DEMO_ID_PREFIX } },
-          { entryId: { startsWith: DEMO_ID_PREFIX } }
-        ]
-      }
+        OR: [{ id: { startsWith: DEMO_ID_PREFIX } }, { entryId: { startsWith: DEMO_ID_PREFIX } }],
+      },
     });
 
     await tx.practiceEntry.deleteMany({
@@ -156,15 +155,18 @@ export async function resetDemoData(prisma: PrismaClient): Promise<void> {
         OR: [
           { id: { startsWith: DEMO_ID_PREFIX } },
           { courseId: { startsWith: DEMO_ID_PREFIX } },
-          { studentId: { startsWith: DEMO_ID_PREFIX } }
-        ]
-      }
+          { studentId: { startsWith: DEMO_ID_PREFIX } },
+        ],
+      },
     });
 
     await tx.membership.deleteMany({
       where: {
-        OR: [{ userId: { startsWith: DEMO_ID_PREFIX } }, { courseId: { startsWith: DEMO_ID_PREFIX } }]
-      }
+        OR: [
+          { userId: { startsWith: DEMO_ID_PREFIX } },
+          { courseId: { startsWith: DEMO_ID_PREFIX } },
+        ],
+      },
     });
 
     await tx.refreshToken.deleteMany({ where: { userId: { startsWith: DEMO_ID_PREFIX } } });

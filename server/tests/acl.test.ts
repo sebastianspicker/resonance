@@ -1,7 +1,16 @@
 import request from 'supertest';
 import { beforeAll, afterAll, beforeEach, describe, expect, it } from 'vitest';
 import { DeleteObjectCommand } from '@aws-sdk/client-s3';
-import { app, setupApp, teardownApp, resetDb, seedBasic, getAccessToken, prisma, s3Mock } from './testUtils.js';
+import {
+  app,
+  setupApp,
+  teardownApp,
+  resetDb,
+  seedBasic,
+  getAccessToken,
+  prisma,
+  s3Mock,
+} from './testUtils.js';
 
 function login(role: 'student' | 'teacher') {
   const userId = role === 'student' ? 'student-1' : 'teacher-1';
@@ -24,10 +33,10 @@ describe('acl', () => {
 
   it('prevents student from reading other student entries', async () => {
     const otherStudent = await prisma.user.create({
-      data: { id: 'student-2', displayName: 'Other Student', globalRole: 'student' }
+      data: { id: 'student-2', displayName: 'Other Student', globalRole: 'student' },
     });
     await prisma.membership.create({
-      data: { userId: otherStudent.id, courseId: 'COURSE_TEST', roleInCourse: 'student' }
+      data: { userId: otherStudent.id, courseId: 'COURSE_TEST', roleInCourse: 'student' },
     });
 
     await prisma.practiceEntry.create({
@@ -38,8 +47,8 @@ describe('acl', () => {
         practiceDate: new Date(),
         goalText: 'Other student entry',
         tags: ['tag'],
-        status: 'draft'
-      }
+        status: 'draft',
+      },
     });
 
     const token = await login('student');
@@ -60,8 +69,8 @@ describe('acl', () => {
         practiceDate: new Date(),
         goalText: 'Submitted entry',
         tags: ['tag'],
-        status: 'submitted'
-      }
+        status: 'submitted',
+      },
     });
 
     const token = await login('teacher');
@@ -83,8 +92,8 @@ describe('acl', () => {
         createdAt: new Date('2025-01-01T09:00:00.000Z'),
         goalText: 'Older practice',
         tags: ['tag'],
-        status: 'submitted'
-      }
+        status: 'submitted',
+      },
     });
     await prisma.practiceEntry.create({
       data: {
@@ -95,8 +104,8 @@ describe('acl', () => {
         createdAt: new Date('2025-01-01T08:00:00.000Z'),
         goalText: 'Newer practice',
         tags: ['tag'],
-        status: 'submitted'
-      }
+        status: 'submitted',
+      },
     });
     await prisma.practiceEntry.create({
       data: {
@@ -107,8 +116,8 @@ describe('acl', () => {
         createdAt: new Date('2025-01-02T11:00:00.000Z'),
         goalText: 'Tie-breaker newer createdAt',
         tags: ['tag'],
-        status: 'submitted'
-      }
+        status: 'submitted',
+      },
     });
 
     const token = await login('teacher');
@@ -120,7 +129,7 @@ describe('acl', () => {
     expect(res.body.map((entry: any) => entry.id)).toEqual([
       'entry-same-practice-newer-created',
       'entry-new-practice',
-      'entry-old-practice'
+      'entry-old-practice',
     ]);
   });
 
@@ -134,8 +143,8 @@ describe('acl', () => {
         goalText: 'Deleted entry',
         tags: ['tag'],
         status: 'draft',
-        deletedAt: new Date()
-      }
+        deletedAt: new Date(),
+      },
     });
 
     const token = await login('student');
@@ -156,7 +165,7 @@ describe('acl', () => {
         id: 'entry-bad-date',
         practiceDate: 'not-a-date',
         goalText: 'Bad date',
-        tags: []
+        tags: [],
       });
 
     expect(res.status).toBe(400);
@@ -171,7 +180,7 @@ describe('acl', () => {
         id: 'entry-bad-tags',
         practiceDate: new Date().toISOString(),
         goalText: 'Bad tags',
-        tags: ['ok', 123]
+        tags: ['ok', 123],
       });
 
     expect(res.status).toBe(400);
@@ -188,8 +197,8 @@ describe('acl', () => {
         practiceDate: new Date(),
         goalText: 'Delete me',
         tags: ['tag'],
-        status: 'draft'
-      }
+        status: 'draft',
+      },
     });
 
     const artifact = await prisma.artifact.create({
@@ -199,8 +208,8 @@ describe('acl', () => {
         type: 'audio',
         durationSeconds: 10,
         uploadState: 'uploaded',
-        storageKey: 'artifacts/entry-hard-delete/artifact-hard-delete'
-      }
+        storageKey: 'artifacts/entry-hard-delete/artifact-hard-delete',
+      },
     });
 
     await prisma.feedback.create({
@@ -212,9 +221,9 @@ describe('acl', () => {
         status: 'ok',
         commentsText: 'Good job',
         markers: {
-          create: [{ id: 'mk_entry_1', timeSeconds: 1, text: 'nice' }]
-        }
-      }
+          create: [{ id: 'mk_entry_1', timeSeconds: 1, text: 'nice' }],
+        },
+      },
     });
 
     await prisma.feedback.create({
@@ -226,9 +235,9 @@ describe('acl', () => {
         status: 'ok',
         commentsText: 'Nice sound',
         markers: {
-          create: [{ id: 'mk_artifact_1', timeSeconds: 2, text: 'tone' }]
-        }
-      }
+          create: [{ id: 'mk_artifact_1', timeSeconds: 2, text: 'tone' }],
+        },
+      },
     });
 
     const token = await login('student');
@@ -242,7 +251,9 @@ describe('acl', () => {
     const entryAfter = await prisma.practiceEntry.findUnique({ where: { id: entry.id } });
     const artifactAfter = await prisma.artifact.findUnique({ where: { id: artifact.id } });
     const feedbackAfter = await prisma.feedback.findMany({ where: { targetId: entry.id } });
-    const artifactFeedbackAfter = await prisma.feedback.findMany({ where: { targetId: artifact.id } });
+    const artifactFeedbackAfter = await prisma.feedback.findMany({
+      where: { targetId: artifact.id },
+    });
     const markerAfter = await prisma.marker.findUnique({ where: { id: 'mk_entry_1' } });
 
     expect(entryAfter).toBeNull();
@@ -254,10 +265,10 @@ describe('acl', () => {
 
   it('uses course role (not global role) for submit authorization', async () => {
     const mixedUser = await prisma.user.create({
-      data: { id: 'mixed-role-user', displayName: 'Mixed Role', globalRole: 'teacher' }
+      data: { id: 'mixed-role-user', displayName: 'Mixed Role', globalRole: 'teacher' },
     });
     await prisma.membership.create({
-      data: { userId: mixedUser.id, courseId: 'COURSE_TEST', roleInCourse: 'student' }
+      data: { userId: mixedUser.id, courseId: 'COURSE_TEST', roleInCourse: 'student' },
     });
 
     await prisma.practiceEntry.create({
@@ -268,8 +279,8 @@ describe('acl', () => {
         practiceDate: new Date(),
         goalText: 'Submit me',
         tags: ['tag'],
-        status: 'draft'
-      }
+        status: 'draft',
+      },
     });
     await prisma.artifact.create({
       data: {
@@ -278,8 +289,8 @@ describe('acl', () => {
         type: 'audio',
         durationSeconds: 15,
         uploadState: 'uploaded',
-        storageKey: 'artifacts/entry-mixed-role/artifact-mixed-role'
-      }
+        storageKey: 'artifacts/entry-mixed-role/artifact-mixed-role',
+      },
     });
 
     const token = await getAccessToken('teacher', { userId: mixedUser.id });
@@ -301,8 +312,8 @@ describe('acl', () => {
         practiceDate: new Date(),
         goalText: 'Invalid artifact',
         tags: ['tag'],
-        status: 'draft'
-      }
+        status: 'draft',
+      },
     });
 
     const token = await login('student');
@@ -323,8 +334,8 @@ describe('acl', () => {
         practiceDate: new Date(),
         goalText: 'Feedback target',
         tags: ['tag'],
-        status: 'submitted'
-      }
+        status: 'submitted',
+      },
     });
 
     const token = await login('teacher');
@@ -336,7 +347,7 @@ describe('acl', () => {
         targetId: entry.id,
         status: 'invalid_status',
         commentsText: 'test',
-        markers: []
+        markers: [],
       });
 
     expect(res.status).toBe(400);
@@ -351,8 +362,8 @@ describe('acl', () => {
         practiceDate: new Date(),
         goalText: 'Review target',
         tags: ['tag'],
-        status: 'submitted'
-      }
+        status: 'submitted',
+      },
     });
 
     const token = await login('teacher');
@@ -364,7 +375,7 @@ describe('acl', () => {
         targetId: entry.id,
         status: 'ok',
         commentsText: 'Looks good',
-        markers: []
+        markers: [],
       });
 
     expect(res.status).toBe(200);
@@ -382,8 +393,8 @@ describe('acl', () => {
         practiceDate: new Date(),
         goalText: 'Artifact review target',
         tags: ['tag'],
-        status: 'submitted'
-      }
+        status: 'submitted',
+      },
     });
     const artifact = await prisma.artifact.create({
       data: {
@@ -391,8 +402,8 @@ describe('acl', () => {
         entryId: entry.id,
         type: 'audio',
         durationSeconds: 12,
-        uploadState: 'uploaded'
-      }
+        uploadState: 'uploaded',
+      },
     });
 
     const token = await login('teacher');
@@ -404,7 +415,7 @@ describe('acl', () => {
         targetId: artifact.id,
         status: 'ok',
         commentsText: 'Great take',
-        markers: []
+        markers: [],
       });
 
     expect(res.status).toBe(200);

@@ -13,8 +13,8 @@ async function main() {
     create: {
       id: studentId,
       displayName: 'Student One',
-      globalRole: 'student'
-    }
+      globalRole: 'student',
+    },
   });
 
   await prisma.user.upsert({
@@ -23,8 +23,8 @@ async function main() {
     create: {
       id: teacherId,
       displayName: 'Teacher One',
-      globalRole: 'teacher'
-    }
+      globalRole: 'teacher',
+    },
   });
 
   const courseId = 'COURSE_101';
@@ -34,20 +34,20 @@ async function main() {
     update: {},
     create: {
       id: courseId,
-      title: 'Piano Technique 101'
-    }
+      title: 'Piano Technique 101',
+    },
   });
 
   await prisma.membership.upsert({
     where: { userId_courseId: { userId: studentId, courseId } },
     update: { roleInCourse: 'student' },
-    create: { userId: studentId, courseId, roleInCourse: 'student' }
+    create: { userId: studentId, courseId, roleInCourse: 'student' },
   });
 
   await prisma.membership.upsert({
     where: { userId_courseId: { userId: teacherId, courseId } },
     update: { roleInCourse: 'teacher' },
-    create: { userId: teacherId, courseId, roleInCourse: 'teacher' }
+    create: { userId: teacherId, courseId, roleInCourse: 'teacher' },
   });
 
   const entryId = `entry-${nanoid(8)}`;
@@ -61,8 +61,8 @@ async function main() {
       durationSeconds: 90,
       tags: ['Chopin', 'legato'],
       notes: 'Focus on left-hand balance',
-      status: 'submitted'
-    }
+      status: 'submitted',
+    },
   });
 }
 

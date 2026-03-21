@@ -15,7 +15,9 @@ export type TestRole = 'student' | 'teacher';
 function assertTestDatabase() {
   const dbUrl = process.env.DATABASE_URL;
   if (!dbUrl || !dbUrl.toLowerCase().includes('test')) {
-    throw new Error(`Refusing destructive test setup against non-test database: ${dbUrl ?? '<unset>'}`);
+    throw new Error(
+      `Refusing destructive test setup against non-test database: ${dbUrl ?? '<unset>'}`
+    );
   }
 }
 
@@ -43,24 +45,26 @@ export async function teardownApp() {
 
 export async function resetDb() {
   assertTestDatabase();
-  await prisma.$executeRawUnsafe('TRUNCATE "Marker", "Feedback", "Artifact", "PracticeEntry", "Membership", "Course", "User", "RefreshToken" CASCADE;');
+  await prisma.$executeRawUnsafe(
+    'TRUNCATE "Marker", "Feedback", "Artifact", "PracticeEntry", "Membership", "Course", "User", "RefreshToken" CASCADE;'
+  );
 }
 
 export async function seedBasic() {
   const student = await prisma.user.create({
-    data: { id: 'student-1', displayName: 'Student', globalRole: 'student' }
+    data: { id: 'student-1', displayName: 'Student', globalRole: 'student' },
   });
   const teacher = await prisma.user.create({
-    data: { id: 'teacher-1', displayName: 'Teacher', globalRole: 'teacher' }
+    data: { id: 'teacher-1', displayName: 'Teacher', globalRole: 'teacher' },
   });
   const course = await prisma.course.create({
-    data: { id: 'COURSE_TEST', title: 'Test Course' }
+    data: { id: 'COURSE_TEST', title: 'Test Course' },
   });
   await prisma.membership.create({
-    data: { userId: student.id, courseId: course.id, roleInCourse: 'student' }
+    data: { userId: student.id, courseId: course.id, roleInCourse: 'student' },
   });
   await prisma.membership.create({
-    data: { userId: teacher.id, courseId: course.id, roleInCourse: 'teacher' }
+    data: { userId: teacher.id, courseId: course.id, roleInCourse: 'teacher' },
   });
   return { student, teacher, course };
 }

@@ -22,7 +22,7 @@ describe('auth', () => {
 
     const session = await request(app.server).post('/auth/session').send({
       code: issue.body.code,
-      redirectUri: 'resonance://auth-callback'
+      redirectUri: 'resonance://auth-callback',
     });
 
     expect(session.status).toBe(200);
@@ -32,9 +32,7 @@ describe('auth', () => {
 
   it('allows authenticated course listing', async () => {
     const token = await getAccessToken('student');
-    const res = await request(app.server)
-      .get('/courses')
-      .set('Authorization', `Bearer ${token}`);
+    const res = await request(app.server).get('/courses').set('Authorization', `Bearer ${token}`);
 
     expect(res.status).toBe(200);
   });
@@ -43,7 +41,7 @@ describe('auth', () => {
     const issue = await request(app.server).post('/dev/issue').send({ role: 'student' });
     const session = await request(app.server).post('/auth/session').send({
       code: issue.body.code,
-      redirectUri: 'resonance://auth-callback'
+      redirectUri: 'resonance://auth-callback',
     });
 
     const refreshToken = session.body.refreshToken as string;
@@ -59,7 +57,9 @@ describe('auth', () => {
   });
 
   it('rejects invalid refresh tokens', async () => {
-    const res = await request(app.server).post('/auth/refresh').send({ refreshToken: 'not-a-token' });
+    const res = await request(app.server)
+      .post('/auth/refresh')
+      .send({ refreshToken: 'not-a-token' });
     expect(res.status).toBe(401);
     expect(res.body.error?.code).toBe('INVALID_REFRESH');
   });

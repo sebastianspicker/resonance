@@ -11,7 +11,8 @@ process.env.AUTH_MODE = 'dev';
 process.env.CORS_ORIGINS = '';
 process.env.DEV_LOGIN_CALLBACK_URL = 'resonance://auth-callback';
 process.env.APP_BASE_URL = 'http://localhost:4000';
-process.env.DATABASE_URL = process.env.DATABASE_URL ?? 'postgresql://resonance:resonance@localhost:5432/resonance_test';
+process.env.DATABASE_URL =
+  process.env.DATABASE_URL ?? 'postgresql://resonance:resonance@localhost:5432/resonance_test';
 
 // Safety check: only allow explicit test databases.
 const dbUrl = process.env.DATABASE_URL;

@@ -9,7 +9,8 @@ const s3 = createS3Client();
 await ensureBucket(s3);
 const app = buildServer(prisma, s3);
 
-app.listen({ port: config.port, host: '0.0.0.0' })
+app
+  .listen({ port: config.port, host: '0.0.0.0' })
   .then(() => {
     app.log.info(`Server running on port ${config.port}`);
   })

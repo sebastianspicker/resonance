@@ -28,7 +28,7 @@ describe('dev auth localhost restriction', () => {
     const res = await app.inject({
       method: 'GET',
       url: '/dev/login',
-      remoteAddress: '127.0.0.1'
+      remoteAddress: '127.0.0.1',
     });
     expect(res.statusCode).toBe(200);
   });
@@ -37,7 +37,7 @@ describe('dev auth localhost restriction', () => {
     const res = await app.inject({
       method: 'GET',
       url: '/dev/login',
-      remoteAddress: '10.22.33.44'
+      remoteAddress: '10.22.33.44',
     });
     expect(res.statusCode).toBe(403);
     expect(res.json().error?.code).toBe('DEV_AUTH_LOCAL_ONLY');

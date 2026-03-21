@@ -1,7 +1,16 @@
 import request from 'supertest';
 import { beforeAll, afterAll, beforeEach, describe, expect, it } from 'vitest';
 import { HeadObjectCommand } from '@aws-sdk/client-s3';
-import { app, setupApp, teardownApp, resetDb, seedBasic, getAccessToken, prisma, s3Mock } from './testUtils.js';
+import {
+  app,
+  setupApp,
+  teardownApp,
+  resetDb,
+  seedBasic,
+  getAccessToken,
+  prisma,
+  s3Mock,
+} from './testUtils.js';
 
 function login(role: 'student' | 'teacher') {
   const userId = role === 'student' ? 'student-1' : 'teacher-1';
@@ -34,8 +43,8 @@ describe('media upload flow', () => {
         practiceDate: new Date(),
         goalText: 'Practice',
         tags: ['tag'],
-        status: 'draft'
-      }
+        status: 'draft',
+      },
     });
 
     const artifactRes = await request(app.server)
@@ -67,10 +76,10 @@ describe('media upload flow', () => {
 
   it('denies non-owner student for presign and confirm', async () => {
     const otherStudent = await prisma.user.create({
-      data: { id: 'student-2', displayName: 'Other Student', globalRole: 'student' }
+      data: { id: 'student-2', displayName: 'Other Student', globalRole: 'student' },
     });
     await prisma.membership.create({
-      data: { userId: otherStudent.id, courseId: 'COURSE_TEST', roleInCourse: 'student' }
+      data: { userId: otherStudent.id, courseId: 'COURSE_TEST', roleInCourse: 'student' },
     });
 
     const ownerToken = await login('student');
@@ -84,8 +93,8 @@ describe('media upload flow', () => {
         practiceDate: new Date(),
         goalText: 'Practice',
         tags: ['tag'],
-        status: 'draft'
-      }
+        status: 'draft',
+      },
     });
 
     const artifactRes = await request(app.server)
@@ -119,8 +128,8 @@ describe('media upload flow', () => {
         practiceDate: new Date(),
         goalText: 'Practice',
         tags: ['tag'],
-        status: 'draft'
-      }
+        status: 'draft',
+      },
     });
 
     const artifactRes = await request(app.server)

@@ -7,9 +7,9 @@ export function createS3Client() {
     endpoint: config.s3.endpoint,
     credentials: {
       accessKeyId: config.s3.accessKey,
-      secretAccessKey: config.s3.secretKey
+      secretAccessKey: config.s3.secretKey,
     },
-    forcePathStyle: config.s3.forcePathStyle
+    forcePathStyle: config.s3.forcePathStyle,
   });
 }
 

@@ -13,13 +13,13 @@ async function main() {
       where: { id: user.id },
       update: {
         displayName: user.displayName,
-        globalRole: user.globalRole
+        globalRole: user.globalRole,
       },
       create: {
         id: user.id,
         displayName: user.displayName,
-        globalRole: user.globalRole
-      }
+        globalRole: user.globalRole,
+      },
     });
   }
 
@@ -27,12 +27,12 @@ async function main() {
     await prisma.course.upsert({
       where: { id: course.id },
       update: {
-        title: course.title
+        title: course.title,
       },
       create: {
         id: course.id,
-        title: course.title
-      }
+        title: course.title,
+      },
     });
   }
 
@@ -41,17 +41,17 @@ async function main() {
       where: {
         userId_courseId: {
           userId: membership.userId,
-          courseId: membership.courseId
-        }
+          courseId: membership.courseId,
+        },
       },
       update: {
-        roleInCourse: membership.roleInCourse
+        roleInCourse: membership.roleInCourse,
       },
       create: {
         userId: membership.userId,
         courseId: membership.courseId,
-        roleInCourse: membership.roleInCourse
-      }
+        roleInCourse: membership.roleInCourse,
+      },
     });
   }
 
@@ -67,7 +67,7 @@ async function main() {
         tags: entry.tags,
         notes: entry.notes,
         status: entry.status,
-        deletedAt: null
+        deletedAt: null,
       },
       create: {
         id: entry.id,
@@ -80,8 +80,8 @@ async function main() {
         tags: entry.tags,
         notes: entry.notes,
         status: entry.status,
-        deletedAt: null
-      }
+        deletedAt: null,
+      },
     });
   }
 
@@ -94,7 +94,7 @@ async function main() {
         durationSeconds: artifact.durationSeconds,
         uploadState: artifact.uploadState,
         storageKey: artifact.storageKey,
-        remoteUrl: artifact.remoteUrl
+        remoteUrl: artifact.remoteUrl,
       },
       create: {
         id: artifact.id,
@@ -104,8 +104,8 @@ async function main() {
         createdAt: new Date(artifact.createdAt),
         uploadState: artifact.uploadState,
         storageKey: artifact.storageKey,
-        remoteUrl: artifact.remoteUrl
-      }
+        remoteUrl: artifact.remoteUrl,
+      },
     });
   }
 
@@ -118,7 +118,7 @@ async function main() {
         teacherId: item.teacherId,
         status: item.status,
         commentsText: item.commentsText,
-        createdAt: new Date(item.createdAt)
+        createdAt: new Date(item.createdAt),
       },
       create: {
         id: item.id,
@@ -127,8 +127,8 @@ async function main() {
         teacherId: item.teacherId,
         createdAt: new Date(item.createdAt),
         status: item.status,
-        commentsText: item.commentsText
-      }
+        commentsText: item.commentsText,
+      },
     });
 
     await prisma.marker.deleteMany({ where: { feedbackId: item.id } });
@@ -139,8 +139,8 @@ async function main() {
           id: marker.id,
           feedbackId: item.id,
           timeSeconds: marker.timeSeconds,
-          text: marker.text
-        }))
+          text: marker.text,
+        })),
       });
     }
   }
@@ -152,7 +152,7 @@ async function main() {
     memberships: fixture.memberships.length,
     entries: fixture.entries.length,
     artifacts: fixture.artifacts.length,
-    feedback: fixture.feedback.length
+    feedback: fixture.feedback.length,
   };
 
   console.log('Seeded demo fixture successfully:', summary);

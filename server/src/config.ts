@@ -29,7 +29,7 @@ export const config = {
     accessKey: requireEnv('S3_ACCESS_KEY'),
     secretKey: requireEnv('S3_SECRET_KEY'),
     forcePathStyle: (process.env.S3_FORCE_PATH_STYLE ?? 'true') === 'true',
-    presignTtlSeconds: Number(process.env.S3_PRESIGN_TTL_SECONDS ?? 900)
+    presignTtlSeconds: Number(process.env.S3_PRESIGN_TTL_SECONDS ?? 900),
   },
   corsOrigins: (process.env.CORS_ORIGINS ?? '')
     .split(',')
@@ -37,7 +37,7 @@ export const config = {
     .filter(Boolean),
   devUniversityName: process.env.DEV_UNIVERSITY_NAME ?? 'Mock University Conservatory',
   devLoginCallbackUrl: process.env.DEV_LOGIN_CALLBACK_URL ?? 'resonance://auth-callback',
-  appBaseUrl: process.env.APP_BASE_URL ?? 'http://localhost:4000'
+  appBaseUrl: process.env.APP_BASE_URL ?? 'http://localhost:4000',
 };
 
 if (config.jwtSecret.length < 32) {
