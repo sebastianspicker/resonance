@@ -76,6 +76,12 @@ echo "Installing dependencies..."
 echo "Linting..."
 ( cd server && npm run lint )
 
+echo "Checking formatting..."
+( cd server && npm run format:check )
+
+echo "Dependency audit (high+ prod only)..."
+( cd server && npm audit --audit-level=high --omit=dev )
+
 echo "Generating Prisma client..."
 ( cd server && npm run prisma:generate )
 
