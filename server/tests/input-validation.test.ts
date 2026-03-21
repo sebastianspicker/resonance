@@ -388,17 +388,13 @@ describe('input validation', () => {
 
   describe('POST /auth/session', () => {
     it('rejects non-string code', async () => {
-      const res = await request(app.server)
-        .post('/auth/session')
-        .send({ code: 12345 });
+      const res = await request(app.server).post('/auth/session').send({ code: 12345 });
       expect(res.status).toBe(400);
       expect(res.body.error?.code).toBe('VALIDATION_ERROR');
     });
 
     it('rejects missing code', async () => {
-      const res = await request(app.server)
-        .post('/auth/session')
-        .send({});
+      const res = await request(app.server).post('/auth/session').send({});
       expect(res.status).toBe(400);
     });
 
@@ -415,17 +411,13 @@ describe('input validation', () => {
 
   describe('POST /auth/refresh', () => {
     it('rejects non-string refreshToken', async () => {
-      const res = await request(app.server)
-        .post('/auth/refresh')
-        .send({ refreshToken: 12345 });
+      const res = await request(app.server).post('/auth/refresh').send({ refreshToken: 12345 });
       expect(res.status).toBe(400);
       expect(res.body.error?.code).toBe('VALIDATION_ERROR');
     });
 
     it('rejects missing refreshToken', async () => {
-      const res = await request(app.server)
-        .post('/auth/refresh')
-        .send({});
+      const res = await request(app.server).post('/auth/refresh').send({});
       expect(res.status).toBe(400);
     });
 

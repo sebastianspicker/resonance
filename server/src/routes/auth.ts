@@ -87,55 +87,69 @@ export function registerAuthRoutes(
     return { code };
   });
 
-  app.post('/auth/session', {
-    config: {
-      rateLimit: { max: limits.authRateLimitMax, timeWindow: limits.authRateLimitWindow },
+  app.post(
+    '/auth/session',
+    {
+      config: {
+        rateLimit: { max: limits.authRateLimitMax, timeWindow: limits.authRateLimitWindow },
+      },
     },
-  }, async (request) => {
-    const body = request.body as { code?: string; redirectUri?: string };
-    const code = requireString(requireField(body?.code, 'code'), 'code', { max: limits.maxAuthCodeLength });
-    const _redirectUri = body?.redirectUri;
+    async (request) => {
+      const body = request.body as { code?: string; redirectUri?: string };
+      const code = requireString(requireField(body?.code, 'code'), 'code', {
+        max: limits.maxAuthCodeLength,
+      });
+      const _redirectUri = body?.redirectUri;
 
-    if (config.authMode !== 'dev') {
-      // Production auth: validate redirectUri against allowlist
-      // The redirectUri must match one of the registered callback URLs for the client
-      // Example: if (!config.allowedRedirectUris.includes(redirectUri)) { throw ... }
-      // For now, production auth is not implemented
-      throw new ApiError(501, ErrorCodes.AUTH_NOT_CONFIGURED, 'Production auth not configured');
+      if (config.authMode !== 'dev') {
+        // Production auth: validate redirectUri against allowlist
+        // The redirectUri must match one of the registered callback URLs for the client
+        // Example: if (!config.allowedRedirectUris.includes(redirectUri)) { throw ... }
+        // For now, production auth is not implemented
+        throw new ApiError(501, ErrorCodes.AUTH_NOT_CONFIGURED, 'Production auth not configured');
+      }
+
+      // Dev mode: redirectUri validation is intentionally skipped for development convenience
+      // The redirectUri is not used in dev mode - tokens are returned directly
+      // SECURITY NOTE: When implementing production auth, redirectUri MUST be validated
+
+      const userId = consumeDevAuthCode(code);
+      if (!userId) {
+        throw new ApiError(401, ErrorCodes.INVALID_CODE, 'Invalid or expired auth code');
+      }
+      const user = await prisma.user.findUnique({ where: { id: userId } });
+      if (!user) {
+        throw new ApiError(401, ErrorCodes.USER_NOT_FOUND, 'User not found');
+      }
+      const tokens = await issueTokens(prisma, user);
+      return {
+        ...tokens,
+        user: { id: user.id, displayName: user.displayName, globalRole: user.globalRole },
+      };
     }
+  );
 
-    // Dev mode: redirectUri validation is intentionally skipped for development convenience
-    // The redirectUri is not used in dev mode - tokens are returned directly
-    // SECURITY NOTE: When implementing production auth, redirectUri MUST be validated
-
-    const userId = consumeDevAuthCode(code);
-    if (!userId) {
-      throw new ApiError(401, ErrorCodes.INVALID_CODE, 'Invalid or expired auth code');
-    }
-    const user = await prisma.user.findUnique({ where: { id: userId } });
-    if (!user) {
-      throw new ApiError(401, ErrorCodes.USER_NOT_FOUND, 'User not found');
-    }
-    const tokens = await issueTokens(prisma, user);
-    return {
-      ...tokens,
-      user: { id: user.id, displayName: user.displayName, globalRole: user.globalRole },
-    };
-  });
-
-  app.post('/auth/refresh', {
-    config: {
-      rateLimit: { max: limits.authRateLimitMax, timeWindow: limits.authRateLimitWindow },
+  app.post(
+    '/auth/refresh',
+    {
+      config: {
+        rateLimit: { max: limits.authRateLimitMax, timeWindow: limits.authRateLimitWindow },
+      },
     },
-  }, async (request) => {
-    if (config.authMode !== 'dev') {
-      throw new ApiError(501, ErrorCodes.AUTH_NOT_CONFIGURED, 'Production auth not configured');
+    async (request) => {
+      if (config.authMode !== 'dev') {
+        throw new ApiError(501, ErrorCodes.AUTH_NOT_CONFIGURED, 'Production auth not configured');
+      }
+      const body = request.body as { refreshToken?: string };
+      const refreshToken = requireString(
+        requireField(body?.refreshToken, 'refreshToken'),
+        'refreshToken',
+        { max: limits.maxAuthCodeLength }
+      );
+      const tokens = await rotateRefreshToken(prisma, refreshToken);
+      return tokens;
     }
-    const body = request.body as { refreshToken?: string };
-    const refreshToken = requireString(requireField(body?.refreshToken, 'refreshToken'), 'refreshToken', { max: limits.maxAuthCodeLength });
-    const tokens = await rotateRefreshToken(prisma, refreshToken);
-    return tokens;
-  });
+  );
 
   app.get('/auth/me', { preHandler: requireAuth }, async (request) => {
     const user = request.user!;

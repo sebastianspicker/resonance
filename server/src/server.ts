@@ -70,9 +70,7 @@ export function buildServer(prisma: PrismaClient, s3: S3Client) {
     frameguard: { action: 'deny' },
     // HSTS: enable in production (1 year, includeSubDomains)
     strictTransportSecurity:
-      config.authMode === 'prod'
-        ? { maxAge: 31_536_000, includeSubDomains: true }
-        : false,
+      config.authMode === 'prod' ? { maxAge: 31_536_000, includeSubDomains: true } : false,
     // Referrer leak prevention
     referrerPolicy: { policy: 'no-referrer' },
     // Not an HTML app — disable DNS prefetch, download-guard, permitted-cross-domain

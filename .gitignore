@@ -81,6 +81,7 @@ infra/postgres-data/
 # Secrets & credentials (defense in depth)
 *.pem
 *.key
+*.p8
 *.p12
 *.pfx
 *.jks

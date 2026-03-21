@@ -1,3 +1,7 @@
+// ── Test-only credentials ───────────────────────────────────────────
+// These values are exclusively for local/CI test runs.  They must
+// NEVER be reused in staging or production environments.
+// ────────────────────────────────────────────────────────────────────
 process.env.JWT_SECRET = 'test-secret-at-least-32-characters';
 process.env.ACCESS_TOKEN_TTL_MINUTES = '15';
 process.env.REFRESH_TOKEN_TTL_DAYS = '7';

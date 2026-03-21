@@ -46,7 +46,10 @@ export function registerFeedbackRoutes(
       );
     }
     for (const marker of markers) {
-      requireNumber(marker?.timeSeconds, 'marker.timeSeconds', { min: 0, max: limits.maxMarkerTimeSeconds });
+      requireNumber(marker?.timeSeconds, 'marker.timeSeconds', {
+        min: 0,
+        max: limits.maxMarkerTimeSeconds,
+      });
       requireString(requireField(marker?.text, 'marker.text'), 'marker.text', {
         max: limits.maxMarkerTextLength,
       });

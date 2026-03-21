@@ -34,14 +34,20 @@ export function registerEntryRoutes(
     const entryId = requireClientId(requireField(body?.id, 'id'), 'id');
     const practiceDate = requireValidDate(body?.practiceDate, 'practiceDate');
     const goalText = requireString(requireField(body?.goalText, 'goalText'), 'goalText');
-    const tags = body?.tags === undefined ? [] : requireStringArray(body.tags, 'tags', { max: limits.maxTags });
+    const tags =
+      body?.tags === undefined
+        ? []
+        : requireStringArray(body.tags, 'tags', { max: limits.maxTags });
     for (const tag of tags) {
       requireString(tag, 'tags[]', { max: limits.maxTagLength });
     }
     const durationSeconds =
       body?.durationSeconds === undefined
         ? null
-        : requireNumber(body?.durationSeconds, 'durationSeconds', { min: 0, max: limits.maxDurationSeconds });
+        : requireNumber(body?.durationSeconds, 'durationSeconds', {
+            min: 0,
+            max: limits.maxDurationSeconds,
+          });
     const notes =
       body?.notes === undefined || body?.notes === null ? null : requireString(body.notes, 'notes');
     try {

@@ -48,11 +48,7 @@ export function registerArtifactRoutes(
         'code' in err &&
         (err as { code: string }).code === 'P2002'
       ) {
-        throw new ApiError(
-          409,
-          ErrorCodes.ID_CONFLICT,
-          'An artifact with this ID already exists'
-        );
+        throw new ApiError(409, ErrorCodes.ID_CONFLICT, 'An artifact with this ID already exists');
       }
       throw err;
     }
