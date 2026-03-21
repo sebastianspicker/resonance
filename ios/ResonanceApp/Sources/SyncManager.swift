@@ -113,9 +113,13 @@ final class SyncManager: ObservableObject {
         await authManager.refreshIfNeeded()
         guard let accessToken = authManager.session?.accessToken else { return }
         let now = Date()
-        let descriptor = FetchDescriptor<SyncQueueItem>(predicate: #Predicate { item in
+        var descriptor = FetchDescriptor<SyncQueueItem>(predicate: #Predicate { item in
             item.status == "pending" && (item.nextAttemptAt == nil || (item.nextAttemptAt ?? .distantFuture) <= now)
         })
+        // Sort by creation time to preserve FIFO ordering. Without this,
+        // dependent items (e.g., uploadArtifact before createArtifact has
+        // succeeded) could be processed out of order on retry.
+        descriptor.sortBy = [SortDescriptor(\.createdAt, order: .forward)]
         let items: [SyncQueueItem]
         do {
             items = try modelContext.fetch(descriptor)
