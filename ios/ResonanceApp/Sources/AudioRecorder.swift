@@ -1,5 +1,8 @@
 import Foundation
 import AVFoundation
+import os
+
+private let logger = Logger(subsystem: Bundle.main.bundleIdentifier ?? "resonance", category: "AudioRecorder")
 
 @MainActor
 final class AudioRecorder: NSObject, ObservableObject {
@@ -34,7 +37,11 @@ final class AudioRecorder: NSObject, ObservableObject {
         recorder = nil
         isRecording = false
         stopTimer()
-        try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
+        do {
+            try AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
+        } catch {
+            logger.warning("Failed to deactivate audio session after recording: \(error.localizedDescription)")
+        }
         if let lastURL {
             FileStore.setFileProtection(url: lastURL)
         }
