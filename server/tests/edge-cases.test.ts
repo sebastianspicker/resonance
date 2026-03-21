@@ -600,11 +600,14 @@ describe('edge cases', () => {
           .send({
             id: 'entry-rtl-goal',
             practiceDate: new Date().toISOString(),
-            goalText: '\u0645\u0645\u0627\u0631\u0633\u0629 \u0627\u0644\u0645\u0648\u0633\u064A\u0642\u0649',
+            goalText:
+              '\u0645\u0645\u0627\u0631\u0633\u0629 \u0627\u0644\u0645\u0648\u0633\u064A\u0642\u0649',
             tags: [],
           });
         expect(res.status).toBe(200);
-        expect(res.body.goalText).toBe('\u0645\u0645\u0627\u0631\u0633\u0629 \u0627\u0644\u0645\u0648\u0633\u064A\u0642\u0649');
+        expect(res.body.goalText).toBe(
+          '\u0645\u0645\u0627\u0631\u0633\u0629 \u0627\u0644\u0645\u0648\u0633\u064A\u0642\u0649'
+        );
       });
 
       it('should accept goalText with CJK characters', async () => {
@@ -657,7 +660,13 @@ describe('edge cases', () => {
 
       it('should reject ID with special characters (only alphanumeric, hyphen, underscore allowed)', async () => {
         const token = await login('student');
-        const specialIds = ['entry/slash', 'entry..dots', 'entry@at', 'entry space', 'entry\u00E4uml'];
+        const specialIds = [
+          'entry/slash',
+          'entry..dots',
+          'entry@at',
+          'entry space',
+          'entry\u00E4uml',
+        ];
         for (const id of specialIds) {
           const res = await request(app.server)
             .post('/courses/COURSE_TEST/entries')
@@ -696,7 +705,9 @@ describe('edge cases', () => {
             targetId: 'entry-fb-unicode',
             status: 'ok',
             commentsText: 'Great work! \u{1F44D}\u{1F3FB} Keep it up \u{1F3B6}',
-            markers: [{ timeSeconds: 5, text: '\u{1F3B5} Beautiful tone here \u2014 tr\u00E8s bien!' }],
+            markers: [
+              { timeSeconds: 5, text: '\u{1F3B5} Beautiful tone here \u2014 tr\u00E8s bien!' },
+            ],
           });
         expect(res.status).toBe(200);
         expect(res.body.commentsText).toContain('\u{1F44D}');
@@ -1077,16 +1088,13 @@ describe('edge cases', () => {
             status: 'submitted',
           },
         });
-        await request(app.server)
-          .post('/feedback')
-          .set('Authorization', `Bearer ${token}`)
-          .send({
-            targetType: 'entry',
-            targetId: 'entry-status-after-fb',
-            status: 'ok',
-            commentsText: 'Reviewed!',
-            markers: [],
-          });
+        await request(app.server).post('/feedback').set('Authorization', `Bearer ${token}`).send({
+          targetType: 'entry',
+          targetId: 'entry-status-after-fb',
+          status: 'ok',
+          commentsText: 'Reviewed!',
+          markers: [],
+        });
         const entry = await prisma.practiceEntry.findUnique({
           where: { id: 'entry-status-after-fb' },
         });

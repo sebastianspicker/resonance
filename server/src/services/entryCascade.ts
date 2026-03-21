@@ -16,9 +16,7 @@ export async function cascadeDeleteEntry(prisma: PrismaClient, entryId: string):
       where: { entryId },
       select: { id: true, storageKey: true },
     });
-    const keys = artifacts
-      .map((a) => a.storageKey)
-      .filter((key): key is string => key !== null);
+    const keys = artifacts.map((a) => a.storageKey).filter((key): key is string => key !== null);
 
     const artifactIds = artifacts.map((a) => a.id);
     if (artifactIds.length > 0) {
