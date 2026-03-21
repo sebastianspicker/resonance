@@ -263,6 +263,90 @@ describe('acl', () => {
     expect(markerAfter).toBeNull();
   });
 
+  it('cascade delete handles multiple artifacts atomically (bug #20)', async () => {
+    s3Mock.reset();
+
+    const entry = await prisma.practiceEntry.create({
+      data: {
+        id: 'entry-multi-artifact',
+        courseId: 'COURSE_TEST',
+        studentId: 'student-1',
+        practiceDate: new Date(),
+        goalText: 'Multi artifact delete test',
+        tags: [],
+        status: 'draft',
+      },
+    });
+
+    const artifact1 = await prisma.artifact.create({
+      data: {
+        id: 'artifact-multi-1',
+        entryId: entry.id,
+        type: 'audio',
+        durationSeconds: 10,
+        uploadState: 'uploaded',
+        storageKey: 'artifacts/entry-multi-artifact/artifact-multi-1',
+      },
+    });
+
+    const artifact2 = await prisma.artifact.create({
+      data: {
+        id: 'artifact-multi-2',
+        entryId: entry.id,
+        type: 'video',
+        durationSeconds: 20,
+        uploadState: 'uploaded',
+        storageKey: 'artifacts/entry-multi-artifact/artifact-multi-2',
+      },
+    });
+
+    // Add feedback on each artifact
+    await prisma.feedback.create({
+      data: {
+        id: 'fb_multi_1',
+        targetType: 'artifact',
+        targetId: artifact1.id,
+        teacherId: 'teacher-1',
+        status: 'ok',
+        commentsText: 'Feedback on artifact 1',
+      },
+    });
+
+    await prisma.feedback.create({
+      data: {
+        id: 'fb_multi_2',
+        targetType: 'artifact',
+        targetId: artifact2.id,
+        teacherId: 'teacher-1',
+        status: 'needs_revision',
+        commentsText: 'Feedback on artifact 2',
+      },
+    });
+
+    const token = await login('student');
+    const res = await request(app.server)
+      .delete(`/entries/${entry.id}`)
+      .set('Authorization', `Bearer ${token}`);
+
+    expect(res.status).toBe(200);
+
+    // Both artifacts should trigger S3 cleanup
+    expect(s3Mock.commandCalls(DeleteObjectCommand).length).toBe(2);
+
+    // All data should be deleted
+    const entryAfter = await prisma.practiceEntry.findUnique({ where: { id: entry.id } });
+    const artifact1After = await prisma.artifact.findUnique({ where: { id: artifact1.id } });
+    const artifact2After = await prisma.artifact.findUnique({ where: { id: artifact2.id } });
+    const feedbackAfter = await prisma.feedback.findMany({
+      where: { targetId: { in: [artifact1.id, artifact2.id] } },
+    });
+
+    expect(entryAfter).toBeNull();
+    expect(artifact1After).toBeNull();
+    expect(artifact2After).toBeNull();
+    expect(feedbackAfter.length).toBe(0);
+  });
+
   it('uses course role (not global role) for submit authorization', async () => {
     const mixedUser = await prisma.user.create({
       data: { id: 'mixed-role-user', displayName: 'Mixed Role', globalRole: 'teacher' },

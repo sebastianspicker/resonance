@@ -8,15 +8,18 @@ import { config } from '../config.js';
  * in a single transaction. Returns storage keys for subsequent S3 cleanup.
  */
 export async function cascadeDeleteEntry(prisma: PrismaClient, entryId: string): Promise<string[]> {
-  const artifacts = await prisma.artifact.findMany({
-    where: { entryId },
-    select: { id: true, storageKey: true },
-  });
-  const storageKeys = artifacts
-    .map((a) => a.storageKey)
-    .filter((key): key is string => key !== null);
+  const storageKeys = await prisma.$transaction(async (tx) => {
+    // Artifact enumeration is now inside the transaction to prevent race
+    // conditions where artifacts could be added between the prefetch and
+    // the cascade deletes (fixes bug #20).
+    const artifacts = await tx.artifact.findMany({
+      where: { entryId },
+      select: { id: true, storageKey: true },
+    });
+    const keys = artifacts
+      .map((a) => a.storageKey)
+      .filter((key): key is string => key !== null);
 
-  await prisma.$transaction(async (tx) => {
     const artifactIds = artifacts.map((a) => a.id);
     if (artifactIds.length > 0) {
       await deleteFeedbackCascade(tx, artifactIds);
@@ -25,6 +28,8 @@ export async function cascadeDeleteEntry(prisma: PrismaClient, entryId: string):
 
     await deleteFeedbackCascade(tx, [entryId], 'entry');
     await tx.practiceEntry.delete({ where: { id: entryId } });
+
+    return keys;
   });
 
   return storageKeys;

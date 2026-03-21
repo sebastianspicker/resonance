@@ -208,13 +208,13 @@ Same as (2): Implement and document `redirectUri` validation when production aut
 
 ---
 
-### 20. [Bug] Entry delete: orphaned feedback and storage (non-transactional prefetch + S3 before DB) — Partially fixed
+### 20. [Bug] Entry delete: orphaned feedback and storage (non-transactional prefetch + S3 before DB) — ✅ Fixed
 
 **Description:** Artifacts are fetched outside the transaction; feedback is deleted by prefetched artifact IDs; then entry (and artifacts) are deleted. Cascade can remove artifacts not in the prefetch list, orphaning their feedback. S3 delete runs before transaction; DB failure leaves DB referencing missing storage.
 
-**Status:** S3-before-DB ordering is fixed (see #5). Artifact enumeration in `entryCascade.ts` still runs outside the `$transaction`, so the prefetch race condition remains.
+**Status:** Fully fixed. S3-before-DB ordering was fixed in #5. Artifact enumeration (`findMany`) is now inside the `$transaction` callback, ensuring the artifact list and all cascade deletes are atomic. Storage keys are returned from the transaction for subsequent S3 cleanup.
 
-**Fix:** Move the `prisma.artifact.findMany` call inside the `$transaction` callback to ensure the artifact list and cascade deletes are atomic. **Sources:** `server/src/services/entryCascade.ts`
+**Sources:** `server/src/services/entryCascade.ts`
 
 ---
 
