@@ -48,7 +48,11 @@ final class SyncManager: ObservableObject {
         self.modelContext = modelContext
         self.authManager = authManager
         self.apiClient = apiClient
-        let config = URLSessionConfiguration.background(withIdentifier: "resonance.sync")
+        // Use a standard (non-background) session configuration. Background
+        // URLSession does NOT support the async upload(for:fromFile:) API and
+        // would throw at runtime. Extended execution time is already handled
+        // by UIApplication.beginBackgroundTask in processQueue().
+        let config = URLSessionConfiguration.default
         config.waitsForConnectivity = true
         self.session = URLSession(configuration: config)
         updateQueueMetrics()
