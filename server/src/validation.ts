@@ -1,4 +1,4 @@
-import { PrismaClient } from '@prisma/client';
+import { CourseRole, PrismaClient } from '@prisma/client';
 import { ErrorCodes } from './errorCodes.js';
 import { ApiError } from './errors.js';
 import { AuthUser } from './types.js';
@@ -129,20 +129,25 @@ export async function requireEntryAccess(prisma: PrismaClient, user: AuthUser, e
     throw new ApiError(403, ErrorCodes.ENTRY_ACCESS_DENIED, 'Entry does not belong to student');
   }
 
-  return entry;
+  return { ...entry, roleInCourse };
 }
 
 /**
  * Require that the user is a student and the owner of the given entry.
  * Combines course-role check with ownership check in one step.
+ *
+ * When `knownRole` is provided, the membership lookup is skipped — use this
+ * when the caller has already obtained the role (e.g. from `requireEntryAccess`)
+ * to avoid a redundant database query.
  */
 export async function requireStudentOwner(
   prisma: PrismaClient,
   userId: string,
   entry: { courseId: string; studentId: string },
-  action: string
+  action: string,
+  knownRole?: CourseRole
 ) {
-  const roleInCourse = await requireCourseRole(prisma, userId, entry.courseId);
+  const roleInCourse = knownRole ?? await requireCourseRole(prisma, userId, entry.courseId);
   if (roleInCourse !== 'student' || entry.studentId !== userId) {
     throw new ApiError(403, ErrorCodes.STUDENT_ONLY, `Only the student owner can ${action}`);
   }

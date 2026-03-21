@@ -82,7 +82,7 @@ export function registerEntryRoutes(
     const user = request.user!;
     const entryId = (request.params as { entryId: string }).entryId;
     const entry = await requireEntryAccess(prisma, user, entryId);
-    await requireStudentOwner(prisma, user.id, entry, 'edit entries');
+    await requireStudentOwner(prisma, user.id, entry, 'edit entries', entry.roleInCourse);
 
     const body = request.body as Record<string, unknown>;
 
@@ -147,7 +147,7 @@ export function registerEntryRoutes(
     const user = request.user!;
     const entryId = (request.params as { entryId: string }).entryId;
     const entry = await requireEntryAccess(prisma, user, entryId);
-    await requireStudentOwner(prisma, user.id, entry, 'delete');
+    await requireStudentOwner(prisma, user.id, entry, 'delete', entry.roleInCourse);
 
     const storageKeys = await cascadeDeleteEntry(prisma, entryId);
     await cleanupS3Objects(s3, storageKeys, request.log);
@@ -159,7 +159,7 @@ export function registerEntryRoutes(
     const user = request.user!;
     const entryId = (request.params as { entryId: string }).entryId;
     const entry = await requireEntryAccess(prisma, user, entryId);
-    await requireStudentOwner(prisma, user.id, entry, 'submit');
+    await requireStudentOwner(prisma, user.id, entry, 'submit', entry.roleInCourse);
     if (entry.status !== 'draft') {
       throw new ApiError(409, ErrorCodes.ENTRY_LOCKED, 'Only draft entries can be submitted');
     }
