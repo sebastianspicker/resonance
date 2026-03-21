@@ -52,7 +52,7 @@ final class AuthManager: NSObject, ObservableObject {
                 Self.logger.warning("Auth callback URL missing 'code' parameter: \(callbackURL.absoluteString, privacy: .private)")
                 return
             }
-            Task { [weak self] in
+            Task { @MainActor [weak self] in
                 guard let self else { return }
                 do {
                     let session = try await self.apiClient.exchangeCodeForTokens(code: code)
