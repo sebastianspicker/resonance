@@ -1,5 +1,8 @@
 import Foundation
+import os
 import Security
+
+private let logger = Logger(subsystem: Bundle.main.bundleIdentifier ?? "resonance", category: "KeychainStore")
 
 enum KeychainStore {
     private static func accountKey(for key: String) -> String {
@@ -17,12 +20,12 @@ enum KeychainStore {
         ]
         let deleteStatus = SecItemDelete(query as CFDictionary)
         if deleteStatus != errSecSuccess && deleteStatus != errSecItemNotFound {
-            print("Keychain delete error for \(accountKey): \(deleteStatus)")
+            logger.error("Keychain delete error for \(accountKey): OSStatus \(deleteStatus)")
         }
-        
+
         let addStatus = SecItemAdd(query as CFDictionary, nil)
         if addStatus != errSecSuccess {
-            print("Keychain add error for \(accountKey): \(addStatus)")
+            logger.error("Keychain add error for \(accountKey): OSStatus \(addStatus)")
         }
     }
 
@@ -40,7 +43,7 @@ enum KeychainStore {
             return String(decoding: data, as: UTF8.self)
         }
         if status != errSecSuccess && status != errSecItemNotFound {
-            print("Keychain get error for \(accountKey): \(status)")
+            logger.error("Keychain get error for \(accountKey): OSStatus \(status)")
         }
         return nil
     }
@@ -53,7 +56,7 @@ enum KeychainStore {
         ]
         let status = SecItemDelete(query as CFDictionary)
         if status != errSecSuccess && status != errSecItemNotFound {
-            print("Keychain remove error for \(accountKey): \(status)")
+            logger.error("Keychain remove error for \(accountKey): OSStatus \(status)")
         }
     }
 }
