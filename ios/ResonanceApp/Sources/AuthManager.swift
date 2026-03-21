@@ -15,6 +15,10 @@ final class AuthManager: NSObject, ObservableObject {
     private static let logger = Logger(subsystem: Bundle.main.bundleIdentifier ?? "resonance", category: "AuthManager")
 
     @Published var session: AuthSession?
+    /// User-visible error message from the most recent sign-in attempt.
+    /// Set on callback failure so the UI can display feedback instead of
+    /// silently doing nothing (bug #39).
+    @Published var authError: String?
     private var authSession: ASWebAuthenticationSession?
     private let apiClient: APIClient
     private var refreshTask: Task<Void, Error>?
@@ -41,15 +45,25 @@ final class AuthManager: NSObject, ObservableObject {
         let callbackScheme = AppConfig.authCallbackScheme
         let authURL = AppConfig.devLoginURL
 
+        authError = nil
         authSession = ASWebAuthenticationSession(url: authURL, callbackURLScheme: callbackScheme) { [weak self] callbackURL, error in
             guard let self else { return }
             if let error {
                 Self.logger.error("Authentication session error: \(error.localizedDescription)")
+                // Don't set authError for user-cancelled (ASWebAuthenticationSessionError.canceledLogin)
+                if (error as? ASWebAuthenticationSessionError)?.code != .canceledLogin {
+                    self.authError = "Sign-in failed: \(error.localizedDescription)"
+                }
                 return
             }
-            guard let callbackURL else { return }
+            guard let callbackURL else {
+                Self.logger.error("Auth callback returned no URL and no error")
+                self.authError = "Sign-in failed: no response received"
+                return
+            }
             guard let code = URLComponents(url: callbackURL, resolvingAgainstBaseURL: false)?.queryItems?.first(where: { $0.name == "code" })?.value else {
                 Self.logger.warning("Auth callback URL missing 'code' parameter: \(callbackURL.absoluteString, privacy: .private)")
+                self.authError = "Sign-in failed: authorization code missing from callback"
                 return
             }
             Task { @MainActor [weak self] in
@@ -59,6 +73,7 @@ final class AuthManager: NSObject, ObservableObject {
                     self.persistSession(session)
                 } catch {
                     Self.logger.error("Auth code exchange failed: \(error.localizedDescription)")
+                    self.authError = "Sign-in failed: could not exchange authorization code"
                 }
             }
         }
@@ -67,6 +82,7 @@ final class AuthManager: NSObject, ObservableObject {
         let started = authSession?.start() ?? false
         if !started {
             Self.logger.error("Failed to start ASWebAuthenticationSession")
+            authError = "Sign-in failed: unable to open login page"
         }
     }
 
@@ -164,6 +180,7 @@ final class AuthManager: NSObject, ObservableObject {
         KeychainStore.set(session.displayName, for: "displayName")
         KeychainStore.set(session.globalRole, for: "globalRole")
         self.session = session
+        self.authError = nil
     }
 }
 

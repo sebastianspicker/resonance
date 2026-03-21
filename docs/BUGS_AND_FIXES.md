@@ -358,9 +358,11 @@ Same as (2): Code exchange does not bind or validate `redirectUri`. **Sources:**
 
 ---
 
-### 39. [Bug] Sign-in callback: missing code or parse failure → silent no-op
+### 39. [Bug] Sign-in callback: missing code or parse failure → silent no-op — ✅ Fixed
 
 **Description:** If callback URL or `code` is missing/unparseable, AuthManager returns without error or state update. **Fix:** Set error state or show user-visible error; do not silently no-op. **Sources:** `ios/ResonanceApp/Sources/AuthManager.swift`
+
+**Status:** Fixed. Added `@Published var authError: String?` to `AuthManager`. All failure paths in the sign-in callback (error from auth session, missing callback URL, missing code parameter, code exchange failure) now set `authError` with a descriptive message. User-cancelled sign-in does not set error. `authError` is cleared on sign-in start and on successful session persist.
 
 ---
 
