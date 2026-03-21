@@ -96,6 +96,7 @@ model PracticeEntry {
   @@index([courseId])
   @@index([studentId])
   @@index([status])
+  @@index([courseId, deletedAt])
 }
 
 model Artifact {
