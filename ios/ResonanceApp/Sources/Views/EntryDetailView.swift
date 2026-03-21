@@ -312,7 +312,17 @@ struct EntryDetailView: View {
         defer { isLoadingFeedback = false }
         do {
             let feedbackList = try await appState.apiClient.fetchFeedback(accessToken: session.accessToken, entryId: entry.id)
+            // Delete old feedback objects from the store before replacing.
+            // Simply removing from the relationship array orphans them in SwiftData
+            // because cascade delete only fires when the parent is deleted, not when
+            // children are removed from the relationship.
+            let oldFeedback = entry.feedback
             entry.feedback.removeAll()
+            for old in oldFeedback {
+                // Cascade delete rule on LocalFeedback.markers will clean up markers
+                // when the feedback is deleted from the context.
+                modelContext.delete(old)
+            }
             for feedback in feedbackList {
                 let local = LocalFeedback(id: feedback.id, targetType: feedback.targetType, targetId: feedback.targetId, teacherName: feedback.teacherName, status: FeedbackStatus(rawValue: feedback.status) ?? .ok, commentsText: feedback.commentsText)
                 for marker in feedback.markers {
