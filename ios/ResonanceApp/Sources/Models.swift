@@ -111,7 +111,10 @@ private func decodeTags(_ value: String) -> [String] {
        let decoded = try? JSONDecoder().decode([String].self, from: data) {
         return decoded
     }
-    return value.split(separator: ",").map { String($0) }
+    // Backward-compatible CSV fallback: trim whitespace around each tag so that
+    // legacy values like "warmup, technique" decode as ["warmup", "technique"]
+    // instead of ["warmup", " technique"].
+    return value.split(separator: ",").map { $0.trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty }
 }
 
 @Model
