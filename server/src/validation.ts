@@ -147,7 +147,7 @@ export async function requireStudentOwner(
   action: string,
   knownRole?: CourseRole
 ) {
-  const roleInCourse = knownRole ?? await requireCourseRole(prisma, userId, entry.courseId);
+  const roleInCourse = knownRole ?? (await requireCourseRole(prisma, userId, entry.courseId));
   if (roleInCourse !== 'student' || entry.studentId !== userId) {
     throw new ApiError(403, ErrorCodes.STUDENT_ONLY, `Only the student owner can ${action}`);
   }

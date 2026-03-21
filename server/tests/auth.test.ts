@@ -26,15 +26,27 @@ describe('auth', () => {
     });
 
     expect(session.status).toBe(200);
-    expect(session.body.accessToken).toBeTruthy();
-    expect(session.body.refreshToken).toBeTruthy();
+    expect(typeof session.body.accessToken).toBe('string');
+    expect(session.body.accessToken.split('.')).toHaveLength(3);
+    expect(typeof session.body.refreshToken).toBe('string');
+    expect(session.body.refreshToken.split('.')).toHaveLength(3);
   });
 
-  it('allows authenticated course listing', async () => {
+  it('should return courses with id and title when authenticated as student', async () => {
     const token = await getAccessToken('student');
     const res = await request(app.server).get('/courses').set('Authorization', `Bearer ${token}`);
 
     expect(res.status).toBe(200);
+    expect(Array.isArray(res.body)).toBe(true);
+    expect(res.body.length).toBeGreaterThanOrEqual(1);
+    expect(res.body[0]).toHaveProperty('id');
+    expect(res.body[0]).toHaveProperty('title');
+  });
+
+  it('should return 401 with MISSING_AUTH when no token is provided', async () => {
+    const res = await request(app.server).get('/courses');
+    expect(res.status).toBe(401);
+    expect(res.body.error?.code).toBe('MISSING_AUTH');
   });
 
   it('rotates refresh tokens and revokes the old token', async () => {
@@ -48,7 +60,7 @@ describe('auth', () => {
     const refreshed = await request(app.server).post('/auth/refresh').send({ refreshToken });
 
     expect(refreshed.status).toBe(200);
-    expect(refreshed.body.refreshToken).toBeTruthy();
+    expect(typeof refreshed.body.refreshToken).toBe('string');
     expect(refreshed.body.refreshToken).not.toBe(refreshToken);
 
     const reuse = await request(app.server).post('/auth/refresh').send({ refreshToken });

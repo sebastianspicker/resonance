@@ -44,10 +44,7 @@ export function registerCourseRoutes(
     const validStatuses = ['draft', 'submitted', 'reviewed'] as const;
     type ValidStatus = (typeof validStatuses)[number];
     const queryStatus = (request.query as { status?: string }).status;
-    if (
-      queryStatus !== undefined &&
-      !validStatuses.includes(queryStatus as ValidStatus)
-    ) {
+    if (queryStatus !== undefined && !validStatuses.includes(queryStatus as ValidStatus)) {
       throw new ApiError(
         400,
         ErrorCodes.VALIDATION_ERROR,

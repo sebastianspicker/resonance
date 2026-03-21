@@ -60,7 +60,7 @@ describe('media upload flow', () => {
       .send();
 
     expect(presignRes.status).toBe(200);
-    expect(presignRes.body.uploadUrl).toBeTruthy();
+    expect(typeof presignRes.body.uploadUrl).toBe('string');
     expect(presignRes.body.requiredHeaders?.['Content-Type']).toBe('audio/m4a');
 
     s3Mock.on(HeadObjectCommand).resolves({ ContentLength: 128 });

@@ -16,13 +16,9 @@ describe('GET /courses/:courseId/entries status filter', () => {
     await app.ready();
 
     // Get a dev auth token
-    const issueRes = await request(app.server)
-      .post('/dev/issue')
-      .send({ role: 'student' });
+    const issueRes = await request(app.server).post('/dev/issue').send({ role: 'student' });
     const code = issueRes.body.code;
-    const sessionRes = await request(app.server)
-      .post('/auth/session')
-      .send({ code });
+    const sessionRes = await request(app.server).post('/auth/session').send({ code });
     accessToken = sessionRes.body.accessToken;
   });
 

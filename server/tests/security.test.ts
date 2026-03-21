@@ -40,8 +40,10 @@ describe('security', () => {
       const refreshToken = session.body.refreshToken as string;
       const res = await request(app.server).post('/auth/refresh').send({ refreshToken });
       expect(res.status).toBe(200);
-      expect(res.body.accessToken).toBeTruthy();
-      expect(res.body.refreshToken).toBeTruthy();
+      expect(typeof res.body.accessToken).toBe('string');
+      expect(res.body.accessToken.split('.')).toHaveLength(3);
+      expect(typeof res.body.refreshToken).toBe('string');
+      expect(res.body.refreshToken.split('.')).toHaveLength(3);
     });
   });
 
@@ -289,7 +291,7 @@ describe('security', () => {
       const res = await request(app.server).get('/health');
       expect(res.status).toBe(200);
       const csp = res.headers['content-security-policy'];
-      expect(csp).toBeDefined();
+      expect(typeof csp).toBe('string');
       expect(csp).toContain("default-src 'none'");
       expect(csp).toContain("frame-ancestors 'none'");
     });
