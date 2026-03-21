@@ -12,6 +12,7 @@ Thanks for contributing to Resonance.
 cd server
 npm run lint
 npm run format
+npm run build
 npm test
 ```
 

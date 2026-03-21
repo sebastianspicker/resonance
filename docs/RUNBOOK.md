@@ -61,7 +61,7 @@ npm run start
 ```
 
 ## Tests
-Backend tests (requires Postgres + MinIO running):
+Backend tests (requires Postgres running; S3/MinIO is mocked):
 ```bash
 cd server
 npm test
@@ -78,7 +78,7 @@ cd server
 npm run lint
 ```
 
-Server format (optional):
+Server format (CI enforces `format:check`):
 ```bash
 cd server
 npm run format
