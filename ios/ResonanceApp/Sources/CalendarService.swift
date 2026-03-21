@@ -6,8 +6,6 @@ private let logger = Logger(subsystem: Bundle.main.bundleIdentifier ?? "resonanc
 
 @MainActor
 final class CalendarService: ObservableObject {
-    @Published var lastUpdated: Date?
-
     func refresh(from url: URL, modelContext: ModelContext) async {
         do {
             let (data, _) = try await URLSession.shared.data(from: url)
@@ -26,7 +24,6 @@ final class CalendarService: ObservableObject {
                 modelContext.insert(record)
             }
             try modelContext.save()
-            lastUpdated = Date()
         } catch {
             logger.error("Calendar refresh failed: \(error.localizedDescription)")
         }
