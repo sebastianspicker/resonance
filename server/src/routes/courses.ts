@@ -39,10 +39,34 @@ export function registerCourseRoutes(
     const user = request.user!;
     const courseId = (request.params as { courseId: string }).courseId;
     const role = await requireCourseRole(prisma, user.id, courseId);
-    const where =
-      role === 'teacher'
-        ? { courseId, status: 'submitted' as const, deletedAt: null }
-        : { courseId, studentId: user.id, deletedAt: null };
+
+    // Optional status filter: ?status=draft | submitted | reviewed
+    const validStatuses = ['draft', 'submitted', 'reviewed'] as const;
+    type ValidStatus = (typeof validStatuses)[number];
+    const queryStatus = (request.query as { status?: string }).status;
+    if (
+      queryStatus !== undefined &&
+      !validStatuses.includes(queryStatus as ValidStatus)
+    ) {
+      throw new ApiError(
+        400,
+        ErrorCodes.VALIDATION_ERROR,
+        `Invalid status filter: must be one of ${validStatuses.join(', ')}`
+      );
+    }
+    const statusFilter = queryStatus as ValidStatus | undefined;
+
+    const where: Record<string, unknown> = { courseId, deletedAt: null };
+    if (role === 'teacher') {
+      // Default to 'submitted' for teachers when no filter is provided
+      where.status = statusFilter ?? 'submitted';
+    } else {
+      where.studentId = user.id;
+      if (statusFilter) {
+        where.status = statusFilter;
+      }
+    }
+
     const entries = await prisma.practiceEntry.findMany({
       where,
       include: { artifacts: true },
@@ -50,6 +74,10 @@ export function registerCourseRoutes(
     return entries;
   });
 
+  // TODO: Pagination gap — this endpoint returns all submitted entries at once.
+  // When the review queue grows large, implement cursor-based pagination using
+  // (practiceDate, createdAt, id) as the cursor key, matching the current orderBy.
+  // The response shape would add { cursor?: string; hasMore: boolean } alongside the entries array.
   app.get('/courses/:courseId/review-queue', { preHandler: requireAuth }, async (request) => {
     const user = request.user!;
     const courseId = (request.params as { courseId: string }).courseId;
