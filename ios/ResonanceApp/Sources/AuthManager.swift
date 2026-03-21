@@ -1,5 +1,6 @@
 import Foundation
 import AuthenticationServices
+import os
 import SwiftUI
 import UIKit
 
@@ -13,6 +14,8 @@ struct AuthSession: Codable {
 
 @MainActor
 final class AuthManager: NSObject, ObservableObject {
+    private static let logger = Logger(subsystem: Bundle.main.bundleIdentifier ?? "resonance", category: "AuthManager")
+
     @Published var session: AuthSession?
     private var authSession: ASWebAuthenticationSession?
     private let apiClient: APIClient
@@ -43,25 +46,30 @@ final class AuthManager: NSObject, ObservableObject {
         authSession = ASWebAuthenticationSession(url: authURL, callbackURLScheme: callbackScheme) { [weak self] callbackURL, error in
             guard let self else { return }
             if let error {
-                print("Auth error: \(error)")
+                Self.logger.error("Authentication session error: \(error.localizedDescription)")
                 return
             }
             guard let callbackURL else { return }
             guard let code = URLComponents(url: callbackURL, resolvingAgainstBaseURL: false)?.queryItems?.first(where: { $0.name == "code" })?.value else {
+                Self.logger.warning("Auth callback URL missing 'code' parameter: \(callbackURL.absoluteString, privacy: .private)")
                 return
             }
-            Task {
+            Task { [weak self] in
+                guard let self else { return }
                 do {
                     let session = try await self.apiClient.exchangeCodeForTokens(code: code)
                     self.persistSession(session)
                 } catch {
-                    print("Auth exchange failed: \(error)")
+                    Self.logger.error("Auth code exchange failed: \(error.localizedDescription)")
                 }
             }
         }
         authSession?.presentationContextProvider = self
         authSession?.prefersEphemeralWebBrowserSession = true
-        _ = authSession?.start()
+        let started = authSession?.start() ?? false
+        if !started {
+            Self.logger.error("Failed to start ASWebAuthenticationSession")
+        }
     }
 
     func signInForScreenshot(role: ScreenshotPersona) async throws {
@@ -79,17 +87,16 @@ final class AuthManager: NSObject, ObservableObject {
 
     func signOut() {
         // Attempt server-side logout (revoke refresh tokens)
-        Task {
-            if let session = session {
-                do {
-                    try await apiClient.logout(accessToken: session.accessToken)
-                } catch {
-                    // Log but don't fail - local signout should still proceed
-                    print("Server logout failed: \(error)")
-                }
+        Task { [weak self] in
+            guard let self, let session = self.session else { return }
+            do {
+                try await self.apiClient.logout(accessToken: session.accessToken)
+            } catch {
+                // Log but don't fail - local signout should still proceed
+                Self.logger.warning("Server logout failed (local credentials still cleared): \(error.localizedDescription)")
             }
         }
-        
+
         // Clear local credentials
         KeychainStore.remove("accessToken")
         KeychainStore.remove("refreshToken")
@@ -122,15 +129,15 @@ final class AuthManager: NSObject, ObservableObject {
             )
             persistSession(newSession)
         }
-        
+
         refreshTask = task
-        
+
         do {
             try await task.value
             refreshTask = nil
         } catch {
             refreshTask = nil
-            print("Refresh failed: \(error)")
+            Self.logger.error("Token refresh failed, signing out: \(error.localizedDescription)")
             signOut()
         }
     }
