@@ -437,6 +437,38 @@ describe('acl', () => {
     expect(res.status).toBe(400);
   });
 
+  it('rejects feedback with non-existent entry targetId (bug #44)', async () => {
+    const token = await login('teacher');
+    const res = await request(app.server)
+      .post('/feedback')
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        targetType: 'entry',
+        targetId: 'non-existent-entry-id',
+        status: 'ok',
+        commentsText: 'This should fail',
+        markers: [],
+      });
+
+    expect(res.status).toBe(404);
+  });
+
+  it('rejects feedback with non-existent artifact targetId (bug #44)', async () => {
+    const token = await login('teacher');
+    const res = await request(app.server)
+      .post('/feedback')
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        targetType: 'artifact',
+        targetId: 'non-existent-artifact-id',
+        status: 'ok',
+        commentsText: 'This should fail',
+        markers: [],
+      });
+
+    expect(res.status).toBe(404);
+  });
+
   it('marks entry as reviewed when teacher posts feedback directly on entry', async () => {
     const entry = await prisma.practiceEntry.create({
       data: {

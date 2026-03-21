@@ -392,9 +392,11 @@ Same as (2): Code exchange does not bind or validate `redirectUri`. **Sources:**
 
 ---
 
-### 44. [Bug] Feedback targetId/targetType no FK (integrity only in app code)
+### 44. [Bug] Feedback targetId/targetType no FK (integrity only in app code) — ✅ Mitigated
 
-**Description:** Feedback has no DB FK to entry/artifact; orphaned or invalid targets possible if any code path inserts without checks. **Fix:** Document and keep all insertion paths validated; optionally add DB constraints or triggers. **Sources:** `server/prisma/schema.prisma`
+**Description:** Feedback has no DB FK to entry/artifact; orphaned or invalid targets possible if any code path inserts without checks. **Fix:** Document and keep all insertion paths validated; optionally add DB constraints or triggers. **Sources:** `server/prisma/schema.prisma`, `server/src/routes/feedback.ts`
+
+**Status:** Mitigated. There is only one feedback insertion path (`POST /feedback` in `routes/feedback.ts`), and it fully validates the target: looks up the entry/artifact by `targetId`, rejects 404 if not found, rejects 410 if deleted, rejects 409 if not submitted, and requires the user to be a course teacher. A DB FK is not feasible for polymorphic targetType (entry/artifact), so app-layer validation is the correct approach. Added regression test to verify that feedback creation with invalid targetId is rejected.
 
 ---
 
