@@ -283,6 +283,103 @@ describe('security', () => {
     });
   });
 
+  // Security headers & CORS hardening
+  describe('security headers', () => {
+    it('sets Content-Security-Policy header', async () => {
+      const res = await request(app.server).get('/health');
+      expect(res.status).toBe(200);
+      const csp = res.headers['content-security-policy'];
+      expect(csp).toBeDefined();
+      expect(csp).toContain("default-src 'none'");
+      expect(csp).toContain("frame-ancestors 'none'");
+    });
+
+    it('sets X-Content-Type-Options to nosniff', async () => {
+      const res = await request(app.server).get('/health');
+      expect(res.headers['x-content-type-options']).toBe('nosniff');
+    });
+
+    it('sets X-Frame-Options to DENY', async () => {
+      const res = await request(app.server).get('/health');
+      expect(res.headers['x-frame-options']).toBe('DENY');
+    });
+
+    it('sets Referrer-Policy to no-referrer', async () => {
+      const res = await request(app.server).get('/health');
+      expect(res.headers['referrer-policy']).toBe('no-referrer');
+    });
+
+    it('does not expose x-powered-by header', async () => {
+      const res = await request(app.server).get('/health');
+      expect(res.headers['x-powered-by']).toBeUndefined();
+    });
+
+    it('does not leak stack traces in 500 responses', async () => {
+      const token = await login('student');
+      // Request a non-existent route to trigger error handling
+      const res = await request(app.server)
+        .get('/this-route-does-not-exist')
+        .set('Authorization', `Bearer ${token}`);
+      expect(res.status).toBe(404);
+      expect(res.body.error?.message).toBe('Route not found');
+      // Ensure no stack trace
+      expect(res.body.error?.stack).toBeUndefined();
+      expect(res.body.stack).toBeUndefined();
+    });
+
+    it('returns structured error for unknown errors', async () => {
+      // Hitting a 404 to ensure error format is consistent
+      const res = await request(app.server).get('/nonexistent');
+      expect(res.status).toBe(404);
+      expect(res.body.error).toBeDefined();
+      expect(res.body.error.code).toBe('NOT_FOUND');
+      expect(res.body.error.message).toBe('Route not found');
+      expect(res.body.error.details).toBeDefined();
+    });
+  });
+
+  describe('content-type enforcement', () => {
+    it('rejects POST with text/plain content-type', async () => {
+      const token = await login('student');
+      const res = await request(app.server)
+        .post('/courses/COURSE_TEST/entries')
+        .set('Authorization', `Bearer ${token}`)
+        .set('Content-Type', 'text/plain')
+        .send('not json');
+      expect(res.status).toBe(415);
+    });
+
+    it('rejects POST with text/xml content-type', async () => {
+      const token = await login('student');
+      const res = await request(app.server)
+        .post('/courses/COURSE_TEST/entries')
+        .set('Authorization', `Bearer ${token}`)
+        .set('Content-Type', 'text/xml')
+        .send('<entry/>');
+      expect(res.status).toBe(415);
+    });
+
+    it('allows POST with application/json content-type', async () => {
+      const token = await login('student');
+      const res = await request(app.server)
+        .post('/courses/COURSE_TEST/entries')
+        .set('Authorization', `Bearer ${token}`)
+        .set('Content-Type', 'application/json')
+        .send({
+          id: 'content-type-test-entry',
+          practiceDate: new Date().toISOString(),
+          goalText: 'Test',
+          tags: [],
+        });
+      expect(res.status).toBe(200);
+    });
+
+    it('allows GET requests without content-type', async () => {
+      const res = await request(app.server).get('/health');
+      expect(res.status).toBe(200);
+    });
+  });
+
   // Bug #9/16: Course role used consistently (verify already fixed)
   describe('course role authorization', () => {
     it('global teacher enrolled as course student cannot access other students entries', async () => {

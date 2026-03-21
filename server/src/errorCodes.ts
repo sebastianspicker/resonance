@@ -44,4 +44,5 @@ export const ErrorCodes = {
 
   // Generic
   INTERNAL_ERROR: 'INTERNAL_ERROR',
+  RATE_LIMITED: 'RATE_LIMITED',
 } as const;
