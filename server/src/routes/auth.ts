@@ -1,17 +1,17 @@
-import type { FastifyInstance, FastifyRequest } from 'fastify';
-import type { PrismaClient } from '@prisma/client';
 import type { S3Client } from '@aws-sdk/client-s3';
-import { config } from '../config.js';
-import { ApiError } from '../errors.js';
-import { ErrorCodes } from '../errorCodes.js';
-import { requireField } from '../validation.js';
+import type { PrismaClient } from '@prisma/client';
+import type { FastifyInstance, FastifyRequest } from 'fastify';
 import {
+  consumeDevAuthCode,
+  issueDevAuthCode,
   issueTokens,
   rotateRefreshToken,
-  issueDevAuthCode,
-  consumeDevAuthCode,
-  upsertDevUser
+  upsertDevUser,
 } from '../auth.js';
+import { config } from '../config.js';
+import { ErrorCodes } from '../errorCodes.js';
+import { ApiError } from '../errors.js';
+import { requireField } from '../validation.js';
 
 export function registerAuthRoutes(
   app: FastifyInstance,
@@ -115,7 +115,7 @@ export function registerAuthRoutes(
     const tokens = await issueTokens(prisma, user);
     return {
       ...tokens,
-      user: { id: user.id, displayName: user.displayName, globalRole: user.globalRole }
+      user: { id: user.id, displayName: user.displayName, globalRole: user.globalRole },
     };
   });
 
@@ -135,7 +135,7 @@ export function registerAuthRoutes(
     return {
       id: userRecord.id,
       displayName: userRecord.displayName,
-      globalRole: userRecord.globalRole
+      globalRole: userRecord.globalRole,
     };
   });
 
@@ -146,11 +146,11 @@ export function registerAuthRoutes(
     await prisma.refreshToken.updateMany({
       where: {
         userId: user.id,
-        revokedAt: null
+        revokedAt: null,
       },
       data: {
-        revokedAt: new Date()
-      }
+        revokedAt: new Date(),
+      },
     });
 
     return { success: true };

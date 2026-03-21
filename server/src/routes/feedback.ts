@@ -1,16 +1,16 @@
-import { nanoid } from 'nanoid';
-import type { FastifyInstance, FastifyRequest } from 'fastify';
-import type { PrismaClient } from '@prisma/client';
 import type { S3Client } from '@aws-sdk/client-s3';
-import { ApiError } from '../errors.js';
-import { ErrorCodes } from '../errorCodes.js';
+import type { PrismaClient } from '@prisma/client';
+import type { FastifyInstance, FastifyRequest } from 'fastify';
+import { nanoid } from 'nanoid';
 import { limits } from '../config.js';
+import { ErrorCodes } from '../errorCodes.js';
+import { ApiError } from '../errors.js';
 import {
-  requireField,
-  requireString,
+  requireCourseRole,
   requireEnum,
+  requireField,
   requireNumber,
-  requireCourseRole
+  requireString,
 } from '../validation.js';
 
 export function registerFeedbackRoutes(
@@ -22,28 +22,33 @@ export function registerFeedbackRoutes(
   app.post('/feedback', { preHandler: requireAuth }, async (request) => {
     const user = request.user!;
     const body = request.body as Record<string, unknown>;
-    const targetType = requireEnum(
-      requireField(body?.targetType, 'targetType'),
-      'targetType',
-      ['entry', 'artifact'] as const
-    );
+    const targetType = requireEnum(requireField(body?.targetType, 'targetType'), 'targetType', [
+      'entry',
+      'artifact',
+    ] as const);
     const targetId = requireString(requireField(body?.targetId, 'targetId'), 'targetId');
-    const status = requireEnum(
-      requireField(body?.status, 'status'),
-      'status',
-      ['ok', 'needs_revision', 'next_goal'] as const
-    );
+    const status = requireEnum(requireField(body?.status, 'status'), 'status', [
+      'ok',
+      'needs_revision',
+      'next_goal',
+    ] as const);
     const commentsText = requireString(
       requireField(body?.commentsText, 'commentsText'),
       'commentsText'
     );
     const markers = Array.isArray(body?.markers) ? (body.markers as Record<string, unknown>[]) : [];
     if (markers.length > limits.maxMarkers) {
-      throw new ApiError(400, ErrorCodes.VALIDATION_ERROR, `Too many markers (max ${limits.maxMarkers})`);
+      throw new ApiError(
+        400,
+        ErrorCodes.VALIDATION_ERROR,
+        `Too many markers (max ${limits.maxMarkers})`
+      );
     }
     for (const marker of markers) {
       requireNumber(marker?.timeSeconds, 'marker.timeSeconds', { min: 0 });
-      requireString(requireField(marker?.text, 'marker.text'), 'marker.text', { max: limits.maxMarkerTextLength });
+      requireString(requireField(marker?.text, 'marker.text'), 'marker.text', {
+        max: limits.maxMarkerTextLength,
+      });
     }
 
     let courseId: string;
@@ -57,14 +62,18 @@ export function registerFeedbackRoutes(
         throw new ApiError(410, ErrorCodes.ENTRY_DELETED, 'Entry has been deleted');
       }
       if (entry.status === 'draft') {
-        throw new ApiError(409, ErrorCodes.ENTRY_NOT_SUBMITTED, 'Entry must be submitted before feedback can be added');
+        throw new ApiError(
+          409,
+          ErrorCodes.ENTRY_NOT_SUBMITTED,
+          'Entry must be submitted before feedback can be added'
+        );
       }
       courseId = entry.courseId;
       reviewEntryId = entry.id;
     } else if (targetType === 'artifact') {
       const artifact = await prisma.artifact.findUnique({
         where: { id: targetId },
-        include: { entry: true }
+        include: { entry: true },
       });
       if (!artifact) {
         throw new ApiError(404, ErrorCodes.ARTIFACT_NOT_FOUND, 'Artifact not found');
@@ -73,7 +82,11 @@ export function registerFeedbackRoutes(
         throw new ApiError(410, ErrorCodes.ENTRY_DELETED, 'Entry has been deleted');
       }
       if (artifact.entry.status === 'draft') {
-        throw new ApiError(409, ErrorCodes.ENTRY_NOT_SUBMITTED, 'Entry must be submitted before feedback can be added');
+        throw new ApiError(
+          409,
+          ErrorCodes.ENTRY_NOT_SUBMITTED,
+          'Entry must be submitted before feedback can be added'
+        );
       }
       courseId = artifact.entry.courseId;
       reviewEntryId = artifact.entry.id;
@@ -101,23 +114,23 @@ export function registerFeedbackRoutes(
             create: markers.map((marker: Record<string, unknown>) => ({
               id: `mk_${nanoid(10)}`,
               timeSeconds: marker.timeSeconds as number,
-              text: marker.text as string
-            }))
-          }
+              text: marker.text as string,
+            })),
+          },
         },
-        include: { markers: true, teacher: true }
+        include: { markers: true, teacher: true },
       });
 
       await tx.practiceEntry.update({
         where: { id: reviewEntryId },
-        data: { status: 'reviewed' }
+        data: { status: 'reviewed' },
       });
 
       return created;
     });
     return {
       ...feedback,
-      teacherName: feedback.teacher.displayName
+      teacherName: feedback.teacher.displayName,
     };
   });
 }

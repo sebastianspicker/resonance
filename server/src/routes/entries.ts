@@ -1,19 +1,19 @@
-import type { FastifyInstance, FastifyRequest } from 'fastify';
-import type { PrismaClient } from '@prisma/client';
 import type { S3Client } from '@aws-sdk/client-s3';
-import { ApiError } from '../errors.js';
+import type { PrismaClient } from '@prisma/client';
+import type { FastifyInstance, FastifyRequest } from 'fastify';
 import { ErrorCodes } from '../errorCodes.js';
+import { ApiError } from '../errors.js';
+import { cascadeDeleteEntry, cleanupS3Objects } from '../services/entryCascade.js';
 import {
-  requireField,
-  requireString,
-  requireStringArray,
-  requireValidDate,
-  requireNumber,
   requireCourseRole,
   requireEntryAccess,
-  requireStudentOwner
+  requireField,
+  requireNumber,
+  requireString,
+  requireStringArray,
+  requireStudentOwner,
+  requireValidDate,
 } from '../validation.js';
-import { cascadeDeleteEntry, cleanupS3Objects } from '../services/entryCascade.js';
 
 export function registerEntryRoutes(
   app: FastifyInstance,
@@ -38,9 +38,7 @@ export function registerEntryRoutes(
         ? null
         : requireNumber(body?.durationSeconds, 'durationSeconds', { min: 0 });
     const notes =
-      body?.notes === undefined || body?.notes === null
-        ? null
-        : requireString(body.notes, 'notes');
+      body?.notes === undefined || body?.notes === null ? null : requireString(body.notes, 'notes');
     const entry = await prisma.practiceEntry.create({
       data: {
         id: entryId,
@@ -51,8 +49,8 @@ export function registerEntryRoutes(
         durationSeconds,
         tags,
         notes,
-        status: 'draft'
-      }
+        status: 'draft',
+      },
     });
     return entry;
   });
@@ -95,7 +93,9 @@ export function registerEntryRoutes(
       if (body.durationSeconds === null) {
         updateData.durationSeconds = null;
       } else {
-        updateData.durationSeconds = requireNumber(body.durationSeconds, 'durationSeconds', { min: 0 });
+        updateData.durationSeconds = requireNumber(body.durationSeconds, 'durationSeconds', {
+          min: 0,
+        });
       }
     }
 
@@ -110,7 +110,7 @@ export function registerEntryRoutes(
 
     const updated = await prisma.practiceEntry.update({
       where: { id: entryId },
-      data: updateData
+      data: updateData,
     });
     return updated;
   });
@@ -137,11 +137,15 @@ export function registerEntryRoutes(
     }
     const artifacts = await prisma.artifact.findMany({ where: { entryId } });
     if (artifacts.length === 0 || artifacts.some((a) => a.uploadState !== 'uploaded')) {
-      throw new ApiError(409, ErrorCodes.ARTIFACTS_NOT_UPLOADED, 'Upload artifacts before submitting');
+      throw new ApiError(
+        409,
+        ErrorCodes.ARTIFACTS_NOT_UPLOADED,
+        'Upload artifacts before submitting'
+      );
     }
     const updated = await prisma.practiceEntry.update({
       where: { id: entryId },
-      data: { status: 'submitted' }
+      data: { status: 'submitted' },
     });
     return updated;
   });
@@ -152,7 +156,7 @@ export function registerEntryRoutes(
     const entry = await requireEntryAccess(prisma, user, entryId);
     const feedback = await prisma.feedback.findMany({
       where: { targetType: 'entry', targetId: entry.id },
-      include: { markers: true, teacher: true }
+      include: { markers: true, teacher: true },
     });
     return feedback.map((item) => ({
       id: item.id,
@@ -163,7 +167,7 @@ export function registerEntryRoutes(
       createdAt: item.createdAt,
       status: item.status,
       commentsText: item.commentsText,
-      markers: item.markers
+      markers: item.markers,
     }));
   });
 }

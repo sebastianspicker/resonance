@@ -1,17 +1,17 @@
-import type { FastifyInstance, FastifyRequest } from 'fastify';
-import type { PrismaClient } from '@prisma/client';
 import type { S3Client } from '@aws-sdk/client-s3';
+import { HeadObjectCommand, PutObjectCommand } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
-import { PutObjectCommand, HeadObjectCommand } from '@aws-sdk/client-s3';
+import type { PrismaClient } from '@prisma/client';
+import type { FastifyInstance, FastifyRequest } from 'fastify';
 import { config } from '../config.js';
-import { ApiError } from '../errors.js';
 import { ErrorCodes } from '../errorCodes.js';
+import { ApiError } from '../errors.js';
 import {
-  requireField,
-  requireString,
   requireEnum,
+  requireField,
   requireNumber,
-  requireStudentOwner
+  requireString,
+  requireStudentOwner,
 } from '../validation.js';
 
 export function registerArtifactRoutes(
@@ -37,7 +37,7 @@ export function registerArtifactRoutes(
       { min: 0 }
     );
     const artifact = await prisma.artifact.create({
-      data: { id: artifactId, entryId, type, durationSeconds }
+      data: { id: artifactId, entryId, type, durationSeconds },
     });
     return artifact;
   });
@@ -47,7 +47,7 @@ export function registerArtifactRoutes(
     const artifactId = (request.params as { artifactId: string }).artifactId;
     const artifact = await prisma.artifact.findUnique({
       where: { id: artifactId },
-      include: { entry: true }
+      include: { entry: true },
     });
     if (!artifact) {
       throw new ApiError(404, ErrorCodes.ARTIFACT_NOT_FOUND, 'Artifact not found');
@@ -62,23 +62,23 @@ export function registerArtifactRoutes(
     const command = new PutObjectCommand({
       Bucket: config.s3.bucket,
       Key: storageKey,
-      ContentType: contentType
+      ContentType: contentType,
     });
     const uploadUrl = await getSignedUrl(s3, command, {
-      expiresIn: config.s3.presignTtlSeconds
+      expiresIn: config.s3.presignTtlSeconds,
     });
     // Only update storageKey and uploadState if not already uploaded
     if (artifact.uploadState !== 'uploaded') {
       await prisma.artifact.update({
         where: { id: artifactId },
-        data: { storageKey, uploadState: 'uploading' }
+        data: { storageKey, uploadState: 'uploading' },
       });
     }
     return {
       uploadUrl,
       storageKey,
       expiresInSeconds: config.s3.presignTtlSeconds,
-      requiredHeaders: { 'Content-Type': contentType }
+      requiredHeaders: { 'Content-Type': contentType },
     };
   });
 
@@ -87,7 +87,7 @@ export function registerArtifactRoutes(
     const artifactId = (request.params as { artifactId: string }).artifactId;
     const artifact = await prisma.artifact.findUnique({
       where: { id: artifactId },
-      include: { entry: true }
+      include: { entry: true },
     });
     if (!artifact) {
       throw new ApiError(404, ErrorCodes.ARTIFACT_NOT_FOUND, 'Artifact not found');
@@ -115,8 +115,8 @@ export function registerArtifactRoutes(
       where: { id: artifactId },
       data: {
         uploadState: 'uploaded',
-        remoteUrl: `s3://${config.s3.bucket}/${artifact.storageKey}`
-      }
+        remoteUrl: `s3://${config.s3.bucket}/${artifact.storageKey}`,
+      },
     });
     return updated;
   });

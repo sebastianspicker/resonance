@@ -1,22 +1,19 @@
-import type { PrismaClient, FeedbackTargetType } from '@prisma/client';
 import type { S3Client } from '@aws-sdk/client-s3';
 import { DeleteObjectCommand } from '@aws-sdk/client-s3';
+import type { PrismaClient, FeedbackTargetType } from '@prisma/client';
 import { config } from '../config.js';
 
 /**
  * Delete an entry and all associated data (artifacts, feedback, markers)
  * in a single transaction. Returns storage keys for subsequent S3 cleanup.
  */
-export async function cascadeDeleteEntry(
-  prisma: PrismaClient,
-  entryId: string
-): Promise<string[]> {
+export async function cascadeDeleteEntry(prisma: PrismaClient, entryId: string): Promise<string[]> {
   const artifacts = await prisma.artifact.findMany({
     where: { entryId },
-    select: { id: true, storageKey: true }
+    select: { id: true, storageKey: true },
   });
   const storageKeys = artifacts
-    .map(a => a.storageKey)
+    .map((a) => a.storageKey)
     .filter((key): key is string => key !== null);
 
   await prisma.$transaction(async (tx) => {
@@ -46,7 +43,7 @@ async function deleteFeedbackCascade(
 
   const feedback = await tx.feedback.findMany({
     where: { targetType, targetId: { in: targetIds } },
-    select: { id: true }
+    select: { id: true },
   });
   const feedbackIds = feedback.map((f) => f.id);
   if (feedbackIds.length > 0) {
@@ -66,9 +63,7 @@ export async function cleanupS3Objects(
 ) {
   for (const storageKey of storageKeys) {
     try {
-      await s3.send(
-        new DeleteObjectCommand({ Bucket: config.s3.bucket, Key: storageKey })
-      );
+      await s3.send(new DeleteObjectCommand({ Bucket: config.s3.bucket, Key: storageKey }));
     } catch (err) {
       logger.error({ err, storageKey }, 'Failed to delete S3 object after entry deletion');
     }

@@ -1,6 +1,6 @@
 import { PrismaClient } from '@prisma/client';
-import { ApiError } from './errors.js';
 import { ErrorCodes } from './errorCodes.js';
+import { ApiError } from './errors.js';
 import { AuthUser } from './types.js';
 
 export function requireField<T>(value: T | undefined | null, name: string) {
@@ -139,4 +139,3 @@ export async function requireTeacherRole(prisma: PrismaClient, userId: string, c
   }
   return roleInCourse;
 }
-

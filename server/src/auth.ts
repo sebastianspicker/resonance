@@ -1,10 +1,10 @@
 import crypto from 'crypto';
+import { PrismaClient, User } from '@prisma/client';
 import jwt from 'jsonwebtoken';
 import { nanoid } from 'nanoid';
-import { PrismaClient, User } from '@prisma/client';
 import { config, limits } from './config.js';
-import { ApiError } from './errors.js';
 import { ErrorCodes } from './errorCodes.js';
+import { ApiError } from './errors.js';
 
 const devAuthCodes = new Map<string, { userId: string; expiresAt: number }>();
 
@@ -18,30 +18,22 @@ export function hashToken(token: string) {
 
 export function signAccessToken(user: User) {
   const expiresIn = config.accessTokenTtlMinutes * 60;
-  return jwt.sign(
-    { sub: user.id, role: user.globalRole },
-    config.jwtSecret,
-    {
-      expiresIn,
-      issuer: JWT_ISSUER,
-      audience: JWT_AUDIENCE,
-      algorithm: JWT_ALGORITHM
-    }
-  );
+  return jwt.sign({ sub: user.id, role: user.globalRole }, config.jwtSecret, {
+    expiresIn,
+    issuer: JWT_ISSUER,
+    audience: JWT_AUDIENCE,
+    algorithm: JWT_ALGORITHM,
+  });
 }
 
 export function signRefreshToken(user: User, tokenId: string) {
   const expiresIn = config.refreshTokenTtlDays * 24 * 60 * 60;
-  return jwt.sign(
-    { sub: user.id, jti: tokenId },
-    config.jwtSecret,
-    {
-      expiresIn,
-      issuer: JWT_ISSUER,
-      audience: JWT_AUDIENCE,
-      algorithm: JWT_ALGORITHM
-    }
-  );
+  return jwt.sign({ sub: user.id, jti: tokenId }, config.jwtSecret, {
+    expiresIn,
+    issuer: JWT_ISSUER,
+    audience: JWT_AUDIENCE,
+    algorithm: JWT_ALGORITHM,
+  });
 }
 
 export function verifyAccessToken(token: string) {
@@ -49,7 +41,7 @@ export function verifyAccessToken(token: string) {
     return jwt.verify(token, config.jwtSecret, {
       algorithms: [JWT_ALGORITHM],
       issuer: JWT_ISSUER,
-      audience: JWT_AUDIENCE
+      audience: JWT_AUDIENCE,
     }) as jwt.JwtPayload;
   } catch {
     throw new ApiError(401, ErrorCodes.INVALID_TOKEN, 'Invalid or expired token');
@@ -61,7 +53,7 @@ export function verifyRefreshToken(token: string) {
     return jwt.verify(token, config.jwtSecret, {
       algorithms: [JWT_ALGORITHM],
       issuer: JWT_ISSUER,
-      audience: JWT_AUDIENCE
+      audience: JWT_AUDIENCE,
     }) as jwt.JwtPayload;
   } catch {
     throw new ApiError(401, ErrorCodes.INVALID_REFRESH, 'Invalid or expired refresh token');
@@ -83,8 +75,8 @@ export async function issueTokens(prisma: PrismaLike, user: User) {
       id: tokenId,
       userId: user.id,
       tokenHash: hashToken(refreshToken),
-      expiresAt
-    }
+      expiresAt,
+    },
   });
 
   return { accessToken, refreshToken };
@@ -112,7 +104,10 @@ export async function rotateRefreshToken(prisma: PrismaClient, refreshToken: str
     const providedHash = Buffer.from(hashToken(refreshToken), 'hex');
     const storedHash = Buffer.from(record.tokenHash, 'hex');
 
-    if (providedHash.length !== storedHash.length || !crypto.timingSafeEqual(providedHash, storedHash)) {
+    if (
+      providedHash.length !== storedHash.length ||
+      !crypto.timingSafeEqual(providedHash, storedHash)
+    ) {
       throw new ApiError(401, ErrorCodes.REFRESH_MISMATCH, 'Refresh token mismatch');
     }
 
@@ -121,9 +116,9 @@ export async function rotateRefreshToken(prisma: PrismaClient, refreshToken: str
     const updateResult = await tx.refreshToken.updateMany({
       where: {
         id: tokenId,
-        revokedAt: null  // Only update if not already revoked
+        revokedAt: null, // Only update if not already revoked
       },
-      data: { revokedAt: new Date() }
+      data: { revokedAt: new Date() },
     });
 
     // If no rows were updated, the token was already used (race condition detected)
@@ -163,32 +158,36 @@ export function consumeDevAuthCode(code: string) {
   return record.userId;
 }
 
-export async function upsertDevUser(prisma: PrismaClient, role: 'student' | 'teacher', displayName?: string) {
+export async function upsertDevUser(
+  prisma: PrismaClient,
+  role: 'student' | 'teacher',
+  displayName?: string
+) {
   const id = role === 'teacher' ? 'dev-teacher' : 'dev-student';
   const user = await prisma.user.upsert({
     where: { id },
     update: {
       displayName: displayName ?? (role === 'teacher' ? 'Dev Teacher' : 'Dev Student'),
-      globalRole: role
+      globalRole: role,
     },
     create: {
       id,
       displayName: displayName ?? (role === 'teacher' ? 'Dev Teacher' : 'Dev Student'),
-      globalRole: role
-    }
+      globalRole: role,
+    },
   });
 
   const courseId = 'COURSE_101';
   await prisma.course.upsert({
     where: { id: courseId },
     update: { title: 'Piano Technique 101' },
-    create: { id: courseId, title: 'Piano Technique 101' }
+    create: { id: courseId, title: 'Piano Technique 101' },
   });
 
   await prisma.membership.upsert({
     where: { userId_courseId: { userId: id, courseId } },
     update: { roleInCourse: role },
-    create: { userId: id, courseId, roleInCourse: role }
+    create: { userId: id, courseId, roleInCourse: role },
   });
 
   return user;

@@ -1,8 +1,8 @@
-import type { FastifyInstance, FastifyRequest } from 'fastify';
-import type { PrismaClient } from '@prisma/client';
 import type { S3Client } from '@aws-sdk/client-s3';
-import { ApiError } from '../errors.js';
+import type { PrismaClient } from '@prisma/client';
+import type { FastifyInstance, FastifyRequest } from 'fastify';
 import { ErrorCodes } from '../errorCodes.js';
+import { ApiError } from '../errors.js';
 import { requireCourseRole } from '../validation.js';
 
 export function registerCourseRoutes(
@@ -15,12 +15,12 @@ export function registerCourseRoutes(
     const user = request.user!;
     const memberships = await prisma.membership.findMany({
       where: { userId: user.id },
-      include: { course: true }
+      include: { course: true },
     });
     return memberships.map((m) => ({
       id: m.course.id,
       title: m.course.title,
-      roleInCourse: m.roleInCourse
+      roleInCourse: m.roleInCourse,
     }));
   });
 
@@ -45,7 +45,7 @@ export function registerCourseRoutes(
         : { courseId, studentId: user.id, deletedAt: null };
     const entries = await prisma.practiceEntry.findMany({
       where,
-      include: { artifacts: true }
+      include: { artifacts: true },
     });
     return entries;
   });
@@ -60,7 +60,7 @@ export function registerCourseRoutes(
     const entries = await prisma.practiceEntry.findMany({
       where: { courseId, status: 'submitted', deletedAt: null },
       include: { artifacts: true, student: true },
-      orderBy: [{ practiceDate: 'desc' }, { createdAt: 'desc' }]
+      orderBy: [{ practiceDate: 'desc' }, { createdAt: 'desc' }],
     });
     return entries.map((entry) => ({
       id: entry.id,
@@ -70,7 +70,7 @@ export function registerCourseRoutes(
       practiceDate: entry.practiceDate,
       goalText: entry.goalText,
       notes: entry.notes,
-      artifacts: entry.artifacts
+      artifacts: entry.artifacts,
     }));
   });
 }
