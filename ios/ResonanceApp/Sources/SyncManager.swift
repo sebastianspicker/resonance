@@ -38,16 +38,18 @@ final class SyncManager: ObservableObject {
     private let apiClient: APIClient
     private let modelContext: ModelContext
     private let authManager: AuthManager
+    private let networkMonitor: NetworkMonitor
     private let session: URLSession
 
     @Published var lastSyncedAt: Date?
     @Published var pendingQueueCount: Int = 0
     @Published var failedQueueCount: Int = 0
 
-    init(modelContext: ModelContext, authManager: AuthManager, apiClient: APIClient) {
+    init(modelContext: ModelContext, authManager: AuthManager, apiClient: APIClient, networkMonitor: NetworkMonitor = NetworkMonitor()) {
         self.modelContext = modelContext
         self.authManager = authManager
         self.apiClient = apiClient
+        self.networkMonitor = networkMonitor
         // Use a standard (non-background) session configuration. Background
         // URLSession does NOT support the async upload(for:fromFile:) API and
         // would throw at runtime. Extended execution time is already handled
@@ -58,9 +60,23 @@ final class SyncManager: ObservableObject {
         updateQueueMetrics()
     }
 
+    /// Enqueue a sync task for later processing.
+    ///
+    /// - Important: If the payload cannot be serialized to JSON, the item is
+    ///   **not** silently dropped. An error is logged so developers can diagnose
+    ///   the issue (e.g., non-serializable values in the dictionary).
     func enqueue(type: SyncTaskType, payload: [String: Any]) {
-        guard let data = try? JSONSerialization.data(withJSONObject: payload, options: []),
-              let json = String(data: data, encoding: .utf8) else { return }
+        let data: Data
+        do {
+            data = try JSONSerialization.data(withJSONObject: payload, options: [])
+        } catch {
+            Self.logger.error("Failed to serialize sync payload for \(type.rawValue): \(error.localizedDescription)")
+            return
+        }
+        guard let json = String(data: data, encoding: .utf8) else {
+            Self.logger.error("Failed to encode sync payload as UTF-8 for \(type.rawValue)")
+            return
+        }
         let item = SyncQueueItem(id: UUID().uuidString, type: type.rawValue, payloadJSON: json)
         modelContext.insert(item)
         saveContext()
@@ -86,6 +102,13 @@ final class SyncManager: ObservableObject {
     }
 
     func processQueue() async {
+        // Skip processing when the device has no network connectivity.
+        // Items remain in the queue and will be processed on the next attempt.
+        guard networkMonitor.isOnline else {
+            Self.logger.info("Skipping sync queue processing: device is offline")
+            return
+        }
+
         let taskId = UIApplication.shared.beginBackgroundTask(withName: "ResonanceSync") {
             // Background time expired: reset any stuck "processing" items so they retry next launch.
             // The expiration handler runs on an arbitrary thread, but ModelContext and @MainActor
@@ -105,13 +128,13 @@ final class SyncManager: ObservableObject {
                 }
             }
         }
-        
+
         defer {
             UIApplication.shared.endBackgroundTask(taskId)
         }
 
         await authManager.refreshIfNeeded()
-        guard let accessToken = authManager.session?.accessToken else { return }
+        guard authManager.session?.accessToken != nil else { return }
         let now = Date()
         var descriptor = FetchDescriptor<SyncQueueItem>(predicate: #Predicate { item in
             item.status == "pending" && (item.nextAttemptAt == nil || (item.nextAttemptAt ?? .distantFuture) <= now)
@@ -130,13 +153,20 @@ final class SyncManager: ObservableObject {
 
         for item in items {
             do {
+                // Refresh the access token before each item so that a token
+                // expiring mid-batch does not cause all remaining items to fail.
+                await authManager.refreshIfNeeded()
+                guard let accessToken = authManager.session?.accessToken else {
+                    Self.logger.warning("Lost auth session mid-sync; aborting remaining items")
+                    break
+                }
                 item.status = "processing"
                 try await process(item: item, accessToken: accessToken)
                 modelContext.delete(item)
             } catch {
                 item.retryCount += 1
                 item.lastError = String(describing: error)
-                
+
                 // If it's a specific validation/client error, don't retry forever.
                 if let apiError = error as? APIError, apiError.error.code == "VALIDATION_ERROR" {
                     item.status = "failed"
@@ -159,12 +189,26 @@ final class SyncManager: ObservableObject {
         updateQueueMetrics()
     }
 
+    /// Execute a single sync task against the server.
+    ///
+    /// ## Idempotency contract
+    /// Because items may be retried after transient failures, the server **must**
+    /// handle duplicate requests gracefully:
+    /// - `createEntry` / `createArtifact`: If the resource already exists (same
+    ///   client-generated UUID), the server should return **409 Conflict** (not
+    ///   500) so the client can treat it as a success and remove the queue item.
+    /// - `confirmArtifact` / `submitEntry`: These are inherently idempotent
+    ///   (re-confirming or re-submitting yields the same state).
+    /// - `deleteEntry`: Deleting an already-deleted resource should return 200 or
+    ///   204, not 404, to avoid permanent "failed" items in the queue.
+    /// - `uploadArtifact`: S3 PUT is naturally idempotent (same key overwrites).
+    /// - `postFeedback`: Server should upsert by feedback ID to avoid duplicates.
     private func process(item: SyncQueueItem, accessToken: String) async throws {
         // Parse payload - throw error instead of silent return on failure
         guard let data = item.payloadJSON.data(using: .utf8) else {
             throw SyncError.payloadParseError("Failed to convert payload to data")
         }
-        
+
         guard let payload = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
             throw SyncError.payloadParseError("Failed to parse payload as JSON dictionary")
         }
@@ -193,7 +237,7 @@ final class SyncManager: ObservableObject {
             artifact.uploadState = .uploading
             artifact.syncPhase = .uploading
             saveContext()
-            
+
             // Fail fast before requesting a presign URL: missing file can't be recovered by retry.
             guard FileManager.default.fileExists(atPath: artifact.localPath) else {
                 throw SyncError.localFileNotFound("Local file not found for artifact \(artifactId) at \(artifact.localPath)")
@@ -238,7 +282,7 @@ final class SyncManager: ObservableObject {
             let targetType = payload["targetType"] as? String ?? "entry"
             let targetId = payload["targetId"] as? String ?? ""
             let feedbackId = payload["feedbackId"] as? String ?? ""
-            
+
             // Fetch the local feedback to get markers
             let descriptor = FetchDescriptor<LocalFeedback>(predicate: #Predicate { $0.id == feedbackId })
             guard let feedback = try modelContext.fetch(descriptor).first else {

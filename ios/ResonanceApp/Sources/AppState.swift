@@ -16,8 +16,9 @@ final class AppState: ObservableObject {
         self.apiClient = client
         let auth = AuthManager(apiClient: client)
         self.authManager = auth
-        self.syncManager = SyncManager(modelContext: modelContext, authManager: auth, apiClient: client)
-        self.networkMonitor = NetworkMonitor()
+        let net = NetworkMonitor()
+        self.networkMonitor = net
+        self.syncManager = SyncManager(modelContext: modelContext, authManager: auth, apiClient: client, networkMonitor: net)
     }
 
     func reportError(_ error: Error) {
