@@ -97,8 +97,20 @@ struct ExportView: View {
     }
 
     private func entriesInRange() -> [LocalPracticeEntry] {
+        // Normalize startDate to start-of-day and endDate to end-of-day so the
+        // date-only picker range includes all entries on the selected dates.
+        // Without this, the retained time component from the initial Date() value
+        // could exclude entries later in the day on the end date.
+        let calendar = Calendar.current
+        let rangeStart = calendar.startOfDay(for: startDate)
+        let rangeEnd: Date = {
+            guard let nextDay = calendar.date(byAdding: .day, value: 1, to: calendar.startOfDay(for: endDate)) else {
+                return endDate
+            }
+            return nextDay
+        }()
         var descriptor = FetchDescriptor<LocalPracticeEntry>(
-            predicate: #Predicate { $0.practiceDate >= startDate && $0.practiceDate <= endDate && $0.deletedAt == nil }
+            predicate: #Predicate { $0.practiceDate >= rangeStart && $0.practiceDate < rangeEnd && $0.deletedAt == nil }
         )
         descriptor.sortBy = [SortDescriptor(\.practiceDate, order: .forward)]
         return (try? modelContext.fetch(descriptor)) ?? []
