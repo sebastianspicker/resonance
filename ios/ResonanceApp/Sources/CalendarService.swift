@@ -1,5 +1,8 @@
 import Foundation
+import os
 import SwiftData
+
+private let logger = Logger(subsystem: Bundle.main.bundleIdentifier ?? "resonance", category: "CalendarService")
 
 @MainActor
 final class CalendarService: ObservableObject {
@@ -8,11 +11,14 @@ final class CalendarService: ObservableObject {
     func refresh(from url: URL, modelContext: ModelContext) async {
         do {
             let (data, _) = try await URLSession.shared.data(from: url)
-            guard let raw = String(data: data, encoding: .utf8) else { return }
+            guard let raw = String(data: data, encoding: .utf8) else {
+                logger.warning("Calendar data from \(url.absoluteString) could not be decoded as UTF-8")
+                return
+            }
             let events = ICalParser.parse(raw)
 
             let descriptor = FetchDescriptor<CalendarEvent>()
-            let existing = (try? modelContext.fetch(descriptor)) ?? []
+            let existing = try modelContext.fetch(descriptor)
             existing.forEach { modelContext.delete($0) }
 
             for event in events {
@@ -22,7 +28,7 @@ final class CalendarService: ObservableObject {
             try modelContext.save()
             lastUpdated = Date()
         } catch {
-            print("Calendar refresh failed: \(error)")
+            logger.error("Calendar refresh failed: \(error.localizedDescription)")
         }
     }
 }
