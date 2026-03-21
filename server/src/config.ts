@@ -66,4 +66,20 @@ export const limits = {
   bodyLimitBytes: 1_048_576,
   /** Dev auth code time-to-live in milliseconds (5 minutes) */
   devAuthCodeTtlMs: 5 * 60 * 1000,
+  /** Maximum duration in seconds for a practice entry or artifact (8 hours) */
+  maxDurationSeconds: 28_800,
+  /** Maximum number of tags per entry */
+  maxTags: 30,
+  /** Maximum length of a single tag string */
+  maxTagLength: 100,
+  /** Maximum length of commentsText in feedback */
+  maxCommentsTextLength: 10_000,
+  /** Maximum marker timeSeconds (8 hours) */
+  maxMarkerTimeSeconds: 28_800,
+  /** Maximum length of auth code string */
+  maxAuthCodeLength: 2048,
+  /** Rate-limit for auth endpoints: max requests per window */
+  authRateLimitMax: 10,
+  /** Rate-limit window for auth endpoints */
+  authRateLimitWindow: '1 minute',
 } as const;

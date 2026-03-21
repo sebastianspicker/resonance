@@ -34,7 +34,8 @@ export function registerFeedbackRoutes(
     ] as const);
     const commentsText = requireString(
       requireField(body?.commentsText, 'commentsText'),
-      'commentsText'
+      'commentsText',
+      { max: limits.maxCommentsTextLength }
     );
     const markers = Array.isArray(body?.markers) ? (body.markers as Record<string, unknown>[]) : [];
     if (markers.length > limits.maxMarkers) {
@@ -45,7 +46,7 @@ export function registerFeedbackRoutes(
       );
     }
     for (const marker of markers) {
-      requireNumber(marker?.timeSeconds, 'marker.timeSeconds', { min: 0 });
+      requireNumber(marker?.timeSeconds, 'marker.timeSeconds', { min: 0, max: limits.maxMarkerTimeSeconds });
       requireString(requireField(marker?.text, 'marker.text'), 'marker.text', {
         max: limits.maxMarkerTextLength,
       });

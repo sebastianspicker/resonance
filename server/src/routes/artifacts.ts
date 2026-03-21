@@ -3,7 +3,7 @@ import { HeadObjectCommand, PutObjectCommand } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import type { PrismaClient } from '@prisma/client';
 import type { FastifyInstance, FastifyRequest } from 'fastify';
-import { config } from '../config.js';
+import { config, limits } from '../config.js';
 import { ErrorCodes } from '../errorCodes.js';
 import { ApiError } from '../errors.js';
 import {
@@ -34,7 +34,7 @@ export function registerArtifactRoutes(
     const durationSeconds = requireNumber(
       requireField(body?.durationSeconds, 'durationSeconds'),
       'durationSeconds',
-      { min: 0 }
+      { min: 0, max: limits.maxDurationSeconds }
     );
     try {
       const artifact = await prisma.artifact.create({

@@ -8,10 +8,10 @@ import {
   rotateRefreshToken,
   upsertDevUser,
 } from '../auth.js';
-import { config } from '../config.js';
+import { config, limits } from '../config.js';
 import { ErrorCodes } from '../errorCodes.js';
 import { ApiError } from '../errors.js';
-import { requireField } from '../validation.js';
+import { requireField, requireString } from '../validation.js';
 
 export function registerAuthRoutes(
   app: FastifyInstance,
@@ -87,9 +87,13 @@ export function registerAuthRoutes(
     return { code };
   });
 
-  app.post('/auth/session', async (request) => {
+  app.post('/auth/session', {
+    config: {
+      rateLimit: { max: limits.authRateLimitMax, timeWindow: limits.authRateLimitWindow },
+    },
+  }, async (request) => {
     const body = request.body as { code?: string; redirectUri?: string };
-    const code = requireField(body?.code, 'code');
+    const code = requireString(requireField(body?.code, 'code'), 'code', { max: limits.maxAuthCodeLength });
     const _redirectUri = body?.redirectUri;
 
     if (config.authMode !== 'dev') {
@@ -119,12 +123,16 @@ export function registerAuthRoutes(
     };
   });
 
-  app.post('/auth/refresh', async (request) => {
+  app.post('/auth/refresh', {
+    config: {
+      rateLimit: { max: limits.authRateLimitMax, timeWindow: limits.authRateLimitWindow },
+    },
+  }, async (request) => {
     if (config.authMode !== 'dev') {
       throw new ApiError(501, ErrorCodes.AUTH_NOT_CONFIGURED, 'Production auth not configured');
     }
     const body = request.body as { refreshToken?: string };
-    const refreshToken = requireField(body?.refreshToken, 'refreshToken');
+    const refreshToken = requireString(requireField(body?.refreshToken, 'refreshToken'), 'refreshToken', { max: limits.maxAuthCodeLength });
     const tokens = await rotateRefreshToken(prisma, refreshToken);
     return tokens;
   });

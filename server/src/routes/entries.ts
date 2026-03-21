@@ -1,6 +1,7 @@
 import type { S3Client } from '@aws-sdk/client-s3';
 import type { PrismaClient } from '@prisma/client';
 import type { FastifyInstance, FastifyRequest } from 'fastify';
+import { limits } from '../config.js';
 import { ErrorCodes } from '../errorCodes.js';
 import { ApiError } from '../errors.js';
 import { cascadeDeleteEntry, cleanupS3Objects } from '../services/entryCascade.js';
@@ -33,11 +34,14 @@ export function registerEntryRoutes(
     const entryId = requireClientId(requireField(body?.id, 'id'), 'id');
     const practiceDate = requireValidDate(body?.practiceDate, 'practiceDate');
     const goalText = requireString(requireField(body?.goalText, 'goalText'), 'goalText');
-    const tags = body?.tags === undefined ? [] : requireStringArray(body.tags, 'tags');
+    const tags = body?.tags === undefined ? [] : requireStringArray(body.tags, 'tags', { max: limits.maxTags });
+    for (const tag of tags) {
+      requireString(tag, 'tags[]', { max: limits.maxTagLength });
+    }
     const durationSeconds =
       body?.durationSeconds === undefined
         ? null
-        : requireNumber(body?.durationSeconds, 'durationSeconds', { min: 0 });
+        : requireNumber(body?.durationSeconds, 'durationSeconds', { min: 0, max: limits.maxDurationSeconds });
     const notes =
       body?.notes === undefined || body?.notes === null ? null : requireString(body.notes, 'notes');
     try {
@@ -108,12 +112,17 @@ export function registerEntryRoutes(
       } else {
         updateData.durationSeconds = requireNumber(body.durationSeconds, 'durationSeconds', {
           min: 0,
+          max: limits.maxDurationSeconds,
         });
       }
     }
 
     if ('tags' in body) {
-      updateData.tags = requireStringArray(body.tags, 'tags');
+      const tags = requireStringArray(body.tags, 'tags', { max: limits.maxTags });
+      for (const tag of tags) {
+        requireString(tag, 'tags[]', { max: limits.maxTagLength });
+      }
+      updateData.tags = tags;
     }
 
     if ('notes' in body) {
