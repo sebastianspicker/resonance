@@ -78,8 +78,12 @@ struct ExportView: View {
         }
 
         let filename = "Resonance_Export_\(Int(Date().timeIntervalSince1970))_\(UUID().uuidString.prefix(8)).pdf"
-        let exportDir = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
-            .appendingPathComponent("Exports", isDirectory: true)
+        guard let documentsDir = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first else {
+            errorMessage = "Documents directory unavailable"
+            showErrorAlert = true
+            return
+        }
+        let exportDir = documentsDir.appendingPathComponent("Exports", isDirectory: true)
         let url = exportDir.appendingPathComponent(filename)
 
         do {
