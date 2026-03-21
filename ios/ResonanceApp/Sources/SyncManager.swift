@@ -1,4 +1,5 @@
 import Foundation
+import os
 import SwiftData
 import UIKit
 
@@ -37,6 +38,7 @@ enum SyncError: LocalizedError {
 
 @MainActor
 final class SyncManager: ObservableObject {
+    private static let logger = Logger(subsystem: Bundle.main.bundleIdentifier ?? "resonance", category: "SyncManager")
     private let apiClient: APIClient
     private let modelContext: ModelContext
     private let authManager: AuthManager
@@ -67,7 +69,13 @@ final class SyncManager: ObservableObject {
 
     func retryFailedItems() {
         let descriptor = FetchDescriptor<SyncQueueItem>(predicate: #Predicate { $0.status == "failed" })
-        let failedItems = (try? modelContext.fetch(descriptor)) ?? []
+        let failedItems: [SyncQueueItem]
+        do {
+            failedItems = try modelContext.fetch(descriptor)
+        } catch {
+            Self.logger.error("Failed to fetch failed sync items for retry: \(error.localizedDescription)")
+            return
+        }
         for item in failedItems {
             item.status = "pending"
             item.nextAttemptAt = nil
@@ -81,12 +89,16 @@ final class SyncManager: ObservableObject {
         let taskId = UIApplication.shared.beginBackgroundTask(withName: "ResonanceSync") {
             // Background time expired: reset any stuck "processing" items so they retry next launch.
             let stuckDescriptor = FetchDescriptor<SyncQueueItem>(predicate: #Predicate { $0.status == "processing" })
-            let stuck = (try? self.modelContext.fetch(stuckDescriptor)) ?? []
-            for item in stuck {
-                item.status = "pending"
-                item.nextAttemptAt = nil
+            do {
+                let stuck = try self.modelContext.fetch(stuckDescriptor)
+                for item in stuck {
+                    item.status = "pending"
+                    item.nextAttemptAt = nil
+                }
+                if !stuck.isEmpty { self.saveContext() }
+            } catch {
+                Self.logger.error("Failed to fetch stuck sync items on background expiry: \(error.localizedDescription)")
             }
-            if !stuck.isEmpty { self.saveContext() }
         }
         
         defer {
@@ -97,9 +109,15 @@ final class SyncManager: ObservableObject {
         guard let accessToken = authManager.session?.accessToken else { return }
         let now = Date()
         let descriptor = FetchDescriptor<SyncQueueItem>(predicate: #Predicate { item in
-            item.status == "pending" && (item.nextAttemptAt == nil || item.nextAttemptAt! <= now)
+            item.status == "pending" && (item.nextAttemptAt == nil || (item.nextAttemptAt ?? .distantFuture) <= now)
         })
-        let items = (try? modelContext.fetch(descriptor)) ?? []
+        let items: [SyncQueueItem]
+        do {
+            items = try modelContext.fetch(descriptor)
+        } catch {
+            Self.logger.error("Failed to fetch pending sync items: \(error.localizedDescription)")
+            return
+        }
 
         for item in items {
             do {
@@ -267,7 +285,7 @@ final class SyncManager: ObservableObject {
         do {
             try modelContext.save()
         } catch {
-            print("SyncManager: failed to save model context: \(error)")
+            Self.logger.error("Failed to save model context: \(error.localizedDescription)")
         }
     }
 
@@ -276,8 +294,12 @@ final class SyncManager: ObservableObject {
             $0.status == "pending" || $0.status == "processing"
         })
         let failedDescriptor = FetchDescriptor<SyncQueueItem>(predicate: #Predicate { $0.status == "failed" })
-        pendingQueueCount = ((try? modelContext.fetch(pendingDescriptor)) ?? []).count
-        failedQueueCount = ((try? modelContext.fetch(failedDescriptor)) ?? []).count
+        do {
+            pendingQueueCount = try modelContext.fetch(pendingDescriptor).count
+            failedQueueCount = try modelContext.fetch(failedDescriptor).count
+        } catch {
+            Self.logger.error("Failed to update queue metrics: \(error.localizedDescription)")
+        }
     }
 
     private func uploadFile(
