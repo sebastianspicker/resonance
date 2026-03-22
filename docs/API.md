@@ -4,6 +4,20 @@ Base URL: `http://localhost:4000`
 
 All authenticated endpoints require an `Authorization: Bearer <accessToken>` header.
 
+## Response Headers
+
+Every response includes:
+
+- `x-request-id` — a unique identifier for the request, useful for tracing and debugging. Clients should log this value and include it in bug reports to help correlate issues with server-side logs.
+
+## Status Codes
+
+In addition to the error codes listed below, the API uses:
+
+- `201 Created` — returned by `POST` endpoints that create a resource (e.g., `POST /courses/:courseId/entries`, `POST /entries/:entryId/artifacts`, `POST /auth/session`).
+- `204 No Content` — returned by `DELETE` endpoints on success (empty body).
+- `200 OK` — all other successful responses.
+
 ## Auth
 
 ### POST /auth/session
@@ -157,10 +171,7 @@ Restriction: if the entry status is not `draft`, updating any of these fields re
 ### DELETE /entries/:entryId
 Hard-delete entry and associated artifacts/feedback. Storage objects are deleted from S3. Only the owning student can delete.
 
-Response:
-```json
-{ "success": true }
-```
+Response: `204 No Content` (empty body).
 
 ### POST /entries/:entryId/submit
 Submit an entry for review. Only the owning student can submit.
