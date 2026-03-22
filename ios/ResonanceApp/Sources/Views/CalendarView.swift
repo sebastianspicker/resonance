@@ -13,10 +13,14 @@ struct CalendarView: View {
                 Form {
                     Section("ASIMUT iCal URL") {
                         TextField("iCal URL", text: $icalURLString)
+                            .accessibilityLabel("iCal URL")
+                            .accessibilityHint("Enter your ASIMUT calendar URL")
                         Button("Save & Refresh") {
                             UserDefaults.standard.set(icalURLString, forKey: "icalURL")
                             Task { await refresh() }
                         }
+                        .accessibilityLabel("Save and refresh calendar")
+                        .accessibilityHint("Double-tap to save the URL and reload calendar events")
                     }
                 }
 
@@ -38,6 +42,8 @@ struct CalendarView: View {
             .toolbar {
                 ToolbarItem(placement: .primaryAction) {
                     Button("Refresh") { Task { await refresh() } }
+                        .accessibilityLabel("Refresh calendar")
+                        .accessibilityHint("Double-tap to reload calendar events")
                 }
             }
         }
