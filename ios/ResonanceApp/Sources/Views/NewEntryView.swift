@@ -15,6 +15,14 @@ struct NewEntryView: View {
     @State private var tags = ""
     @State private var notes = ""
     @State private var selectedTemplateId: String = EntryTemplate.defaults.first?.id ?? ""
+    @State private var showValidationAlert = false
+    @State private var validationMessage = ""
+
+    // Limits matching server config.ts
+    private static let maxDurationSeconds = 28_800  // 8 hours
+    private static let maxTags = 30
+    private static let maxTagLength = 100
+    private static let maxNotesLength = 10_000
 
     var body: some View {
         NavigationStack {
@@ -133,10 +141,57 @@ struct NewEntryView: View {
                         .accessibilityHint("Double-tap to discard this entry and go back")
                 }
             }
+            .alert("Validation Error", isPresented: $showValidationAlert) {
+                Button("OK", role: .cancel) { }
+            } message: {
+                Text(validationMessage)
+            }
         }
     }
 
+    /// Validates all form fields against server limits.
+    /// Returns an error message if validation fails, nil if valid.
+    private func validateForm() -> String? {
+        // Goal text: must be non-empty
+        let trimmedGoal = goalText.trimmingCharacters(in: .whitespacesAndNewlines)
+        if trimmedGoal.isEmpty {
+            return "Goal text is required."
+        }
+
+        // Duration: must be 0..28800
+        if !durationSeconds.isEmpty {
+            guard let dur = Int(durationSeconds) else {
+                return "Duration must be a whole number of seconds."
+            }
+            if dur < 0 || dur > Self.maxDurationSeconds {
+                return "Duration must be between 0 and \(Self.maxDurationSeconds) seconds (8 hours)."
+            }
+        }
+
+        // Tags: max 30, each max 100 characters
+        let parsedTags = tags.split(separator: ",").map { $0.trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty }
+        if parsedTags.count > Self.maxTags {
+            return "Too many tags (\(parsedTags.count)). Maximum is \(Self.maxTags)."
+        }
+        if let longTag = parsedTags.first(where: { $0.count > Self.maxTagLength }) {
+            return "Tag \"\(String(longTag.prefix(20)))...\" exceeds \(Self.maxTagLength) characters."
+        }
+
+        // Notes: max 10000 characters
+        if notes.count > Self.maxNotesLength {
+            return "Notes exceed \(Self.maxNotesLength) characters (\(notes.count) entered)."
+        }
+
+        return nil
+    }
+
     private func saveEntry() {
+        if let error = validateForm() {
+            validationMessage = error
+            showValidationAlert = true
+            return
+        }
+
         guard let session = authManager.session else { return }
         let entry = LocalPracticeEntry(
             id: UUID().uuidString,
