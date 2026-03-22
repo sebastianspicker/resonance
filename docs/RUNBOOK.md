@@ -118,6 +118,15 @@ npm run build
 npm test
 ```
 
+## Graceful Shutdown
+The server handles `SIGTERM` and `SIGINT` for graceful shutdown:
+1. Logs the received signal.
+2. Calls `app.close()`, which stops accepting new connections and drains in-flight requests.
+3. Disconnects the Prisma client (`prisma.$disconnect()`).
+4. Exits with code 0.
+
+Unhandled promise rejections are logged and cause an immediate exit with code 1.
+
 ## Cleanup
 Remove local build/runtime artifacts:
 ```bash
