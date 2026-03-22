@@ -40,7 +40,15 @@ struct EntryResponse: Decodable {
     let status: String
 }
 
-struct ReviewQueueResponse: Decodable {
+/// Generic paginated response envelope returned by cursor-based pagination endpoints.
+/// BREAKING CHANGE (v0.2): The review-queue endpoint now returns `{ items, nextCursor }`
+/// instead of a bare array.
+struct PaginatedResponse<T: Decodable>: Decodable {
+    let items: [T]
+    let nextCursor: String?
+}
+
+struct ReviewQueueEntry: Decodable {
     let id: String
     let courseId: String
     let studentId: String

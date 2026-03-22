@@ -79,7 +79,8 @@ describe('acl', () => {
       .set('Authorization', `Bearer ${token}`);
 
     expect(res.status).toBe(200);
-    expect(res.body.length).toBe(1);
+    expect(res.body.items.length).toBe(1);
+    expect(res.body.nextCursor).toBeNull();
   });
 
   it('returns review queue sorted by practiceDate desc then createdAt desc', async () => {
@@ -126,7 +127,7 @@ describe('acl', () => {
       .set('Authorization', `Bearer ${token}`);
 
     expect(res.status).toBe(200);
-    expect(res.body.map((entry: any) => entry.id)).toEqual([
+    expect(res.body.items.map((entry: any) => entry.id)).toEqual([
       'entry-same-practice-newer-created',
       'entry-new-practice',
       'entry-old-practice',

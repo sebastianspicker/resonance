@@ -281,11 +281,11 @@ struct MainSplitView: View {
         }
     }
 
-    private var screenshotFeedbackEntry: ReviewQueueResponse? {
+    private var screenshotFeedbackEntry: ReviewQueueEntry? {
         guard let entry = screenshotPrimaryEntry else {
             return nil
         }
-        return ReviewQueueResponse(
+        return ReviewQueueEntry(
             id: entry.id,
             courseId: entry.courseId,
             studentId: entry.studentId,

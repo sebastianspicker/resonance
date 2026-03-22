@@ -392,7 +392,7 @@ final class APIModelDecodeTests: XCTestCase {
         XCTAssertNil(result.error.details)
     }
 
-    func testReviewQueueResponseDecode() throws {
+    func testReviewQueueEntryDecode() throws {
         let json = """
         {
             "id": "entry-99",
@@ -416,7 +416,7 @@ final class APIModelDecodeTests: XCTestCase {
         }
         """.data(using: .utf8)!
 
-        let result = try apiDecoder.decode(ReviewQueueResponse.self, from: json)
+        let result = try apiDecoder.decode(ReviewQueueEntry.self, from: json)
         XCTAssertEqual(result.id, "entry-99")
         XCTAssertEqual(result.studentName, "Bob")
         XCTAssertNil(result.notes)

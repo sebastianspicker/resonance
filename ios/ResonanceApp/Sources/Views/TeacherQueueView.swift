@@ -1,14 +1,14 @@
 import SwiftUI
 
-extension ReviewQueueResponse: Identifiable {}
+extension ReviewQueueEntry: Identifiable {}
 
 
 struct TeacherQueueView: View {
     let courseId: String
     @EnvironmentObject var appState: AppState
     @EnvironmentObject var authManager: AuthManager
-    @State private var queue: [ReviewQueueResponse] = []
-    @State private var selected: ReviewQueueResponse?
+    @State private var queue: [ReviewQueueEntry] = []
+    @State private var selected: ReviewQueueEntry?
     @State private var isLoading = false
 
     var body: some View {
@@ -76,8 +76,8 @@ struct TeacherQueueView: View {
         isLoading = true
         defer { isLoading = false }
         do {
-            let data = try await appState.apiClient.fetchReviewQueue(accessToken: session.accessToken, courseId: courseId)
-            queue = data
+            let response = try await appState.apiClient.fetchReviewQueue(accessToken: session.accessToken, courseId: courseId)
+            queue = response.items
         } catch {
             appState.reportError(error)
         }

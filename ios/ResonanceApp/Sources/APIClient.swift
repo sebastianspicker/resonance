@@ -137,8 +137,15 @@ final class APIClient {
         let _: DeleteEntryResponse = try await send(url: url, method: "DELETE", body: Optional<EmptyBody>.none, accessToken: accessToken)
     }
 
-    func fetchReviewQueue(accessToken: String, courseId: String) async throws -> [ReviewQueueResponse] {
-        let url = AppConfig.apiBaseURL.appendingPathComponent("courses/\(courseId)/review-queue")
+    /// Fetch paginated review queue. Returns items and an optional cursor for the next page.
+    /// BREAKING CHANGE (v0.2): Server now returns `{ items, nextCursor }` instead of a bare array.
+    func fetchReviewQueue(accessToken: String, courseId: String, limit: Int? = nil, cursor: String? = nil) async throws -> PaginatedResponse<ReviewQueueEntry> {
+        var components = URLComponents(url: AppConfig.apiBaseURL.appendingPathComponent("courses/\(courseId)/review-queue"), resolvingAgainstBaseURL: false)!
+        var queryItems: [URLQueryItem] = []
+        if let limit { queryItems.append(URLQueryItem(name: "limit", value: String(limit))) }
+        if let cursor { queryItems.append(URLQueryItem(name: "cursor", value: cursor)) }
+        if !queryItems.isEmpty { components.queryItems = queryItems }
+        let url = components.url!
         return try await send(url: url, method: "GET", body: Optional<EmptyBody>.none, accessToken: accessToken)
     }
 

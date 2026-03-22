@@ -219,29 +219,39 @@ Errors:
 ## Feedback
 
 ### GET /courses/:courseId/review-queue
-Teacher-only list of submitted entries.
+Teacher-only list of submitted entries with cursor-based pagination.
 
-Response (array):
+**BREAKING CHANGE (v0.2):** Response shape changed from a bare array `[...]` to `{ items: [...], nextCursor: string | null }`.
+
+Optional query parameters:
+- `limit` — number of items per page (default 20, max 100). Values below 1 return `400 VALIDATION_ERROR`.
+- `cursor` — entry ID from a previous `nextCursor` value. The server returns items ordered *after* this entry. Invalid cursor IDs return `400 VALIDATION_ERROR`.
+
+Response:
 ```json
-[
-  {
-    "id": "...",
-    "courseId": "...",
-    "studentId": "...",
-    "studentName": "...",
-    "practiceDate": "...",
-    "goalText": "...",
-    "notes": "...",
-    "artifacts": [...]
-  }
-]
+{
+  "items": [
+    {
+      "id": "...",
+      "courseId": "...",
+      "studentId": "...",
+      "studentName": "...",
+      "practiceDate": "...",
+      "goalText": "...",
+      "notes": "...",
+      "artifacts": [...]
+    }
+  ],
+  "nextCursor": "entry-id-of-last-item | null"
+}
 ```
 
 Ordering:
-- Deterministic order by `practiceDate desc`, then `createdAt desc`.
+- Deterministic order by `practiceDate desc`, `createdAt desc`, `id desc`.
 
 Pagination:
-- Not yet implemented. When the review queue grows large, cursor-based pagination will be added using `(practiceDate, createdAt, id)` as the cursor key.
+- Cursor-based using entry ID. To fetch the next page, pass the `nextCursor` value from the previous response as the `cursor` query parameter.
+- When `nextCursor` is `null`, there are no more results.
 
 ### POST /feedback
 Create feedback on an entry or artifact. Only course teachers can leave feedback.

@@ -5,6 +5,10 @@ import { ErrorCodes } from '../errorCodes.js';
 import { ApiError } from '../errors.js';
 import { requireCourseRole } from '../validation.js';
 
+/** Pagination defaults for the review queue. */
+const REVIEW_QUEUE_DEFAULT_LIMIT = 20;
+const REVIEW_QUEUE_MAX_LIMIT = 100;
+
 export function registerCourseRoutes(
   app: FastifyInstance,
   prisma: PrismaClient,
@@ -71,10 +75,8 @@ export function registerCourseRoutes(
     return entries;
   });
 
-  // TODO: Pagination gap — this endpoint returns all submitted entries at once.
-  // When the review queue grows large, implement cursor-based pagination using
-  // (practiceDate, createdAt, id) as the cursor key, matching the current orderBy.
-  // The response shape would add { cursor?: string; hasMore: boolean } alongside the entries array.
+  // BREAKING CHANGE (v0.2): Response shape changed from `[...]` to `{ items: [...], nextCursor: string | null }`.
+  // iOS client must be updated to decode the new paginated envelope.
   app.get('/courses/:courseId/review-queue', { preHandler: requireAuth }, async (request) => {
     const user = request.user!;
     const courseId = (request.params as { courseId: string }).courseId;
@@ -82,23 +84,80 @@ export function registerCourseRoutes(
     if (role !== 'teacher') {
       throw new ApiError(403, ErrorCodes.TEACHER_ONLY, 'Only teachers can access the review queue');
     }
+
+    const query = request.query as { limit?: string; cursor?: string };
+
+    // Parse and clamp limit
+    let limit = REVIEW_QUEUE_DEFAULT_LIMIT;
+    if (query.limit !== undefined) {
+      const parsed = Number(query.limit);
+      if (!Number.isFinite(parsed) || parsed < 1) {
+        throw new ApiError(400, ErrorCodes.VALIDATION_ERROR, 'limit must be a positive integer');
+      }
+      limit = Math.min(Math.floor(parsed), REVIEW_QUEUE_MAX_LIMIT);
+    }
+
+    const cursor = query.cursor;
+
+    // Build the where clause; if a cursor is provided, filter to entries
+    // ordered after the cursor entry using the same sort order
+    // (practiceDate desc, createdAt desc, id as tiebreaker).
+    const where: Record<string, unknown> = { courseId, status: 'submitted', deletedAt: null };
+
+    if (cursor) {
+      // Look up the cursor entry to obtain its sort-key values
+      const cursorEntry = await prisma.practiceEntry.findUnique({
+        where: { id: cursor },
+        select: { practiceDate: true, createdAt: true, id: true },
+      });
+      if (!cursorEntry) {
+        throw new ApiError(400, ErrorCodes.VALIDATION_ERROR, 'Invalid cursor: entry not found');
+      }
+      // "After" in descending order means entries whose sort tuple is strictly less than the cursor's.
+      // SQL equivalent: (practiceDate < cursorDate)
+      //   OR (practiceDate = cursorDate AND createdAt < cursorCreatedAt)
+      //   OR (practiceDate = cursorDate AND createdAt = cursorCreatedAt AND id < cursorId)
+      where.OR = [
+        { practiceDate: { lt: cursorEntry.practiceDate } },
+        {
+          practiceDate: cursorEntry.practiceDate,
+          createdAt: { lt: cursorEntry.createdAt },
+        },
+        {
+          practiceDate: cursorEntry.practiceDate,
+          createdAt: cursorEntry.createdAt,
+          id: { lt: cursorEntry.id },
+        },
+      ];
+    }
+
+    // Fetch one extra row to determine if there are more results
     const entries = await prisma.practiceEntry.findMany({
-      where: { courseId, status: 'submitted', deletedAt: null },
+      where,
       include: {
         artifacts: true,
         student: { select: { displayName: true } },
       },
-      orderBy: [{ practiceDate: 'desc' }, { createdAt: 'desc' }],
+      orderBy: [{ practiceDate: 'desc' }, { createdAt: 'desc' }, { id: 'desc' }],
+      take: limit + 1,
     });
-    return entries.map((entry) => ({
-      id: entry.id,
-      courseId: entry.courseId,
-      studentId: entry.studentId,
-      studentName: entry.student.displayName,
-      practiceDate: entry.practiceDate,
-      goalText: entry.goalText,
-      notes: entry.notes,
-      artifacts: entry.artifacts,
-    }));
+
+    const hasMore = entries.length > limit;
+    const pageEntries = hasMore ? entries.slice(0, limit) : entries;
+    const nextCursor = hasMore ? pageEntries[pageEntries.length - 1].id : null;
+
+    return {
+      items: pageEntries.map((entry) => ({
+        id: entry.id,
+        courseId: entry.courseId,
+        studentId: entry.studentId,
+        studentName: entry.student.displayName,
+        practiceDate: entry.practiceDate,
+        goalText: entry.goalText,
+        notes: entry.notes,
+        artifacts: entry.artifacts,
+      })),
+      nextCursor,
+    };
   });
 }
