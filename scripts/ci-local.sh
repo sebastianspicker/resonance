@@ -91,5 +91,5 @@ echo "Running migrations..."
 echo "Typechecking..."
 ( cd server && npm run build )
 
-echo "Running tests..."
-( cd server && npm test )
+echo "Running tests with coverage..."
+( cd server && npx vitest run --coverage )
