@@ -318,9 +318,7 @@ describe('validation helpers (unit)', () => {
     });
 
     it('rejects javascript: scheme', () => {
-      expect(() => validateDevCallbackUrl('javascript:alert(1)')).toThrow(
-        /DEV_LOGIN_CALLBACK_URL/
-      );
+      expect(() => validateDevCallbackUrl('javascript:alert(1)')).toThrow(/DEV_LOGIN_CALLBACK_URL/);
     });
 
     it('rejects data: scheme', () => {
