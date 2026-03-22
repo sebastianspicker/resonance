@@ -144,7 +144,8 @@ export function registerCourseRoutes(
 
     const hasMore = entries.length > limit;
     const pageEntries = hasMore ? entries.slice(0, limit) : entries;
-    const nextCursor = hasMore ? pageEntries[pageEntries.length - 1].id : null;
+    const lastEntry = pageEntries[pageEntries.length - 1];
+    const nextCursor = hasMore && lastEntry ? lastEntry.id : null;
 
     return {
       items: pageEntries.map((entry) => ({
