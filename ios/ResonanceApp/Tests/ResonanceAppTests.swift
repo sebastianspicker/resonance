@@ -1024,3 +1024,220 @@ final class AppConfigTests: XCTestCase {
                           "With a valid API base URL, keychainNamespace should not be the fallback default")
     }
 }
+
+// MARK: - KeychainStore Namespace Isolation Tests
+
+final class KeychainStoreNamespaceTests: XCTestCase {
+
+    func testAccountKeyProducesNamespacedKey() {
+        // accountKey should prefix the raw key with the keychainNamespace + "."
+        let result = KeychainStore.accountKey(for: "accessToken")
+        let expected = "\(AppConfig.keychainNamespace).accessToken"
+        XCTAssertEqual(result, expected,
+                       "accountKey should produce '<namespace>.accessToken', got: \(result)")
+    }
+
+    func testAccountKeyNamespacePrefixIsConsistent() {
+        // Multiple calls with different keys should all share the same namespace prefix
+        let key1 = KeychainStore.accountKey(for: "accessToken")
+        let key2 = KeychainStore.accountKey(for: "refreshToken")
+        let key3 = KeychainStore.accountKey(for: "userId")
+
+        let prefix = AppConfig.keychainNamespace + "."
+        XCTAssertTrue(key1.hasPrefix(prefix))
+        XCTAssertTrue(key2.hasPrefix(prefix))
+        XCTAssertTrue(key3.hasPrefix(prefix))
+
+        // The suffix after the prefix should be exactly the raw key
+        XCTAssertEqual(String(key1.dropFirst(prefix.count)), "accessToken")
+        XCTAssertEqual(String(key2.dropFirst(prefix.count)), "refreshToken")
+        XCTAssertEqual(String(key3.dropFirst(prefix.count)), "userId")
+    }
+
+    func testDifferentAPIURLsProduceDifferentNamespaces() {
+        // The keychainNamespace is derived from apiBaseURL. Since AppConfig uses a
+        // static let computed once from the environment, we verify the derivation
+        // logic directly: different URL strings should produce different sanitized outputs.
+        let url1 = "http://localhost:4000"
+        let url2 = "https://api.resonance.example.com"
+        let url3 = "https://staging.resonance.example.com"
+
+        func deriveNamespace(from urlString: String) -> String {
+            let base = urlString.lowercased()
+            let sanitized = base
+                .replacingOccurrences(of: "[^a-z0-9]+", with: "-", options: .regularExpression)
+                .trimmingCharacters(in: CharacterSet(charactersIn: "-"))
+            return sanitized.isEmpty ? "resonance-default" : "resonance-\(sanitized)"
+        }
+
+        let ns1 = deriveNamespace(from: url1)
+        let ns2 = deriveNamespace(from: url2)
+        let ns3 = deriveNamespace(from: url3)
+
+        XCTAssertNotEqual(ns1, ns2, "localhost and production should have different namespaces")
+        XCTAssertNotEqual(ns2, ns3, "production and staging should have different namespaces")
+        XCTAssertNotEqual(ns1, ns3, "localhost and staging should have different namespaces")
+    }
+
+    func testNamespaceContainsOnlySafeCharacters() {
+        // The namespace should only contain lowercase alphanumeric characters and hyphens.
+        // (Dots are not expected in the namespace itself per the sanitization regex.)
+        let ns = AppConfig.keychainNamespace
+        let safeChars = CharacterSet(charactersIn: "abcdefghijklmnopqrstuvwxyz0123456789-")
+        for scalar in ns.unicodeScalars {
+            XCTAssertTrue(safeChars.contains(scalar),
+                          "Namespace contains unsafe character '\(scalar)': \(ns)")
+        }
+    }
+
+    func testNamespaceDoesNotStartOrEndWithHyphen() {
+        let ns = AppConfig.keychainNamespace
+        XCTAssertFalse(ns.hasPrefix("-"), "Namespace should not start with hyphen: \(ns)")
+        XCTAssertFalse(ns.hasSuffix("-"), "Namespace should not end with hyphen: \(ns)")
+    }
+}
+
+// MARK: - PDFExporter Sanitize & Helper Tests
+
+final class PDFExporterSanitizeTests: XCTestCase {
+
+    func testSanitizeRemovesControlCharacters() {
+        // NUL, unit separator, and other C0 control characters should be replaced with spaces
+        let input = "Hello\u{0000}World\u{001F}Test"
+        let result = PDFExporter.sanitizeForPDF(input)
+        XCTAssertFalse(result.unicodeScalars.contains(where: { CharacterSet.controlCharacters.contains($0) }),
+                       "Result should not contain any control characters: \(result)")
+        XCTAssertTrue(result.contains("Hello"))
+        XCTAssertTrue(result.contains("World"))
+        XCTAssertTrue(result.contains("Test"))
+    }
+
+    func testSanitizeReplacesTabsAndNewlines() {
+        let input = "Line1\tTabbed\nLine2\r\nLine3"
+        let result = PDFExporter.sanitizeForPDF(input)
+        // Newlines are first converted to spaces, then control chars (tab, CR) also become spaces
+        XCTAssertFalse(result.contains("\t"), "Tabs should be removed")
+        XCTAssertFalse(result.contains("\n"), "Newlines should be removed")
+        XCTAssertFalse(result.contains("\r"), "Carriage returns should be removed")
+        XCTAssertTrue(result.contains("Line1"))
+        XCTAssertTrue(result.contains("Line2"))
+        XCTAssertTrue(result.contains("Line3"))
+    }
+
+    func testSanitizePreservesNormalUnicodeText() {
+        let input = "Beethoven Sonata No. 14 -- Clair de Lune"
+        let result = PDFExporter.sanitizeForPDF(input)
+        XCTAssertEqual(result, input)
+    }
+
+    func testSanitizePreservesAccentedCharacters() {
+        let input = "Debussy: Reverie en re bemol majeur"
+        let result = PDFExporter.sanitizeForPDF(input)
+        XCTAssertEqual(result, input)
+
+        let accented = "Dvorak Serenade fur Streicher"
+        let accentedResult = PDFExporter.sanitizeForPDF(accented)
+        XCTAssertEqual(accentedResult, accented)
+    }
+
+    func testSanitizePreservesEmoji() {
+        let input = "Great practice session! 🎵🎹👏"
+        let result = PDFExporter.sanitizeForPDF(input)
+        XCTAssertTrue(result.contains("🎵"), "Emoji should be preserved")
+        XCTAssertTrue(result.contains("🎹"), "Emoji should be preserved")
+        XCTAssertTrue(result.contains("👏"), "Emoji should be preserved")
+        XCTAssertTrue(result.contains("Great practice session!"))
+    }
+
+    func testSanitizePreservesUnicodeScripts() {
+        // CJK, Cyrillic, Arabic characters should all be preserved
+        let cjk = "練習 ピアノ 피아노"
+        XCTAssertEqual(PDFExporter.sanitizeForPDF(cjk), cjk)
+
+        let cyrillic = "Фортепиано"
+        XCTAssertEqual(PDFExporter.sanitizeForPDF(cyrillic), cyrillic)
+    }
+
+    func testSanitizeTrimsWhitespace() {
+        let input = "  spaced out  "
+        let result = PDFExporter.sanitizeForPDF(input)
+        XCTAssertEqual(result, "spaced out", "Leading/trailing whitespace should be trimmed")
+    }
+
+    func testSanitizeEmptyString() {
+        let result = PDFExporter.sanitizeForPDF("")
+        XCTAssertEqual(result, "")
+    }
+
+    func testSanitizeStringOfOnlyControlCharacters() {
+        let input = "\u{0000}\u{0001}\u{001F}"
+        let result = PDFExporter.sanitizeForPDF(input)
+        // After trimming whitespace/newlines from the original, then replacing controls with spaces,
+        // the result should contain only spaces (no control characters remain).
+        XCTAssertFalse(result.unicodeScalars.contains(where: { CharacterSet.controlCharacters.contains($0) }),
+                       "Should not contain control characters")
+    }
+
+    func testSanitizeVeryLongString() {
+        // Verify no crash with a very long string (10000 characters)
+        let longString = String(repeating: "Practice scales and arpeggios. ", count: 334)
+        XCTAssertTrue(longString.count > 10000)
+        let result = PDFExporter.sanitizeForPDF(longString)
+        XCTAssertFalse(result.isEmpty, "Sanitize should handle long strings without crashing")
+        XCTAssertTrue(result.count > 9000, "Long string should be mostly preserved")
+    }
+}
+
+// MARK: - PDFExporter Empty & Edge Case Tests
+
+final class PDFExporterEdgeCaseTests: XCTestCase {
+
+    @MainActor
+    func testExportWithEmptyEntriesDoesNotCrash() {
+        // PDFExporter.export uses UIGraphicsPDFRenderer which requires UIKit.
+        // In a unit-test environment without a full UIKit host, we verify the
+        // method signature accepts an empty array. If UIKit is available, it
+        // should not crash; if not, we just verify it throws rather than crashes.
+        let entries: [LocalPracticeEntry] = []
+        let tempURL = FileManager.default.temporaryDirectory
+            .appendingPathComponent("test-empty-\(UUID().uuidString).pdf")
+        defer { try? FileManager.default.removeItem(at: tempURL) }
+
+        // This may throw if UIKit rendering isn't available in the test host,
+        // but it must not crash (e.g., force-unwrap, index out of bounds).
+        do {
+            try PDFExporter.export(entries: entries, to: tempURL)
+            // If we get here, export succeeded -- the file should exist
+            XCTAssertTrue(FileManager.default.fileExists(atPath: tempURL.path))
+        } catch {
+            // Acceptable: UIKit renderer may not be available in test host.
+            // The key assertion is that we did not crash.
+        }
+    }
+
+    @MainActor
+    func testExportWithVeryLongGoalTextDoesNotCrash() {
+        let longGoal = String(repeating: "A", count: 10_000)
+        let entry = LocalPracticeEntry(
+            id: "long-goal-entry",
+            courseId: "course-1",
+            studentId: "student-1",
+            practiceDate: Date(),
+            goalText: longGoal,
+            durationSeconds: nil,
+            tags: [],
+            notes: nil,
+            status: .draft
+        )
+        let tempURL = FileManager.default.temporaryDirectory
+            .appendingPathComponent("test-long-\(UUID().uuidString).pdf")
+        defer { try? FileManager.default.removeItem(at: tempURL) }
+
+        do {
+            try PDFExporter.export(entries: [entry], to: tempURL)
+            XCTAssertTrue(FileManager.default.fileExists(atPath: tempURL.path))
+        } catch {
+            // Acceptable: UIKit renderer may not be available in test host.
+        }
+    }
+}

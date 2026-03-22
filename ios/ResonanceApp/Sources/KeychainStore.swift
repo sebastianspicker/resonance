@@ -5,7 +5,7 @@ import Security
 private let logger = Logger(subsystem: Bundle.main.bundleIdentifier ?? "resonance", category: "KeychainStore")
 
 enum KeychainStore {
-    private static func accountKey(for key: String) -> String {
+    static func accountKey(for key: String) -> String {
         "\(AppConfig.keychainNamespace).\(key)"
     }
 

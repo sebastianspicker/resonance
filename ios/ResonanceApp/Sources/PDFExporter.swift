@@ -63,7 +63,7 @@ struct PDFExporter {
         return drawY + neededHeight
     }
 
-    private static func sanitizeForPDF(_ s: String) -> String {
+    static func sanitizeForPDF(_ s: String) -> String {
         let trimmed = s.trimmingCharacters(in: .whitespacesAndNewlines)
         let withSpaces = trimmed.replacingOccurrences(of: "\n", with: " ")
         var result = ""
