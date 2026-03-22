@@ -1,13 +1,6 @@
 import request from 'supertest';
 import { beforeAll, afterAll, beforeEach, describe, expect, it } from 'vitest';
-import {
-  app,
-  setupApp,
-  teardownApp,
-  resetDb,
-  seedBasic,
-  getAccessToken,
-} from './testUtils.js';
+import { app, setupApp, teardownApp, resetDb, seedBasic, getAccessToken } from './testUtils.js';
 
 /**
  * Tests for server.ts error handler branches:
