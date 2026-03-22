@@ -4,7 +4,7 @@ import { ErrorCodes } from './errorCodes.js';
 export class ApiError extends Error {
   statusCode: number;
   code: string;
-  details?: Record<string, unknown>;
+  details?: Record<string, unknown> | undefined;
 
   constructor(
     statusCode: number,
