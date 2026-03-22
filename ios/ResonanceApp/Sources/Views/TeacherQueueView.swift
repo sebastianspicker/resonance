@@ -51,6 +51,9 @@ struct TeacherQueueView: View {
                         .frame(maxWidth: .infinity, alignment: .leading)
                     }
                     .buttonStyle(.plain)
+                    .accessibilityElement(children: .combine)
+                    .accessibilityLabel("\(entry.studentName), \(entry.goalText), \(entry.artifacts.count) artifacts")
+                    .accessibilityHint("Double-tap to review this submission")
                     .listRowInsets(EdgeInsets(top: 6, leading: 14, bottom: 6, trailing: 14))
                     .listRowBackground(Color.white.opacity(0.08).cornerRadius(12).padding(.vertical, 4))
                 }
@@ -63,6 +66,8 @@ struct TeacherQueueView: View {
             ToolbarItem(placement: .primaryAction) {
                 Button("Refresh") { Task { await refreshQueue() } }
                     .disabled(isLoading)
+                    .accessibilityLabel("Refresh review queue")
+                    .accessibilityHint("Double-tap to reload submissions awaiting review")
             }
         }
         .task { await refreshQueue() }

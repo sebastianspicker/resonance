@@ -28,6 +28,8 @@ struct EmptyStateView: View {
                 Button(actionLabel, action: action)
                     .buttonStyle(VibrantGlassButtonStyle())
                     .padding(.top, 8)
+                    .accessibilityLabel(actionLabel)
+                    .accessibilityHint("Double-tap to \(actionLabel.lowercased())")
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)

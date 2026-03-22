@@ -22,6 +22,8 @@ struct CourseDetailView: View {
                 }
                 .pickerStyle(.segmented)
                 .padding(.horizontal)
+                .accessibilityLabel("Course view")
+                .accessibilityHint("Switch between practice entries and the review queue")
 
                 if selectedTab == 0 {
                     EntryListView(courseId: course.id)
