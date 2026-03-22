@@ -36,6 +36,9 @@ struct MainSplitView: View {
                     .padding(.leading, 8)
                     .padding(.vertical, 8)
                     .tag(course.id)
+                    .accessibilityElement(children: .combine)
+                    .accessibilityLabel("\(course.title), role: \(course.roleInCourse)")
+                    .accessibilityHint("Double-tap to view course details")
                     .listRowInsets(EdgeInsets(top: 6, leading: 12, bottom: 6, trailing: 12))
                     .listRowBackground(Color.white.opacity(0.1).cornerRadius(12).padding(.vertical, 4))
                 }
@@ -60,6 +63,8 @@ struct MainSplitView: View {
                         }
                         .font(.caption)
                         .foregroundStyle(.secondary)
+                        .accessibilityElement(children: .combine)
+                        .accessibilityLabel("Network \(networkMonitor.isOnline ? "online" : "offline"), \(syncManager.pendingQueueCount) pending, \(syncManager.failedQueueCount) failed")
                         if let lastSync = syncManager.lastSyncedAt {
                             Text("Last synced \(lastSync, style: .relative) ago")
                                 .font(.caption2)
@@ -83,27 +88,41 @@ struct MainSplitView: View {
                         }
                     }
                     .disabled(isRefreshing)
+                    .accessibilityLabel("Sync courses")
+                    .accessibilityHint("Double-tap to refresh courses and process the sync queue")
                 }
                 ToolbarItem(placement: .automatic) {
                     Menu("Actions") {
                         Button("Queue") {
                             showQueue = true
                         }
+                        .accessibilityLabel("View sync queue")
+                        .accessibilityHint("Double-tap to open the sync queue")
                         Button("Retry Failed") {
                             syncManager.retryFailedItems()
                             Task { await syncManager.processQueue() }
                         }
                         .disabled(syncManager.failedQueueCount == 0)
+                        .accessibilityLabel("Retry failed sync items")
+                        .accessibilityHint("Double-tap to retry all failed queue items")
                         Button("Calendar") {
                             showCalendar = true
                         }
+                        .accessibilityLabel("Open calendar")
+                        .accessibilityHint("Double-tap to view your calendar events")
                         Button("Export") {
                             showExport = true
                         }
+                        .accessibilityLabel("Export data")
+                        .accessibilityHint("Double-tap to export your practice data")
                         Button("Settings") {
                             showSettings = true
                         }
+                        .accessibilityLabel("Open settings")
+                        .accessibilityHint("Double-tap to open app settings")
                     }
+                    .accessibilityLabel("Actions menu")
+                    .accessibilityHint("Double-tap to show available actions")
                 }
             }
         } detail: {
