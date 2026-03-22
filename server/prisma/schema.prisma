@@ -46,6 +46,24 @@ enum FeedbackTargetType {
   artifact
 }
 
+// ── CASCADE DELETE implications ─────────────────────────────────────
+// All child relations use `onDelete: Cascade`.  This means:
+//
+//   Deleting a User  → removes their Memberships, PracticeEntries,
+//                       Feedback (authored), RefreshTokens, and
+//                       transitively all Artifacts, Markers.
+//   Deleting a Course → removes Memberships and PracticeEntries
+//                        (with their Artifacts, Feedback, Markers).
+//
+// These cascades can remove large amounts of data in a single
+// operation with no undo.  In production, consider:
+//   1. Soft-delete users/courses (set a `deletedAt` timestamp)
+//      before hard-deleting, with a grace period.
+//   2. Exporting or archiving data before deletion.
+//   3. Restricting hard-delete to an admin-only maintenance path
+//      that requires explicit confirmation.
+// ────────────────────────────────────────────────────────────────────
+
 model User {
   id          String        @id
   displayName String

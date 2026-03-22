@@ -68,7 +68,7 @@ Each item can be turned into a separate issue.
 
 ---
 
-### 6. [Bug] Teacher course listing returns all entries (including drafts)
+### 6. [Bug] Teacher course listing returns all entries (including drafts) — ✅ Fixed
 
 **Description:** `GET /courses/:courseId/entries` for a teacher returns all non-deleted entries in the course (no `status` filter). Drafts are included, unlike the dedicated review queue which filters `status: 'submitted'`.
 
@@ -76,11 +76,13 @@ Each item can be turned into a separate issue.
 
 **Fix:** Either restrict this endpoint for teachers to `status: 'submitted'` (or document that teachers intentionally see all entries). Align with review queue semantics.
 
-**Sources:** `server/src/server.ts:260-274`
+**Status:** Fixed. Teacher listing in `GET /courses/:courseId/entries` now defaults to `status: 'submitted'` when no filter is provided. An explicit `?status=` query parameter allows overriding.
+
+**Sources:** `server/src/routes/courses.ts`
 
 ---
 
-### 7. [Bug/Config] iOS dev login URL hardcoded to localhost
+### 7. [Bug/Config] iOS dev login URL hardcoded to localhost — ✅ Fixed
 
 **Description:** `AppConfig.devLoginURL` is fixed to `http://localhost:4000/dev/login`, independent of `RESONANCE_API_BASE`. On a physical device, localhost is the device; auth breaks. API and login can target different hosts.
 
@@ -88,11 +90,13 @@ Each item can be turned into a separate issue.
 
 **Fix:** Derive dev login URL from the same base as API (e.g. `apiBaseURL.appendingPathComponent("dev/login")`) or a dedicated but configurable env var.
 
+**Status:** Fixed. `devLoginURL` is now derived from `apiBaseURL`: `static let devLoginURL = apiBaseURL.appendingPathComponent("dev/login")`.
+
 **Sources:** `ios/ResonanceApp/Sources/AppConfig.swift`
 
 ---
 
-### 8. [Bug/Config] Keychain not namespaced by environment
+### 8. [Bug/Config] Keychain not namespaced by environment — ✅ Fixed
 
 **Description:** Auth session is stored in Keychain with fixed keys. `RESONANCE_API_BASE` can point at different servers, but Keychain is shared; switching API base can reuse tokens against the wrong backend.
 
@@ -100,29 +104,35 @@ Each item can be turned into a separate issue.
 
 **Fix:** Include environment/server identifier in Keychain keys (e.g. hash of API base or explicit "dev"/"prod" key suffix).
 
-**Sources:** `ios/ResonanceApp/Sources/AppConfig.swift`
+**Status:** Fixed. `AppConfig.keychainNamespace` is derived from `apiBaseURL` (sanitized to alphanumeric). `KeychainStore` prepends this namespace to all Keychain account keys. OSStatus errors are also logged.
+
+**Sources:** `ios/ResonanceApp/Sources/AppConfig.swift`, `ios/ResonanceApp/Sources/KeychainStore.swift`
 
 ---
 
 ## Required Fixes / Improvements
 
-### 9. [Enhancement] Use course role, not global role, for entry/artifact authorization
+### 9. [Enhancement] Use course role, not global role, for entry/artifact authorization — ✅ Fixed
 
 **Description:** Many routes use `user.role` from the JWT (global role) instead of `roleInCourse` from membership. `requireEntryAccess` only restricts "owner" when `user.role === 'student'`, so a user with global teacher but course student can access any entry in that course (IDOR). Presign/confirm and feedback similarly mix global vs course role.
 
 **Fix:** Use `requireCourseRole()` result for authorization decisions (e.g. "can edit own entry" when `roleInCourse === 'student'`, "can confirm artifact" only for owning student or course teacher). Unify on course role for all course-scoped operations.
 
-**Sources:** `server/src/server.ts`
+**Status:** Fixed. All routes now use `requireCourseRole()`, `requireStudentOwner()`, and `requireTeacherRole()` from `validation.ts` for course-scoped authorization. `requireEntryAccess` uses `roleInCourse` (not `user.role`) for the ownership check.
+
+**Sources:** `server/src/validation.ts`, `server/src/routes/entries.ts`, `server/src/routes/artifacts.ts`, `server/src/routes/feedback.ts`
 
 ---
 
-### 10. [Enhancement] Enforce student ownership on artifact confirm (and align with presign)
+### 10. [Enhancement] Enforce student ownership on artifact confirm (and align with presign) — ✅ Fixed
 
 **Description:** `POST /artifacts/:artifactId/confirm` checks only course membership; it does not enforce that a student is the owner of the artifact's entry. Presign does enforce student ownership. Any course member can confirm any artifact.
 
 **Fix:** Add the same ownership check as presign: if `user.role === 'student'` (or course role is student), require `artifact.entry.studentId === user.id`.
 
-**Sources:** `server/src/server.ts:479-514`
+**Status:** Fixed. Artifact confirm now uses `requireStudentOwner()` — same as presign and artifact creation.
+
+**Sources:** `server/src/routes/artifacts.ts`
 
 ---
 
@@ -132,41 +142,49 @@ Same as (2): Implement and document `redirectUri` validation when production aut
 
 ---
 
-### 12. [Enhancement] Server-side logout / refresh token revocation
+### 12. [Enhancement] Server-side logout / refresh token revocation — ✅ Fixed
 
 **Description:** No `/auth/logout` (or similar); iOS `signOut()` only clears local state. Refresh tokens remain valid until expiry.
 
 **Fix:** Add an endpoint that revokes the current refresh token (and optionally all refresh tokens for the user). Call it from the client on sign-out.
 
-**Sources:** `server/src/server.ts`
+**Status:** Fixed. `POST /auth/logout` (authenticated) revokes all active refresh tokens for the user. iOS `signOut()` calls `apiClient.logout()` before clearing local credentials.
+
+**Sources:** `server/src/routes/auth.ts`, `ios/ResonanceApp/Sources/AuthManager.swift`, `ios/ResonanceApp/Sources/APIClient.swift`
 
 ---
 
-### 13. [Enhancement] Clearer error handling and validation (entries, PATCH, notes)
+### 13. [Enhancement] Clearer error handling and validation (entries, PATCH, notes) — ✅ Fixed
 
 **Description:** PATCH `/entries/:entryId` does not validate `goalText`/`notes` type (can 500). Submitted-entry lock checks use truthiness, so `goalText: ""` or `durationSeconds: 0` bypass the lock. Nullable fields (notes, durationSeconds) cannot be cleared via PATCH.
 
 **Fix:** Use `requireString`/type checks for goalText and notes on PATCH; enforce submitted-entry lock with "field present in body" (e.g. `body.goalText !== undefined`) instead of truthiness; allow explicit null to clear nullable fields.
 
-**Sources:** `server/src/server.ts`
+**Status:** Fixed. PATCH route uses `'goalText' in body` (field presence) for the submitted-entry lock, `requireString`/`requireNumber` for type validation, and allows explicit `null` to clear nullable fields (`notes`, `durationSeconds`).
+
+**Sources:** `server/src/routes/entries.ts`
 
 ---
 
-### 14. [Operational] Test suite must not TRUNCATE non-test database
+### 14. [Operational] Test suite must not TRUNCATE non-test database — ✅ Fixed
 
 **Description:** Vitest setup uses existing `DATABASE_URL` if set; `resetDb()` runs `TRUNCATE ... CASCADE` on core tables. Running tests against a real DB can wipe data.
 
 **Fix:** Force a test-only database in test setup (e.g. require `DATABASE_URL` to contain a test marker, or use a fixed test URL when not in CI). Document that `npm test` must never point at production/staging.
 
-**Sources:** `server/tests/vitest.setup.ts`, `server/tests/testUtils.ts`
+**Status:** Fixed. `vitest.setup.ts` checks that `DATABASE_URL` contains the string `test` (case-insensitive) and calls `process.exit(1)` if it does not. Default test URL uses `resonance_test` database.
+
+**Sources:** `server/tests/vitest.setup.ts`
 
 ---
 
-### 15. [Enhancement] Keychain status codes and single-flight refresh (iOS)
+### 15. [Enhancement] Keychain status codes and single-flight refresh (iOS) — ✅ Fixed
 
 **Description:** Keychain set/get/delete ignore OSStatus; failures are silent. `refreshIfNeeded()` has no single-flight/lock; concurrent refresh can cause one request to invalidate the other's token and trigger sign-out despite a successful refresh elsewhere.
 
 **Fix:** Check Keychain status in set/delete/add and surface or retry on failure. Add a lock or single-flight for refresh so only one refresh runs at a time and callers await the same result.
+
+**Status:** Fixed. `KeychainStore` now checks and logs `OSStatus` on set/get/delete. `AuthManager.refreshIfNeeded()` uses a `refreshTask` property as a single-flight lock — concurrent callers await the same task.
 
 **Sources:** `ios/ResonanceApp/Sources/KeychainStore.swift`, `ios/ResonanceApp/Sources/AuthManager.swift`
 
@@ -176,35 +194,51 @@ Same as (2): Implement and document `redirectUri` validation when production aut
 
 ## Critical
 
-### 16. [Bug] requireEntryAccess uses global role → IDOR for non-student global role
+### 16. [Bug] requireEntryAccess uses global role → IDOR for non-student global role — ✅ Fixed
 
 **Description:** Ownership check is `if (user.role === 'student' && entry.studentId !== user.id)`. Users with global role teacher but course role student skip the check and can access any entry in the course.
 
-**Fix:** Use course role from `requireCourseRole()`: restrict "own entries only" when course role is student, not when global role is student. **Sources:** `server/src/server.ts`
+**Fix:** Use course role from `requireCourseRole()`: restrict "own entries only" when course role is student, not when global role is student.
+
+**Status:** Fixed. `requireEntryAccess` now calls `requireCourseRole()` and checks `roleInCourse === 'student'` for the ownership guard. Returns `roleInCourse` for downstream use.
+
+**Sources:** `server/src/validation.ts`
 
 ---
 
-### 17. [Bug] Artifact confirm has no ownership/role check
+### 17. [Bug] Artifact confirm has no ownership/role check — ✅ Fixed
 
 **Description:** Any course member can call `POST /artifacts/:artifactId/confirm` and mutate uploadState/remoteUrl for any artifact in the course.
 
-**Fix:** Enforce student ownership (same as presign): student must be `artifact.entry.studentId`; teacher in course can remain allowed if product agrees. **Sources:** `server/src/server.ts`
+**Fix:** Enforce student ownership (same as presign): student must be `artifact.entry.studentId`; teacher in course can remain allowed if product agrees.
+
+**Status:** Fixed. Artifact confirm route now calls `requireStudentOwner()` to enforce that only the owning student can confirm.
+
+**Sources:** `server/src/routes/artifacts.ts`
 
 ---
 
-### 18. [Bug] Presign allows global-teacher to get PUT URLs for others' artifacts (overwrite risk)
+### 18. [Bug] Presign allows global-teacher to get PUT URLs for others' artifacts (overwrite risk) — ✅ Fixed
 
 **Description:** Presign only restricts students; global teacher in course can presign any artifact. Storage key is deterministic; overwrite of existing object is possible.
 
-**Fix:** Restrict presign to owning student (and optionally teacher for a defined flow). Use course role, not global role. **Sources:** `server/src/server.ts`
+**Fix:** Restrict presign to owning student (and optionally teacher for a defined flow). Use course role, not global role.
+
+**Status:** Fixed. Presign route now calls `requireStudentOwner()` — only the owning student can obtain a presigned upload URL.
+
+**Sources:** `server/src/routes/artifacts.ts`
 
 ---
 
-### 19. [Bug] Feedback route uses global role; course-teacher not enforced
+### 19. [Bug] Feedback route uses global role; course-teacher not enforced — ✅ Fixed
 
 **Description:** POST `/feedback` and GET `/entries/:entryId/feedback` rely on global role or requireEntryAccess. A global teacher enrolled as student in a course can leave feedback; a global student with course role teacher cannot (inconsistent).
 
-**Fix:** Use course role for "may post feedback" and "may read feedback" (e.g. require `roleInCourse === 'teacher'` for posting; visibility by entry access using course role). **Sources:** `server/src/server.ts`
+**Fix:** Use course role for "may post feedback" and "may read feedback" (e.g. require `roleInCourse === 'teacher'` for posting; visibility by entry access using course role).
+
+**Status:** Fixed. `POST /feedback` uses `requireCourseRole()` and checks `roleInCourse !== 'teacher'` to reject non-course-teachers. `GET /entries/:entryId/feedback` uses `requireEntryAccess` which internally uses course role.
+
+**Sources:** `server/src/routes/feedback.ts`, `server/src/routes/entries.ts`
 
 ---
 
@@ -218,25 +252,37 @@ Same as (2): Implement and document `redirectUri` validation when production aut
 
 ---
 
-### 21. [Bug] Presign Content-Type vs client upload (no Content-Type header)
+### 21. [Bug] Presign Content-Type vs client upload (no Content-Type header) — ✅ Fixed
 
 **Description:** Server presigns with `ContentType: audio/m4a` or `video/mp4` but does not return required headers; iOS upload does not set `Content-Type`. Signature mismatch or wrong metadata can break uploads or type enforcement.
 
-**Fix:** Either require client to send the same Content-Type on PUT (and document it), or use a presign policy that does not require Content-Type to be sent by client; align server and iOS. **Sources:** `server/src/server.ts`, `ios/ResonanceApp/Sources/SyncManager.swift`
+**Fix:** Either require client to send the same Content-Type on PUT (and document it), or use a presign policy that does not require Content-Type to be sent by client; align server and iOS.
+
+**Status:** Fixed. Server presign response now includes `requiredHeaders: { 'Content-Type': contentType }`. iOS `uploadFile` reads `presign.requiredHeaders` and sets them on the upload request.
+
+**Sources:** `server/src/routes/artifacts.ts`, `ios/ResonanceApp/Sources/SyncManager.swift`, `ios/ResonanceApp/Sources/APIModels.swift`
 
 ---
 
-### 22. [Bug] Sync queue: payload parse failure and unknown type → silent delete (data loss)
+### 22. [Bug] Sync queue: payload parse failure and unknown type → silent delete (data loss) — ✅ Fixed
 
 **Description:** If `payloadJSON` fails to parse as a dictionary, `process(item:)` returns without throwing; the queue item is deleted. Unknown `SyncTaskType` also falls through and item is deleted. Invalid presign URL causes upload to be skipped but item is still deleted.
 
-**Fix:** On parse failure or unknown type, throw (or mark item failed) so the item is not deleted and can retry or be surfaced. Validate presign URL and throw if invalid before considering upload done. **Sources:** `ios/ResonanceApp/Sources/SyncManager.swift`
+**Fix:** On parse failure or unknown type, throw (or mark item failed) so the item is not deleted and can retry or be surfaced. Validate presign URL and throw if invalid before considering upload done.
+
+**Status:** Fixed. `process(item:)` now throws `SyncError.payloadParseError` on parse failure, `SyncError.unknownTaskType` for unrecognized types, and `SyncError.invalidPresignUrl` for invalid URLs. All `SyncError` variants are caught and mark the item as `"failed"` (non-retryable) instead of deleting.
+
+**Sources:** `ios/ResonanceApp/Sources/SyncManager.swift`
 
 ---
 
-### 23. [Bug] Tests can TRUNCATE non-test database
+### 23. [Bug] Tests can TRUNCATE non-test database — ✅ Fixed
 
-Same as (14): Force test DB in setup; never use production/staging URL for `resetDb()`. **Sources:** `server/tests/vitest.setup.ts`, `server/tests/testUtils.ts`
+Same as (14): Force test DB in setup; never use production/staging URL for `resetDb()`.
+
+**Status:** Fixed (same as #14). See #14 for details.
+
+**Sources:** `server/tests/vitest.setup.ts`
 
 ---
 
@@ -254,43 +300,63 @@ Same as (2): Code exchange does not bind or validate `redirectUri`. **Sources:**
 
 ---
 
-### 26. [Bug] File protection / backup exclusion on new audio files ineffective
+### 26. [Bug] File protection / backup exclusion on new audio files ineffective — ✅ Fixed
 
 **Description:** `setFileProtection(url:)` is called on a URL before the file exists; errors are swallowed with `try?`. Newly created recordings may not get the intended protection or backup exclusion.
 
-**Fix:** Create the file first, then set resource values and attributes; check and handle errors (or at least log). **Sources:** `ios/ResonanceApp/Sources/FileStore.swift`
+**Fix:** Create the file first, then set resource values and attributes; check and handle errors (or at least log).
+
+**Status:** Fixed. `setFileProtection(url:)` now guards with `FileManager.fileExists(atPath:)` and logs a warning for non-existent paths. Errors in `setResourceValues` and `setAttributes` are caught and logged (not swallowed).
+
+**Sources:** `ios/ResonanceApp/Sources/FileStore.swift`
 
 ---
 
-### 27. [Bug] createEntry JSON body: Optional.none as Any breaks JSONSerialization
+### 27. [Bug] createEntry JSON body: Optional.none as Any breaks JSONSerialization — ✅ Fixed
 
 **Description:** iOS builds `[String: Any]` with `durationSeconds as Any` and `notes as Any`. When nil, Swift can put `Optional.none` in the dict; `JSONSerialization` cannot encode it and throws. Common for "no notes" entries.
 
-**Fix:** Omit optional keys when nil, or use a type that encodes to JSON null explicitly (e.g. encode only when non-nil, or use a custom encoder). **Sources:** `ios/ResonanceApp/Sources/APIClient.swift`
+**Fix:** Omit optional keys when nil, or use a type that encodes to JSON null explicitly (e.g. encode only when non-nil, or use a custom encoder).
+
+**Status:** Fixed. `createEntry` now uses a typed `Encodable` struct with a custom `encode(to:)` that only encodes non-nil optionals. No more `[String: Any]` or `JSONSerialization`.
+
+**Sources:** `ios/ResonanceApp/Sources/APIClient.swift`
 
 ---
 
-### 28. [Bug] iOS date decoding (.iso8601) vs server Date (fractional seconds)
+### 28. [Bug] iOS date decoding (.iso8601) vs server Date (fractional seconds) — ✅ Fixed
 
 **Description:** Server returns Prisma DateTime as JSON dates (often with fractional seconds). iOS uses `JSONDecoder.dateDecodingStrategy = .iso8601`; strict ISO8601 may reject fractional seconds and cause decode failures on entries, review queue, feedback.
 
-**Fix:** Use a custom date decoding strategy that accepts fractional seconds (e.g. ISO8601DateFormatter with `.withFractionalSeconds`), or ensure server serializes dates in a format the client accepts. **Sources:** `ios/ResonanceApp/Sources/APIClient.swift`, `server/src/server.ts`
+**Fix:** Use a custom date decoding strategy that accepts fractional seconds (e.g. ISO8601DateFormatter with `.withFractionalSeconds`), or ensure server serializes dates in a format the client accepts.
+
+**Status:** Fixed. `JSONDecoder.apiDecoder` uses a `.custom` date strategy that tries `ISO8601DateFormatter` with `.withFractionalSeconds` first, then falls back to without. Both formatters are created once (not per-decode).
+
+**Sources:** `ios/ResonanceApp/Sources/APIClient.swift`
 
 ---
 
-### 29. [Bug] POST /feedback response omits teacherName; iOS FeedbackResponse expects it
+### 29. [Bug] POST /feedback response omits teacherName; iOS FeedbackResponse expects it — ✅ Fixed
 
 **Description:** Server returns feedback with `teacherName` from `item.teacher.displayName`, but if the mapping or include is wrong, the field can be missing. iOS model has non-optional `teacherName` → decode crash.
 
-**Fix:** Guarantee `teacherName` (or equivalent) in response and align type; or make iOS property optional and handle missing. **Sources:** `server/src/server.ts`, `ios/ResonanceApp/Sources/APIClient.swift`
+**Fix:** Guarantee `teacherName` (or equivalent) in response and align type; or make iOS property optional and handle missing.
+
+**Status:** Fixed. `POST /feedback` response includes `teacherName: feedback.teacher.displayName` (teacher relation is included in the query). `GET /entries/:entryId/feedback` also maps `teacherName`.
+
+**Sources:** `server/src/routes/feedback.ts`, `server/src/routes/entries.ts`
 
 ---
 
-### 30. [Bug] .env.example deploy-dangerous auth and placeholders
+### 30. [Bug] .env.example deploy-dangerous auth and placeholders — ✅ Fixed
 
 **Description:** Example env can suggest `AUTH_MODE=dev` or credential-like placeholders that are unsafe if used in production.
 
-**Fix:** Document that dev auth must not be used in production; use safe placeholders and point to real secret management. **Sources:** `server/.env.example`
+**Fix:** Document that dev auth must not be used in production; use safe placeholders and point to real secret management.
+
+**Status:** Fixed. `.env.example` has safety warnings at the top and inline: "Do NOT use these placeholder values in production", "Replace with a strong random secret", "dev disables real authentication — use ONLY on localhost". JWT_SECRET placeholder prompts generation via `openssl rand`.
+
+**Sources:** `server/.env.example`
 
 ---
 
@@ -336,9 +402,13 @@ Same as (2): Code exchange does not bind or validate `redirectUri`. **Sources:**
 
 ---
 
-### 36. [Bug] Submitted-entry edit lock bypass via falsy values
+### 36. [Bug] Submitted-entry edit lock bypass via falsy values — ✅ Fixed
 
-**Description:** Lock uses `if (body.goalText || ...)` so "" or 0 bypass. **Fix:** Check "field present" (e.g. `body.hasOwnProperty('goalText')`) instead of truthiness. **Sources:** `server/src/server.ts`
+**Description:** Lock uses `if (body.goalText || ...)` so "" or 0 bypass. **Fix:** Check "field present" (e.g. `body.hasOwnProperty('goalText')`) instead of truthiness.
+
+**Status:** Fixed. PATCH route now uses `'goalText' in body` (the `in` operator) for all restricted fields instead of truthiness checks. Same as #13.
+
+**Sources:** `server/src/routes/entries.ts`
 
 ---
 
@@ -366,9 +436,13 @@ Same as (2): Code exchange does not bind or validate `redirectUri`. **Sources:**
 
 ---
 
-### 40. [Bug] SwiftData fetch/save errors swallowed in SyncManager
+### 40. [Bug] SwiftData fetch/save errors swallowed in SyncManager — ✅ Fixed
 
-**Description:** `try?` on fetch/save; enqueue can silently fail to persist. **Fix:** Propagate or handle errors; distinguish "empty queue" from "fetch failed". **Sources:** `ios/ResonanceApp/Sources/SyncManager.swift`
+**Description:** `try?` on fetch/save; enqueue can silently fail to persist. **Fix:** Propagate or handle errors; distinguish "empty queue" from "fetch failed".
+
+**Status:** Fixed. `saveContext()` uses `do/catch` and logs errors. Queue fetches use `do/catch` with early return on failure (logged). `fetchFirst` throws on missing items. All fetch paths log errors instead of swallowing.
+
+**Sources:** `ios/ResonanceApp/Sources/SyncManager.swift`
 
 ---
 
@@ -380,9 +454,13 @@ Same as (2): Code exchange does not bind or validate `redirectUri`. **Sources:**
 
 ---
 
-### 42. [Bug] Media directory protection only on first creation; errors swallowed
+### 42. [Bug] Media directory protection only on first creation; errors swallowed — ✅ Fixed
 
-**Description:** `setFileProtection` only when directory does not exist; creation errors ignored. **Fix:** Ensure protection after create; handle and optionally retry or log errors. **Sources:** `ios/ResonanceApp/Sources/FileStore.swift`
+**Description:** `setFileProtection` only when directory does not exist; creation errors ignored. **Fix:** Ensure protection after create; handle and optionally retry or log errors.
+
+**Status:** Fixed. `mediaDirectory()` calls `setFileProtection` after directory creation. `setFileProtection` guards file existence, uses `do/catch`, and logs errors. Directory creation errors are also caught and logged.
+
+**Sources:** `ios/ResonanceApp/Sources/FileStore.swift`
 
 ---
 
@@ -402,21 +480,33 @@ Same as (2): Code exchange does not bind or validate `redirectUri`. **Sources:**
 
 ---
 
-### 45. [Bug] Prisma ON DELETE CASCADE on core relations (large irreversible loss)
+### 45. [Bug] Prisma ON DELETE CASCADE on core relations (large irreversible loss) — ✅ Mitigated (documented)
 
-**Description:** Cascade deletes can remove large amounts of data in one go. **Fix:** Document and consider softer delete or narrower cascade where appropriate. **Sources:** `server/prisma/schema.prisma`, `server/prisma/migrations/`
+**Description:** Cascade deletes can remove large amounts of data in one go. **Fix:** Document and consider softer delete or narrower cascade where appropriate.
 
----
+**Status:** Mitigated. Added a documentation comment block in `schema.prisma` above the `User` model explaining: which cascades exist, what gets deleted, and recommending soft-delete / archiving / admin-only paths for production. Schema behavior is unchanged — this is a documentation + awareness fix.
 
-### 46. [Bug] Multiple critical routes untested (submit, feedback GET, auth/me, course detail, dev/authorize)
-
-**Description:** No tests for submit, entry feedback, auth/me, GET course by id, dev/authorize. **Fix:** Add tests for these endpoints (happy path and key negative cases). **Sources:** `server/tests/`
+**Sources:** `server/prisma/schema.prisma`
 
 ---
 
-### 47. [Bug] ACL tests miss global-role vs course-role and artifact IDOR cases
+### 46. [Bug] Multiple critical routes untested (submit, feedback GET, auth/me, course detail, dev/authorize) — ✅ Fixed
 
-**Description:** Tests do not cover teacher-in-course-as-student IDOR or artifact confirm/presign as non-owner. **Fix:** Add tests for role mismatch and artifact ownership. **Sources:** `server/tests/acl.test.ts`
+**Description:** No tests for submit, entry feedback, auth/me, GET course by id, dev/authorize. **Fix:** Add tests for these endpoints (happy path and key negative cases).
+
+**Status:** Fixed. `integration-gaps.test.ts` covers `/auth/me`, `/auth/logout`, `GET /courses/:courseId`, `GET /entries/:entryId/feedback`. `edge-cases.test.ts` covers submit (state transitions, empty/boundary inputs, conflict). `acl.test.ts` covers submit authorization. `dev-auth.test.ts` and `dev-auth-localonly.test.ts` cover dev/authorize.
+
+**Sources:** `server/tests/integration-gaps.test.ts`, `server/tests/edge-cases.test.ts`, `server/tests/acl.test.ts`, `server/tests/dev-auth.test.ts`
+
+---
+
+### 47. [Bug] ACL tests miss global-role vs course-role and artifact IDOR cases — ✅ Fixed
+
+**Description:** Tests do not cover teacher-in-course-as-student IDOR or artifact confirm/presign as non-owner. **Fix:** Add tests for role mismatch and artifact ownership.
+
+**Status:** Fixed. `acl.test.ts` includes a test for "uses course role (not global role) for submit authorization" with a user who has global role teacher but course role student. Artifact creation tests cover ownership enforcement on submitted/reviewed entries. Owner-only artifact authorization tests exist in `dev-auth-localonly.test.ts`.
+
+**Sources:** `server/tests/acl.test.ts`, `server/tests/dev-auth-localonly.test.ts`
 
 ---
 
@@ -438,19 +528,19 @@ The following high-priority items were implemented:
 
 ## Quick reference: common failure causes
 
-| Symptom | Typical cause | Fix / see |
-|--------|----------------|-----------|
-| 401 on API calls | Missing/invalid token, refresh race | Token in header; single-flight refresh; Keychain not failing silently |
-| Unexpected sign-out | Refresh race, Keychain write failure | Single-flight refresh; check Keychain status |
-| Teacher sees all entries (incl. drafts) | No status filter on GET entries | Filter by status or document intent; see §6 |
-| Student can confirm others' artifacts | No ownership check on confirm | Add student-owner check; see §10, §17 |
-| Entry delete leaves orphaned data / broken storage | Prefetch outside transaction (S3 ordering now fixed) | Move artifact enumeration inside `$transaction`; see §20 |
-| Upload "succeeds" but artifact not uploaded | Presign URL invalid or no Content-Type | Validate URL; set Content-Type on PUT; see §21 |
-| Sync queue item disappears, no error | Parse failure or unknown type treated as success | Throw on parse/unknown type; see §22 |
-| createEntry fails on iOS (encoding) | Optional.none in JSON body | Omit nil optionals or encode explicitly; see §27 |
-| Decode failure on entries/feedback (iOS) | Date format (fractional seconds) | Align decoder with server date format; see §28 |
-| Tests wipe real DB | DATABASE_URL not forced to test DB | Use test-only DB in vitest setup; see §14 |
-| Dev auth in production | AUTH_MODE=dev in reachable env | Never use dev auth in production; document; see §1 |
+| Symptom | Typical cause | Status |
+|--------|----------------|--------|
+| 401 on API calls | Missing/invalid token, refresh race | ✅ Fixed: single-flight refresh (#15), Keychain logging (#8) |
+| Unexpected sign-out | Refresh race, Keychain write failure | ✅ Fixed: single-flight refresh (#15), Keychain OSStatus logging |
+| Teacher sees all entries (incl. drafts) | No status filter on GET entries | ✅ Fixed: defaults to `submitted` (#6) |
+| Student can confirm others' artifacts | No ownership check on confirm | ✅ Fixed: `requireStudentOwner` (#10, #17) |
+| Entry delete leaves orphaned data / broken storage | Prefetch outside transaction (S3 ordering now fixed) | ✅ Fixed (#5, #20) |
+| Upload "succeeds" but artifact not uploaded | Presign URL invalid or no Content-Type | ✅ Fixed: `requiredHeaders` returned and applied (#21) |
+| Sync queue item disappears, no error | Parse failure or unknown type treated as success | ✅ Fixed: throws `SyncError` (#22) |
+| createEntry fails on iOS (encoding) | Optional.none in JSON body | ✅ Fixed: typed Encodable struct (#27) |
+| Decode failure on entries/feedback (iOS) | Date format (fractional seconds) | ✅ Fixed: custom date decoder (#28) |
+| Tests wipe real DB | DATABASE_URL not forced to test DB | ✅ Fixed: `test` marker required (#14, #23) |
+| Dev auth in production | AUTH_MODE=dev in reachable env | ⚠️ Mitigated: localhost-only guard + docs (#1, #30) |
 
 ---
 
