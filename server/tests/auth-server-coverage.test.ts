@@ -12,11 +12,6 @@ import {
   prisma,
 } from './testUtils.js';
 
-function login(role: 'student' | 'teacher') {
-  const userId = role === 'student' ? 'student-1' : 'teacher-1';
-  return getAccessToken(role, { userId });
-}
-
 /**
  * Tests targeting uncovered branches in:
  * - src/routes/auth.ts (lines 109, 118, 122, 141)
@@ -125,9 +120,7 @@ describe('auth routes & server branch coverage', () => {
         algorithm: 'HS256',
       });
 
-      const res = await request(app.server)
-        .get('/courses')
-        .set('Authorization', `Bearer ${token}`);
+      const res = await request(app.server).get('/courses').set('Authorization', `Bearer ${token}`);
       expect(res.status).toBe(401);
       expect(res.body.error.code).toBe('INVALID_TOKEN');
       expect(res.body.error.message).toBe('Invalid token payload');
@@ -142,15 +135,12 @@ describe('auth routes & server branch coverage', () => {
         algorithm: 'HS256',
       });
 
-      const res = await request(app.server)
-        .get('/courses')
-        .set('Authorization', `Bearer ${token}`);
+      const res = await request(app.server).get('/courses').set('Authorization', `Bearer ${token}`);
       expect(res.status).toBe(401);
       expect(res.body.error.code).toBe('INVALID_TOKEN');
       expect(res.body.error.message).toBe('Invalid token payload');
     });
   });
-
 });
 
 // ═══════════════════════════════════════════════════════════════════
