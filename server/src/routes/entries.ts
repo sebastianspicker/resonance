@@ -142,7 +142,7 @@ export function registerEntryRoutes(
     return updated;
   });
 
-  app.delete('/entries/:entryId', { preHandler: requireAuth }, async (request) => {
+  app.delete('/entries/:entryId', { preHandler: requireAuth }, async (request, reply) => {
     const user = request.user!;
     const entryId = (request.params as { entryId: string }).entryId;
     const entry = await requireEntryAccess(prisma, user, entryId);
@@ -151,7 +151,7 @@ export function registerEntryRoutes(
     const storageKeys = await cascadeDeleteEntry(prisma, entryId);
     await cleanupS3Objects(s3, storageKeys, request.log);
 
-    return { success: true };
+    reply.status(204).send();
   });
 
   app.post('/entries/:entryId/submit', { preHandler: requireAuth }, async (request) => {

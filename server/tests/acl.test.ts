@@ -246,7 +246,7 @@ describe('acl', () => {
       .delete(`/entries/${entry.id}`)
       .set('Authorization', `Bearer ${token}`);
 
-    expect(res.status).toBe(200);
+    expect(res.status).toBe(204);
     expect(s3Mock.commandCalls(DeleteObjectCommand).length).toBe(1);
 
     const entryAfter = await prisma.practiceEntry.findUnique({ where: { id: entry.id } });
@@ -329,7 +329,7 @@ describe('acl', () => {
       .delete(`/entries/${entry.id}`)
       .set('Authorization', `Bearer ${token}`);
 
-    expect(res.status).toBe(200);
+    expect(res.status).toBe(204);
 
     // Both artifacts should trigger S3 cleanup
     expect(s3Mock.commandCalls(DeleteObjectCommand).length).toBe(2);
