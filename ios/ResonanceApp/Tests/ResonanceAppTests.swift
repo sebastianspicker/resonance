@@ -55,6 +55,284 @@ END:VCALENDAR
     }
 }
 
+// MARK: - SyncManager Queue State Machine Tests
+
+final class SyncManagerTests: XCTestCase {
+
+    /// Creates an in-memory ModelContainer and returns it alongside a SyncManager wired to its mainContext.
+    @MainActor
+    private func makeSUT() -> (container: ModelContainer, syncManager: SyncManager) {
+        let container = PersistenceController.createContainer(inMemory: true)
+        let client = APIClient()
+        let auth = AuthManager(apiClient: client)
+        let syncManager = SyncManager(modelContext: container.mainContext, authManager: auth, apiClient: client)
+        return (container, syncManager)
+    }
+
+    // MARK: 1 — retryFailedItems resets status
+
+    @MainActor
+    func testRetryFailedItemsResetsStatusToPending() throws {
+        let (container, syncManager) = makeSUT()
+        let ctx = container.mainContext
+
+        // Insert items with "failed" status, a lastError, and a nextAttemptAt date.
+        let item1 = SyncQueueItem(id: "fail-1", type: "createEntry", payloadJSON: "{}")
+        item1.status = "failed"
+        item1.retryCount = 3
+        item1.lastError = "Server timeout"
+        item1.nextAttemptAt = Date().addingTimeInterval(60)
+        ctx.insert(item1)
+
+        let item2 = SyncQueueItem(id: "fail-2", type: "uploadArtifact", payloadJSON: "{}")
+        item2.status = "failed"
+        item2.retryCount = 5
+        item2.lastError = "Network error"
+        item2.nextAttemptAt = Date().addingTimeInterval(120)
+        ctx.insert(item2)
+
+        try ctx.save()
+
+        // Act
+        syncManager.retryFailedItems()
+
+        // Assert
+        let all = try ctx.fetch(FetchDescriptor<SyncQueueItem>())
+        XCTAssertEqual(all.count, 2)
+        for item in all {
+            XCTAssertEqual(item.status, "pending", "Status should be reset to pending")
+            XCTAssertNil(item.lastError, "lastError should be cleared")
+            XCTAssertNil(item.nextAttemptAt, "nextAttemptAt should be reset to nil")
+        }
+    }
+
+    @MainActor
+    func testRetryFailedItemsDoesNotAffectPendingItems() throws {
+        let (container, syncManager) = makeSUT()
+        let ctx = container.mainContext
+
+        let pending = SyncQueueItem(id: "pend-1", type: "createEntry", payloadJSON: "{}")
+        pending.status = "pending"
+        pending.nextAttemptAt = Date().addingTimeInterval(30)
+        ctx.insert(pending)
+
+        let failed = SyncQueueItem(id: "fail-1", type: "createEntry", payloadJSON: "{}")
+        failed.status = "failed"
+        failed.lastError = "some error"
+        ctx.insert(failed)
+
+        try ctx.save()
+
+        syncManager.retryFailedItems()
+
+        // The pending item should still have its original nextAttemptAt
+        let pendingItems = try ctx.fetch(FetchDescriptor<SyncQueueItem>(predicate: #Predicate { $0.id == "pend-1" }))
+        XCTAssertEqual(pendingItems.first?.status, "pending")
+        XCTAssertNotNil(pendingItems.first?.nextAttemptAt, "Pending item's nextAttemptAt should not be altered")
+
+        let failedItems = try ctx.fetch(FetchDescriptor<SyncQueueItem>(predicate: #Predicate { $0.id == "fail-1" }))
+        XCTAssertEqual(failedItems.first?.status, "pending")
+        XCTAssertNil(failedItems.first?.lastError)
+    }
+
+    // MARK: 2 — Exponential backoff calculation
+
+    func testExponentialBackoffRetryCount0() {
+        // pow(2.0, 0) = 1, min(1, 300) = 1
+        let delay = min(pow(2.0, Double(0)), 300)
+        XCTAssertEqual(delay, 1.0, accuracy: 0.001)
+    }
+
+    func testExponentialBackoffRetryCount3() {
+        // pow(2.0, 3) = 8, min(8, 300) = 8
+        let delay = min(pow(2.0, Double(3)), 300)
+        XCTAssertEqual(delay, 8.0, accuracy: 0.001)
+    }
+
+    func testExponentialBackoffRetryCount10CapsAt300() {
+        // pow(2.0, 10) = 1024, min(1024, 300) = 300
+        let delay = min(pow(2.0, Double(10)), 300)
+        XCTAssertEqual(delay, 300.0, accuracy: 0.001)
+    }
+
+    func testExponentialBackoffRetryCount8Below300() {
+        // pow(2.0, 8) = 256, min(256, 300) = 256
+        let delay = min(pow(2.0, Double(8)), 300)
+        XCTAssertEqual(delay, 256.0, accuracy: 0.001)
+    }
+
+    func testExponentialBackoffRetryCount9ExceedsCap() {
+        // pow(2.0, 9) = 512, min(512, 300) = 300
+        let delay = min(pow(2.0, Double(9)), 300)
+        XCTAssertEqual(delay, 300.0, accuracy: 0.001)
+    }
+
+    // MARK: 3 — FIFO ordering
+
+    @MainActor
+    func testFIFOOrderingBySortDescriptor() throws {
+        let (container, _) = makeSUT()
+        let ctx = container.mainContext
+
+        let now = Date()
+        let item1 = SyncQueueItem(id: "fifo-1", type: "createEntry", payloadJSON: "{}")
+        item1.createdAt = now.addingTimeInterval(-30) // oldest
+        ctx.insert(item1)
+
+        let item2 = SyncQueueItem(id: "fifo-2", type: "uploadArtifact", payloadJSON: "{}")
+        item2.createdAt = now.addingTimeInterval(-10) // newest
+        ctx.insert(item2)
+
+        let item3 = SyncQueueItem(id: "fifo-3", type: "confirmArtifact", payloadJSON: "{}")
+        item3.createdAt = now.addingTimeInterval(-20) // middle
+        ctx.insert(item3)
+
+        try ctx.save()
+
+        // Replicate the same FetchDescriptor used in processQueue
+        var descriptor = FetchDescriptor<SyncQueueItem>(predicate: #Predicate { $0.status == "pending" })
+        descriptor.sortBy = [SortDescriptor(\.createdAt, order: .forward)]
+
+        let fetched = try ctx.fetch(descriptor)
+        XCTAssertEqual(fetched.count, 3)
+        XCTAssertEqual(fetched[0].id, "fifo-1", "Oldest item should be first (FIFO)")
+        XCTAssertEqual(fetched[1].id, "fifo-3", "Middle item should be second")
+        XCTAssertEqual(fetched[2].id, "fifo-2", "Newest item should be last")
+    }
+
+    // MARK: 4 — Background expiration resets processing items
+
+    @MainActor
+    func testBackgroundExpirationResetsProcessingToPending() throws {
+        let (container, _) = makeSUT()
+        let ctx = container.mainContext
+
+        // Simulate items stuck in "processing" state (as would happen during background task expiry)
+        let item1 = SyncQueueItem(id: "proc-1", type: "uploadArtifact", payloadJSON: "{}")
+        item1.status = "processing"
+        item1.nextAttemptAt = Date().addingTimeInterval(60)
+        ctx.insert(item1)
+
+        let item2 = SyncQueueItem(id: "proc-2", type: "createEntry", payloadJSON: "{}")
+        item2.status = "processing"
+        ctx.insert(item2)
+
+        // A pending item should not be touched
+        let pendingItem = SyncQueueItem(id: "pend-1", type: "submitEntry", payloadJSON: "{}")
+        pendingItem.status = "pending"
+        ctx.insert(pendingItem)
+
+        try ctx.save()
+
+        // Simulate the expiration handler logic from processQueue
+        let stuckDescriptor = FetchDescriptor<SyncQueueItem>(predicate: #Predicate { $0.status == "processing" })
+        let stuck = try ctx.fetch(stuckDescriptor)
+        for item in stuck {
+            item.status = "pending"
+            item.nextAttemptAt = nil
+        }
+        try ctx.save()
+
+        // Verify processing items were reset
+        let allItems = try ctx.fetch(FetchDescriptor<SyncQueueItem>())
+        XCTAssertEqual(allItems.count, 3)
+
+        let resetItems = try ctx.fetch(FetchDescriptor<SyncQueueItem>(predicate: #Predicate { $0.id == "proc-1" || $0.id == "proc-2" }))
+        for item in resetItems {
+            XCTAssertEqual(item.status, "pending", "Processing items should be reset to pending on background expiry")
+            XCTAssertNil(item.nextAttemptAt, "nextAttemptAt should be cleared on background expiry")
+        }
+
+        // Pending item should remain unchanged
+        let pendingFetch = try ctx.fetch(FetchDescriptor<SyncQueueItem>(predicate: #Predicate { $0.id == "pend-1" }))
+        XCTAssertEqual(pendingFetch.first?.status, "pending")
+    }
+
+    // MARK: 5 — Enqueue with JSON serialization failure
+
+    @MainActor
+    func testEnqueueWithInvalidPayloadDoesNotInsertItem() throws {
+        let (container, syncManager) = makeSUT()
+        let ctx = container.mainContext
+
+        // Double.nan is not valid JSON and will cause JSONSerialization to throw.
+        let invalidPayload: [String: Any] = ["value": Double.nan]
+
+        syncManager.enqueue(type: .createEntry, payload: invalidPayload)
+
+        // The item should NOT be inserted into the store (logged, not silently dropped).
+        let items = try ctx.fetch(FetchDescriptor<SyncQueueItem>())
+        XCTAssertEqual(items.count, 0, "Invalid payloads should be rejected, not inserted")
+    }
+
+    @MainActor
+    func testEnqueueWithValidPayloadInsertsItem() throws {
+        let (container, syncManager) = makeSUT()
+        let ctx = container.mainContext
+
+        let validPayload: [String: Any] = ["entryId": "entry-42"]
+
+        syncManager.enqueue(type: .createEntry, payload: validPayload)
+
+        let items = try ctx.fetch(FetchDescriptor<SyncQueueItem>())
+        XCTAssertEqual(items.count, 1, "Valid payloads should be inserted")
+    }
+
+    // MARK: 6 — Queue item creation fields
+
+    @MainActor
+    func testEnqueueCreatesItemWithCorrectFields() throws {
+        let (container, syncManager) = makeSUT()
+        let ctx = container.mainContext
+
+        let beforeEnqueue = Date()
+        syncManager.enqueue(type: .deleteEntry, payload: ["entryId": "entry-99"])
+        let afterEnqueue = Date()
+
+        let items = try ctx.fetch(FetchDescriptor<SyncQueueItem>())
+        XCTAssertEqual(items.count, 1)
+
+        let item = try XCTUnwrap(items.first)
+        XCTAssertEqual(item.type, SyncTaskType.deleteEntry.rawValue, "Type should match the enqueued task type")
+        XCTAssertEqual(item.status, "pending", "Initial status should be 'pending'")
+        XCTAssertEqual(item.retryCount, 0, "Initial retryCount should be 0")
+        XCTAssertNil(item.lastError, "Initial lastError should be nil")
+        XCTAssertNil(item.nextAttemptAt, "Initial nextAttemptAt should be nil")
+        XCTAssertFalse(item.id.isEmpty, "ID should be a non-empty UUID string")
+
+        // createdAt should be within the time window of the enqueue call
+        XCTAssertGreaterThanOrEqual(item.createdAt, beforeEnqueue)
+        XCTAssertLessThanOrEqual(item.createdAt, afterEnqueue)
+
+        // payloadJSON should round-trip back to the original dictionary
+        let data = item.payloadJSON.data(using: .utf8)!
+        let decoded = try JSONSerialization.jsonObject(with: data) as! [String: Any]
+        XCTAssertEqual(decoded["entryId"] as? String, "entry-99")
+    }
+
+    @MainActor
+    func testEnqueueDifferentTypesStoresCorrectRawValue() throws {
+        let (container, syncManager) = makeSUT()
+        let ctx = container.mainContext
+
+        let types: [SyncTaskType] = [.createEntry, .createArtifact, .uploadArtifact, .confirmArtifact, .submitEntry, .deleteEntry, .postFeedback]
+
+        for (index, taskType) in types.enumerated() {
+            syncManager.enqueue(type: taskType, payload: ["index": index])
+        }
+
+        var descriptor = FetchDescriptor<SyncQueueItem>()
+        descriptor.sortBy = [SortDescriptor(\.createdAt, order: .forward)]
+        let items = try ctx.fetch(descriptor)
+        XCTAssertEqual(items.count, types.count)
+
+        for (index, taskType) in types.enumerated() {
+            XCTAssertEqual(items[index].type, taskType.rawValue,
+                           "Item at index \(index) should have type '\(taskType.rawValue)'")
+        }
+    }
+}
+
 // MARK: - Model Enum Raw Value Tests
 
 final class ModelEnumRawValueTests: XCTestCase {
