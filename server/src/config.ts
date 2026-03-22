@@ -10,6 +10,21 @@ function requireEnv(name: string): string {
   return value;
 }
 
+/**
+ * Validates that a dev login callback URL uses an allowed scheme.
+ * Only `resonance://` (app custom scheme) and `http://localhost` are permitted.
+ * Exported for testing.
+ */
+export function validateDevCallbackUrl(url: string): string {
+  if (!url.startsWith('resonance://') && !url.startsWith('http://localhost')) {
+    throw new Error(
+      'DEV_LOGIN_CALLBACK_URL must start with "resonance://" or "http://localhost". ' +
+        `Got: "${url}"`
+    );
+  }
+  return url;
+}
+
 export const config = {
   port: Number(process.env.PORT ?? 4000),
   authMode: (() => {
@@ -36,7 +51,9 @@ export const config = {
     .map((origin) => origin.trim())
     .filter(Boolean),
   devUniversityName: process.env.DEV_UNIVERSITY_NAME ?? 'Mock University Conservatory',
-  devLoginCallbackUrl: process.env.DEV_LOGIN_CALLBACK_URL ?? 'resonance://auth-callback',
+  devLoginCallbackUrl: validateDevCallbackUrl(
+    process.env.DEV_LOGIN_CALLBACK_URL ?? 'resonance://auth-callback'
+  ),
   appBaseUrl: process.env.APP_BASE_URL ?? 'http://localhost:4000',
 };
 

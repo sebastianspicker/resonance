@@ -24,6 +24,9 @@
 - Background sync using URLSession background configuration and exponential backoff.
 - Last-write-wins for entry edits; feedback is append-only server-side.
 
+## Pagination
+The review queue (`GET /courses/:courseId/review-queue`) uses cursor-based pagination. The response shape is `{ items: [...], nextCursor: string | null }`. Clients pass `?cursor=<entryId>&limit=N` to fetch subsequent pages. The sort order is deterministic: `practiceDate DESC`, `createdAt DESC`, `id DESC` (three-column tiebreaker).
+
 ## Error Handling
 API returns consistent error objects:
 ```
@@ -35,3 +38,16 @@ API returns consistent error objects:
   }
 }
 ```
+
+All error codes are centralized in `errorCodes.ts`. Routes use `withPrismaErrors()` (from `errors.ts`) to translate Prisma-specific exceptions (P2002 unique conflict, P2025 not-found) into structured API errors, avoiding raw 500 responses from database constraint violations.
+
+## Test Coverage
+The server has 276 tests across 16 test files covering:
+- Authentication and authorization (dev auth, ACL, course-role vs global-role)
+- Input validation (client IDs, strings, dates, enums)
+- Entry lifecycle (create, update, submit, delete, status transitions)
+- Artifact upload flow (presign, confirm, ownership)
+- Feedback (creation, permissions, deleted-entry guards)
+- Review queue pagination (cursor-based, deterministic ordering)
+- Security headers, CORS, rate limiting, and content-type enforcement
+- Error handling (structured errors, Prisma error mapping, stack trace suppression)

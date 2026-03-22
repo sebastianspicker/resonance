@@ -6,7 +6,7 @@ Each item can be turned into a separate issue.
 
 ## Known Limitations / Bugs
 
-### 1. [Bug/Operational] Dev auth is unauthenticated and GET-driven
+### 1. [Bug/Operational] Dev auth is unauthenticated and GET-driven — ✅ Mitigated
 
 **Description:** When `AUTH_MODE=dev`, `/dev/login`, `/dev/authorize`, and `/dev/issue` are publicly accessible. Anyone can obtain auth codes and mint sessions; `/dev/issue` can accept an arbitrary `userId` to issue a code for any existing user. The flow is GET-driven with no CSRF or confirmation (e.g. "Login as Teacher" is one click).
 
@@ -14,11 +14,13 @@ Each item can be turned into a separate issue.
 
 **Fix:** Keep dev auth strictly local-only (document, and optionally enforce bind to loopback). Do not set `AUTH_MODE=dev` in any reachable environment. For production, implement real SSO and disable dev routes.
 
-**Sources:** README, `docs/SECURITY.md`
+**Status:** Mitigated. All dev auth routes enforce loopback-only access (`requireLocalDevAuth`). `AUTH_MODE=dev` will not be set in production. Documentation warns against non-local use. `.env.example` has safety warnings.
+
+**Sources:** README, `docs/SECURITY.md`, `server/src/routes/auth.ts`
 
 ---
 
-### 2. [Bug] `redirectUri` is accepted but never validated
+### 2. [Bug] `redirectUri` is accepted but never validated — Deferred
 
 **Description:** `POST /auth/session` accepts `redirectUri` in the body (and iOS always sends it) but the server does not validate or bind the code to it. Docs state production design will use `redirectUri` validation.
 
@@ -26,11 +28,13 @@ Each item can be turned into a separate issue.
 
 **Fix:** Implement `redirectUri` validation when introducing production auth (e.g. allowlist or exact match to registered callback). For dev, document that validation is intentionally skipped.
 
+**Status:** Deferred — will be implemented with production OAuth/SSO. In dev mode, `redirectUri` is intentionally not validated (documented in code comments).
+
 **Sources:** `docs/API.md`, `docs/SECURITY.md`
 
 ---
 
-### 3. [Bug/Operational] Dev auth code in URL query (exfil surface)
+### 3. [Bug/Operational] Dev auth code in URL query (exfil surface) — ✅ Mitigated
 
 **Description:** `/dev/authorize` redirects to `DEV_LOGIN_CALLBACK_URL` with `?code=...`. The auth code is in the query string; there is no validation of the redirect URL. Misconfigured or attacker-controlled callback URL can exfiltrate the code.
 
@@ -38,7 +42,9 @@ Each item can be turned into a separate issue.
 
 **Fix:** Validate `DEV_LOGIN_CALLBACK_URL` (scheme/host allowlist). Prefer passing code in fragment or via POST callback where feasible for production design.
 
-**Sources:** `server/src/server.ts`
+**Status:** Mitigated. `validateDevCallbackUrl` in `config.ts` validates at startup that `DEV_LOGIN_CALLBACK_URL` starts with `resonance://` or `http://localhost`. Other schemes are rejected. Unit tests cover allowed and disallowed schemes.
+
+**Sources:** `server/src/config.ts`, `server/tests/validation.test.ts`
 
 ---
 
@@ -136,9 +142,11 @@ Each item can be turned into a separate issue.
 
 ---
 
-### 11. [Enhancement] Validate and document `redirectUri` for production auth
+### 11. [Enhancement] Validate and document `redirectUri` for production auth — Deferred
 
 Same as (2): Implement and document `redirectUri` validation when production auth is added.
+
+**Status:** Deferred — same as #2. Will be implemented with production OAuth/SSO.
 
 ---
 
@@ -286,17 +294,25 @@ Same as (14): Force test DB in setup; never use production/staging URL for `rese
 
 ---
 
-### 24. [Bug] /auth/session does not validate redirectUri
+### 24. [Bug] /auth/session does not validate redirectUri — Deferred
 
-Same as (2): Code exchange does not bind or validate `redirectUri`. **Sources:** `server/src/server.ts`
+Same as (2): Code exchange does not bind or validate `redirectUri`.
+
+**Status:** Deferred — will be implemented with production OAuth/SSO.
+
+**Sources:** `server/src/server.ts`
 
 ---
 
-### 25. [Bug] ATS disabled (NSAllowsArbitraryLoads = true)
+### 25. [Bug] ATS disabled (NSAllowsArbitraryLoads = true) — ✅ Fixed
 
-**Description:** App Transport Security is disabled globally; plain HTTP and weak TLS are allowed. Sensitive data (tokens, media) can be sent over insecure transport.
+**Description:** App Transport Security was disabled globally; plain HTTP and weak TLS were allowed. Sensitive data (tokens, media) could be sent over insecure transport.
 
-**Fix:** Enable ATS; use HTTPS for API base. If localhost HTTP is required for dev, restrict exception to localhost with a narrow plist exception. **Sources:** `ios/ResonanceApp/Sources/Resources/Info.plist`
+**Fix:** Enable ATS; use HTTPS for API base. If localhost HTTP is required for dev, restrict exception to localhost with a narrow plist exception.
+
+**Status:** Fixed. `NSAllowsArbitraryLoads` is now `false`. A narrow `NSExceptionDomains` entry permits insecure HTTP only to `localhost` (for local dev). All other connections require HTTPS/ATS.
+
+**Sources:** `ios/ResonanceApp/Sources/Resources/Info.plist`
 
 ---
 
@@ -540,7 +556,7 @@ The following high-priority items were implemented:
 | createEntry fails on iOS (encoding) | Optional.none in JSON body | ✅ Fixed: typed Encodable struct (#27) |
 | Decode failure on entries/feedback (iOS) | Date format (fractional seconds) | ✅ Fixed: custom date decoder (#28) |
 | Tests wipe real DB | DATABASE_URL not forced to test DB | ✅ Fixed: `test` marker required (#14, #23) |
-| Dev auth in production | AUTH_MODE=dev in reachable env | ⚠️ Mitigated: localhost-only guard + docs (#1, #30) |
+| Dev auth in production | AUTH_MODE=dev in reachable env | ✅ Mitigated: localhost-only guard + callback URL validation + docs (#1, #3, #30) |
 
 ---
 
