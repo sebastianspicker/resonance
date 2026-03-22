@@ -2,15 +2,7 @@ import jwt from 'jsonwebtoken';
 import request from 'supertest';
 import { beforeAll, afterAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { config } from '../src/config.js';
-import {
-  app,
-  setupApp,
-  teardownApp,
-  resetDb,
-  seedBasic,
-  getAccessToken,
-  prisma,
-} from './testUtils.js';
+import { app, setupApp, teardownApp, resetDb, seedBasic, prisma } from './testUtils.js';
 
 /**
  * Tests targeting uncovered branches in:
