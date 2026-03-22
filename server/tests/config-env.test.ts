@@ -106,6 +106,11 @@ describe('config top-level validation (subprocess)', () => {
     );
   });
 
+  it('rejects invalid AUTH_MODE', () => {
+    const stderr = importConfigWithEnv({ AUTH_MODE: 'staging' });
+    expect(stderr).toContain('AUTH_MODE must be "dev" or "prod"');
+  });
+
   it('rejects missing JWT_SECRET', () => {
     const stderr = importConfigWithEnv({ JWT_SECRET: undefined });
     expect(stderr).toContain('Missing environment variable: JWT_SECRET');
