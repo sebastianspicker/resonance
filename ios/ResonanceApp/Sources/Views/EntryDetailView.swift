@@ -89,6 +89,7 @@ struct EntryDetailView: View {
                             }
                             .buttonStyle(SubtleGlassButtonStyle())
                             .accessibilityLabel("Stop recording")
+                            .accessibilityHint("Double-tap to stop the current audio recording")
                         } else {
                             Button(action: startRecording) {
                                 HStack {
@@ -99,6 +100,7 @@ struct EntryDetailView: View {
                             }
                             .buttonStyle(VibrantGlassButtonStyle())
                             .accessibilityLabel("Start audio recording")
+                            .accessibilityHint("Double-tap to begin recording audio")
                         }
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -133,6 +135,7 @@ struct EntryDetailView: View {
                                         }
                                         .buttonStyle(SubtleGlassButtonStyle())
                                         .accessibilityLabel(player.isPlaying ? "Stop playback" : "Play \(artifact.type.rawValue) recording")
+                                        .accessibilityHint(player.isPlaying ? "Double-tap to stop playback" : "Double-tap to play this recording")
                                     }
 
                                     // Mini player with seek
@@ -233,6 +236,7 @@ struct EntryDetailView: View {
                         .buttonStyle(SubtleGlassButtonStyle())
                         .foregroundStyle(.red)
                         .accessibilityLabel("Delete entry")
+                        .accessibilityHint("Double-tap to permanently delete this practice entry")
                     }
                     .padding(.top, 16)
                     .padding(.bottom, 40)

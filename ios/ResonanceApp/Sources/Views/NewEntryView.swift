@@ -38,13 +38,15 @@ struct NewEntryView: View {
                             .tint(.white)
                             .frame(maxWidth: .infinity, alignment: .leading)
                             .accessibilityLabel("Practice template")
+                            .accessibilityHint("Select a template to pre-fill the entry form")
 
                             Button("Apply Template") {
                                 applySelectedTemplate()
                             }
                             .buttonStyle(SubtleGlassButtonStyle())
                             .frame(maxWidth: .infinity)
-                            .accessibilityHint("Fills in goal, tags, and notes from the selected template")
+                            .accessibilityLabel("Apply template")
+                            .accessibilityHint("Double-tap to fill in goal, tags, and notes from the selected template")
                         }
                         .glassCard()
                         
@@ -56,6 +58,8 @@ struct NewEntryView: View {
                                 .textCase(.uppercase)
                             
                             GlassTextField(placeholder: "Goal text", text: $goalText)
+                                .accessibilityLabel("Goal text")
+                                .accessibilityHint("Enter your practice goal")
                         }
                         .glassCard()
 
@@ -75,6 +79,8 @@ struct NewEntryView: View {
                                 Spacer()
                                 GlassTextField(placeholder: "0", text: $durationSeconds, keyboardType: .numberPad, cornerRadius: 8, width: 100)
                                     .multilineTextAlignment(.trailing)
+                                    .accessibilityLabel("Duration in seconds")
+                                    .accessibilityHint("Enter practice duration in seconds")
                             }
                         }
                         .glassCard()
@@ -87,6 +93,8 @@ struct NewEntryView: View {
                                 .textCase(.uppercase)
                             
                             GlassTextField(placeholder: "Comma-separated tags", text: $tags)
+                                .accessibilityLabel("Tags")
+                                .accessibilityHint("Enter comma-separated tags for this entry")
                         }
                         .glassCard()
 
@@ -98,6 +106,8 @@ struct NewEntryView: View {
                                 .textCase(.uppercase)
                             
                             GlassTextField(placeholder: "Notes", text: $notes, axis: .vertical, lineLimit: 4...8)
+                                .accessibilityLabel("Notes")
+                                .accessibilityHint("Enter additional notes about your practice session")
                         }
                         .glassCard()
                     }
@@ -113,11 +123,14 @@ struct NewEntryView: View {
                     Button("Save") { saveEntry() }
                         .disabled(goalText.isEmpty)
                         .foregroundStyle(goalText.isEmpty ? .white.opacity(0.5) : .white)
-                        .accessibilityHint(goalText.isEmpty ? "Enter a goal first" : "Saves this practice entry as a draft")
+                        .accessibilityLabel("Save entry")
+                        .accessibilityHint(goalText.isEmpty ? "Enter a goal first" : "Double-tap to save this practice entry as a draft")
                 }
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") { dismiss() }
                         .foregroundStyle(.white)
+                        .accessibilityLabel("Cancel")
+                        .accessibilityHint("Double-tap to discard this entry and go back")
                 }
             }
         }

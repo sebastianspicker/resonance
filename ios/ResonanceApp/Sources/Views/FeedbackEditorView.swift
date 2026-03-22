@@ -57,6 +57,7 @@ struct FeedbackEditorView: View {
                             .pickerStyle(.segmented)
                             .colorScheme(.dark)
                             .accessibilityLabel("Feedback status")
+                            .accessibilityHint("Select OK, Needs Revision, or Next Goal")
                         }
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .glassCard()
@@ -69,6 +70,8 @@ struct FeedbackEditorView: View {
                                 .textCase(.uppercase)
                             
                             GlassTextField(placeholder: "Comments", text: $commentsText, axis: .vertical, lineLimit: 4...8)
+                                .accessibilityLabel("Feedback comments")
+                                .accessibilityHint("Enter your feedback comments for the student")
                         }
                         .glassCard()
 
@@ -118,6 +121,8 @@ struct FeedbackEditorView: View {
                                 markers.append(MarkerDraft(timeSeconds: "", text: ""))
                             }
                             .buttonStyle(SubtleGlassButtonStyle())
+                            .accessibilityLabel("Add marker")
+                            .accessibilityHint("Double-tap to add a new time marker to this feedback")
                         }
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .glassCard()
@@ -136,10 +141,14 @@ struct FeedbackEditorView: View {
                     Button("Send") { Task { await sendFeedback() } }
                         .disabled(commentsText.isEmpty || isSending)
                         .foregroundStyle(commentsText.isEmpty || isSending ? .white.opacity(0.5) : .white)
+                        .accessibilityLabel("Send feedback")
+                        .accessibilityHint(commentsText.isEmpty ? "Enter comments first" : "Double-tap to submit this feedback to the student")
                 }
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") { dismiss() }
                         .foregroundStyle(.white)
+                        .accessibilityLabel("Cancel")
+                        .accessibilityHint("Double-tap to discard feedback and go back")
                 }
             }
             .alert("Invalid Markers", isPresented: .init(
