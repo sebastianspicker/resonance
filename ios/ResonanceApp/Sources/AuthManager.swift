@@ -123,7 +123,7 @@ final class AuthManager: NSObject, ObservableObject {
     func refreshIfNeeded() async {
         guard let session else { return }
 
-        // If a refresh is already in progress, await it.
+        // If a refresh is already in progress, coalesce by awaiting the existing task.
         if let existingTask = refreshTask {
             _ = try? await existingTask.value
             return
@@ -132,7 +132,10 @@ final class AuthManager: NSObject, ObservableObject {
         // Only refresh if the access token is expired or within 60 seconds of expiry.
         guard isAccessTokenExpired(session.accessToken) else { return }
 
-        let task = Task {
+        // Assign refreshTask *before* awaiting so concurrent callers
+        // always see the in-flight task and coalesce onto it.
+        refreshTask = Task {
+            defer { refreshTask = nil }
             let refreshed = try await apiClient.refreshTokens(refreshToken: session.refreshToken)
             let newSession = AuthSession(
                 accessToken: refreshed.accessToken,
@@ -144,13 +147,9 @@ final class AuthManager: NSObject, ObservableObject {
             persistSession(newSession)
         }
 
-        refreshTask = task
-
         do {
-            try await task.value
-            refreshTask = nil
+            try await refreshTask!.value
         } catch {
-            refreshTask = nil
             Self.logger.error("Token refresh failed, signing out: \(error.localizedDescription)")
             signOut()
         }
