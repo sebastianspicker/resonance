@@ -52,11 +52,14 @@ struct LoginView: View {
                     }
                     .buttonStyle(VibrantGlassButtonStyle())
                     .padding(.top, 8)
+                    .accessibilityLabel("Sign in to your account")
+                    .accessibilityHint("Double-tap to sign in with your university credentials")
                     
                     Text("Environment: \(AppConfig.apiBaseURL.host() ?? AppConfig.apiBaseURL.absoluteString)")
                         .font(.caption2)
                         .foregroundStyle(.white.opacity(0.4))
                         .padding(.top, 16)
+                        .accessibilityLabel("Connected to environment \(AppConfig.apiBaseURL.host() ?? AppConfig.apiBaseURL.absoluteString)")
                 }
             }
             .padding(.horizontal, 40)

@@ -22,6 +22,8 @@ struct SettingsView: View {
                         authManager.signOut()
                     }
                     .foregroundStyle(.red)
+                    .accessibilityLabel("Sign out")
+                    .accessibilityHint("Double-tap to sign out of your account")
                 }
 
 #if DEBUG
@@ -40,6 +42,8 @@ struct SettingsView: View {
                         }
                         showDemoStatusAlert = true
                     }
+                    .accessibilityLabel("Load mock demo data")
+                    .accessibilityHint("Double-tap to populate the app with sample university data")
 
                     Button("Clear Mock Demo Data") {
                         do {
@@ -50,6 +54,8 @@ struct SettingsView: View {
                         }
                         showDemoStatusAlert = true
                     }
+                    .accessibilityLabel("Clear mock demo data")
+                    .accessibilityHint("Double-tap to remove all sample data from the app")
                 }
 #endif
 
