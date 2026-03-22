@@ -23,7 +23,7 @@ export function registerEntryRoutes(
   s3: S3Client,
   requireAuth: (request: FastifyRequest) => Promise<void>
 ) {
-  app.post('/courses/:courseId/entries', { preHandler: requireAuth }, async (request) => {
+  app.post('/courses/:courseId/entries', { preHandler: requireAuth }, async (request, reply) => {
     const user = request.user!;
     const courseId = (request.params as { courseId: string }).courseId;
     const role = await requireCourseRole(prisma, user.id, courseId);
@@ -50,7 +50,7 @@ export function registerEntryRoutes(
           });
     const notes =
       body?.notes === undefined || body?.notes === null ? null : requireString(body.notes, 'notes');
-    return withPrismaErrors(
+    const created = await withPrismaErrors(
       () =>
         prisma.practiceEntry.create({
           data: {
@@ -67,6 +67,7 @@ export function registerEntryRoutes(
         }),
       { conflictMessage: 'An entry with this ID already exists' }
     );
+    return reply.status(201).send(created);
   });
 
   app.patch('/entries/:entryId', { preHandler: requireAuth }, async (request) => {

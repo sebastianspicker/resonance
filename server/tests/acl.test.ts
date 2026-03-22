@@ -495,7 +495,7 @@ describe('acl', () => {
         markers: [],
       });
 
-    expect(res.status).toBe(200);
+    expect(res.status).toBe(201);
 
     const updatedEntry = await prisma.practiceEntry.findUnique({ where: { id: entry.id } });
     expect(updatedEntry?.status).toBe('reviewed');
@@ -535,7 +535,7 @@ describe('acl', () => {
         markers: [],
       });
 
-    expect(res.status).toBe(200);
+    expect(res.status).toBe(201);
 
     const updatedEntry = await prisma.practiceEntry.findUnique({ where: { id: entry.id } });
     expect(updatedEntry?.status).toBe('reviewed');
@@ -606,7 +606,7 @@ describe('acl', () => {
       .set('Authorization', `Bearer ${token}`)
       .send({ id: 'artifact-allowed', type: 'audio', durationSeconds: 10 });
 
-    expect(res.status).toBe(200);
+    expect(res.status).toBe(201);
     expect(res.body.id).toBe('artifact-allowed');
   });
 });

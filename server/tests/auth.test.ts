@@ -25,7 +25,7 @@ describe('auth', () => {
       redirectUri: 'resonance://auth-callback',
     });
 
-    expect(session.status).toBe(200);
+    expect(session.status).toBe(201);
     expect(typeof session.body.accessToken).toBe('string');
     expect(session.body.accessToken.split('.')).toHaveLength(3);
     expect(typeof session.body.refreshToken).toBe('string');

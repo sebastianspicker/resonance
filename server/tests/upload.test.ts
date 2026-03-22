@@ -52,7 +52,7 @@ describe('media upload flow', () => {
       .set('Authorization', `Bearer ${token}`)
       .send({ id: 'artifact-1', type: 'audio', durationSeconds: 60 });
 
-    expect(artifactRes.status).toBe(200);
+    expect(artifactRes.status).toBe(201);
 
     const presignRes = await request(app.server)
       .post(`/artifacts/${artifactRes.body.id}/presign`)
@@ -101,7 +101,7 @@ describe('media upload flow', () => {
       .post(`/entries/${entry.id}/artifacts`)
       .set('Authorization', `Bearer ${ownerToken}`)
       .send({ id: 'artifact-2', type: 'audio', durationSeconds: 30 });
-    expect(artifactRes.status).toBe(200);
+    expect(artifactRes.status).toBe(201);
 
     const presignRes = await request(app.server)
       .post(`/artifacts/${artifactRes.body.id}/presign`)
@@ -136,7 +136,7 @@ describe('media upload flow', () => {
       .post(`/entries/${entry.id}/artifacts`)
       .set('Authorization', `Bearer ${studentToken}`)
       .send({ id: 'artifact-3', type: 'audio', durationSeconds: 30 });
-    expect(artifactRes.status).toBe(200);
+    expect(artifactRes.status).toBe(201);
 
     const presignRes = await request(app.server)
       .post(`/artifacts/${artifactRes.body.id}/presign`)

@@ -1,5 +1,4 @@
 import { PrismaClient } from '@prisma/client';
-import { nanoid } from 'nanoid';
 
 const prisma = new PrismaClient();
 
@@ -50,9 +49,11 @@ async function main() {
     create: { userId: teacherId, courseId, roleInCourse: 'teacher' },
   });
 
-  const entryId = `entry-${nanoid(8)}`;
-  await prisma.practiceEntry.create({
-    data: {
+  const entryId = 'entry-seed-001';
+  await prisma.practiceEntry.upsert({
+    where: { id: entryId },
+    update: {},
+    create: {
       id: entryId,
       courseId,
       studentId,

@@ -49,7 +49,7 @@ describe('edge cases', () => {
             tags: [],
           });
         // Empty string is a valid string per requireString — no min-length check
-        expect(res.status).toBe(200);
+        expect(res.status).toBe(201);
         expect(res.body.goalText).toBe('');
       });
 
@@ -64,7 +64,7 @@ describe('edge cases', () => {
             goalText: 'Some goal',
             tags: [],
           });
-        expect(res.status).toBe(200);
+        expect(res.status).toBe(201);
         expect(res.body.tags).toEqual([]);
       });
 
@@ -80,7 +80,7 @@ describe('edge cases', () => {
             tags: [],
             durationSeconds: 0,
           });
-        expect(res.status).toBe(200);
+        expect(res.status).toBe(201);
         expect(res.body.durationSeconds).toBe(0);
       });
 
@@ -95,7 +95,7 @@ describe('edge cases', () => {
             goalText: 'No duration',
             tags: [],
           });
-        expect(res.status).toBe(200);
+        expect(res.status).toBe(201);
         expect(res.body.durationSeconds).toBeNull();
       });
 
@@ -109,7 +109,7 @@ describe('edge cases', () => {
             practiceDate: new Date().toISOString(),
             goalText: 'No tags field',
           });
-        expect(res.status).toBe(200);
+        expect(res.status).toBe(201);
         expect(res.body.tags).toEqual([]);
       });
     });
@@ -191,7 +191,7 @@ describe('edge cases', () => {
             commentsText: 'Good work',
             markers: [],
           });
-        expect(res.status).toBe(200);
+        expect(res.status).toBe(201);
         expect(res.body.markers).toEqual([]);
       });
 
@@ -217,7 +217,7 @@ describe('edge cases', () => {
             status: 'ok',
             commentsText: 'Looks fine',
           });
-        expect(res.status).toBe(200);
+        expect(res.status).toBe(201);
         expect(res.body.markers).toEqual([]);
       });
 
@@ -244,7 +244,7 @@ describe('edge cases', () => {
             commentsText: 'x',
             markers: [],
           });
-        expect(res.status).toBe(200);
+        expect(res.status).toBe(201);
         expect(res.body.commentsText).toBe('x');
       });
     });
@@ -268,7 +268,7 @@ describe('edge cases', () => {
             goalText: 'Max ID test',
             tags: [],
           });
-        expect(res.status).toBe(200);
+        expect(res.status).toBe(201);
         expect(res.body.id).toBe(maxId);
       });
 
@@ -300,7 +300,7 @@ describe('edge cases', () => {
             goalText: 'Max tags test',
             tags,
           });
-        expect(res.status).toBe(200);
+        expect(res.status).toBe(201);
         expect(res.body.tags).toHaveLength(30);
       });
 
@@ -316,7 +316,7 @@ describe('edge cases', () => {
             goalText,
             tags: [],
           });
-        expect(res.status).toBe(200);
+        expect(res.status).toBe(201);
         expect(res.body.goalText).toHaveLength(10000);
       });
 
@@ -348,7 +348,7 @@ describe('edge cases', () => {
             tags: [],
             durationSeconds: 28800,
           });
-        expect(res.status).toBe(200);
+        expect(res.status).toBe(201);
         expect(res.body.durationSeconds).toBe(28800);
       });
 
@@ -403,7 +403,7 @@ describe('edge cases', () => {
             commentsText: 'With 50 markers',
             markers,
           });
-        expect(res.status).toBe(200);
+        expect(res.status).toBe(201);
         expect(res.body.markers).toHaveLength(50);
       });
 
@@ -439,7 +439,7 @@ describe('edge cases', () => {
             commentsText: 'Boundary marker',
             markers: [{ timeSeconds: 0, text: 'At start' }],
           });
-        expect(res.status).toBe(200);
+        expect(res.status).toBe(201);
         expect(res.body.markers[0].timeSeconds).toBe(0);
       });
 
@@ -455,7 +455,7 @@ describe('edge cases', () => {
             commentsText: 'Max time marker',
             markers: [{ timeSeconds: 28800, text: 'At max' }],
           });
-        expect(res.status).toBe(200);
+        expect(res.status).toBe(201);
         expect(res.body.markers[0].timeSeconds).toBe(28800);
       });
 
@@ -503,7 +503,7 @@ describe('edge cases', () => {
             commentsText: 'Max marker text',
             markers: [{ timeSeconds: 10, text: 'm'.repeat(1000) }],
           });
-        expect(res.status).toBe(200);
+        expect(res.status).toBe(201);
         expect(res.body.markers[0].text).toHaveLength(1000);
       });
 
@@ -519,7 +519,7 @@ describe('edge cases', () => {
             commentsText: 'c'.repeat(10000),
             markers: [],
           });
-        expect(res.status).toBe(200);
+        expect(res.status).toBe(201);
         expect(res.body.commentsText).toHaveLength(10000);
       });
     });
@@ -543,7 +543,7 @@ describe('edge cases', () => {
           .post('/entries/entry-art-maxid/artifacts')
           .set('Authorization', `Bearer ${token}`)
           .send({ id: maxId, type: 'audio', durationSeconds: 60 });
-        expect(res.status).toBe(200);
+        expect(res.status).toBe(201);
         expect(res.body.id).toBe(maxId);
       });
 
@@ -564,7 +564,7 @@ describe('edge cases', () => {
           .post('/entries/entry-art-zero-dur/artifacts')
           .set('Authorization', `Bearer ${token}`)
           .send({ id: 'art-zero-dur', type: 'audio', durationSeconds: 0 });
-        expect(res.status).toBe(200);
+        expect(res.status).toBe(201);
         expect(res.body.durationSeconds).toBe(0);
       });
     });
@@ -587,7 +587,7 @@ describe('edge cases', () => {
             goalText: 'Practice scales \u{1F3B5}\u{1F3B6}\u{1F3BB}',
             tags: [],
           });
-        expect(res.status).toBe(200);
+        expect(res.status).toBe(201);
         expect(res.body.goalText).toContain('\u{1F3B5}');
       });
 
@@ -603,7 +603,7 @@ describe('edge cases', () => {
               '\u0645\u0645\u0627\u0631\u0633\u0629 \u0627\u0644\u0645\u0648\u0633\u064A\u0642\u0649',
             tags: [],
           });
-        expect(res.status).toBe(200);
+        expect(res.status).toBe(201);
         expect(res.body.goalText).toBe(
           '\u0645\u0645\u0627\u0631\u0633\u0629 \u0627\u0644\u0645\u0648\u0633\u064A\u0642\u0649'
         );
@@ -620,7 +620,7 @@ describe('edge cases', () => {
             goalText: '\u97F3\u697D\u306E\u7DF4\u7FD2',
             tags: [],
           });
-        expect(res.status).toBe(200);
+        expect(res.status).toBe(201);
         expect(res.body.goalText).toBe('\u97F3\u697D\u306E\u7DF4\u7FD2');
       });
 
@@ -635,7 +635,7 @@ describe('edge cases', () => {
             goalText: 'Unicode tags',
             tags: ['\u00FCbung', 'caf\u00E9', '\u97F3\u697D'],
           });
-        expect(res.status).toBe(200);
+        expect(res.status).toBe(201);
         expect(res.body.tags).toContain('\u00FCbung');
         expect(res.body.tags).toContain('caf\u00E9');
       });
@@ -652,7 +652,7 @@ describe('edge cases', () => {
             tags: [],
             notes: 'Line 1\nLine 2 \u{1F3B5}\nLine 3 \u00E4\u00F6\u00FC',
           });
-        expect(res.status).toBe(200);
+        expect(res.status).toBe(201);
         expect(res.body.notes).toContain('\n');
         expect(res.body.notes).toContain('\u{1F3B5}');
       });
@@ -708,7 +708,7 @@ describe('edge cases', () => {
               { timeSeconds: 5, text: '\u{1F3B5} Beautiful tone here \u2014 tr\u00E8s bien!' },
             ],
           });
-        expect(res.status).toBe(200);
+        expect(res.status).toBe(201);
         expect(res.body.commentsText).toContain('\u{1F44D}');
         expect(res.body.markers[0].text).toContain('\u{1F3B5}');
       });
@@ -1070,7 +1070,7 @@ describe('edge cases', () => {
             markers: [],
           });
         // Entry is in 'reviewed' state (not 'draft'), so feedback should be allowed
-        expect(res.status).toBe(200);
+        expect(res.status).toBe(201);
         expect(res.body.commentsText).toBe('Additional feedback');
       });
 

@@ -78,9 +78,10 @@ export function buildServer(prisma: PrismaClient, s3: S3Client) {
     permittedCrossDomainPolicies: { permittedPolicies: 'none' },
   });
 
-  // --- Remove server identity header ----------------------------------------
-  app.addHook('onSend', async (_request, reply) => {
+  // --- Remove server identity header & add request-id -----------------------
+  app.addHook('onSend', async (request, reply) => {
     reply.removeHeader('x-powered-by');
+    reply.header('x-request-id', request.id);
   });
 
   // --- Content-Type enforcement for request bodies --------------------------

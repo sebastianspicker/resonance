@@ -117,7 +117,7 @@ describe('security', () => {
           goalText: 'Test entry',
           tags: [],
         });
-      expect(res.status).toBe(200);
+      expect(res.status).toBe(201);
       expect(res.body.id).toBe('entry_2025-03-21_abc123');
     });
 
@@ -133,7 +133,7 @@ describe('security', () => {
         .post('/courses/COURSE_TEST/entries')
         .set('Authorization', `Bearer ${token}`)
         .send(payload);
-      expect(first.status).toBe(200);
+      expect(first.status).toBe(201);
 
       const second = await request(app.server)
         .post('/courses/COURSE_TEST/entries')
@@ -184,7 +184,7 @@ describe('security', () => {
         .post('/entries/entry-for-dup-artifact/artifacts')
         .set('Authorization', `Bearer ${token}`)
         .send(payload);
-      expect(first.status).toBe(200);
+      expect(first.status).toBe(201);
 
       const second = await request(app.server)
         .post('/entries/entry-for-dup-artifact/artifacts')
@@ -373,7 +373,7 @@ describe('security', () => {
           goalText: 'Test',
           tags: [],
         });
-      expect(res.status).toBe(200);
+      expect(res.status).toBe(201);
     });
 
     it('allows GET requests without content-type', async () => {
@@ -459,7 +459,7 @@ describe('security', () => {
           markers: [],
         });
       // Should be allowed because course role is teacher
-      expect(res.status).toBe(200);
+      expect(res.status).toBe(201);
     });
   });
 });

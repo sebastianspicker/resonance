@@ -60,7 +60,7 @@ describe('input validation', () => {
           tags: [],
           durationSeconds: 28800,
         });
-      expect(res.status).toBe(200);
+      expect(res.status).toBe(201);
       expect(res.body.durationSeconds).toBe(28800);
     });
 
@@ -106,7 +106,7 @@ describe('input validation', () => {
           goalText: 'Test',
           tags: ['a'.repeat(100)],
         });
-      expect(res.status).toBe(200);
+      expect(res.status).toBe(201);
     });
 
     it('rejects negative durationSeconds', async () => {
@@ -257,7 +257,7 @@ describe('input validation', () => {
         .post(`/entries/${entryId}/artifacts`)
         .set('Authorization', `Bearer ${token}`)
         .send({ id: 'artifact-dur-ok', type: 'audio', durationSeconds: 28800 });
-      expect(res.status).toBe(200);
+      expect(res.status).toBe(201);
       expect(res.body.durationSeconds).toBe(28800);
     });
 
@@ -319,7 +319,7 @@ describe('input validation', () => {
           commentsText: 'x'.repeat(10000),
           markers: [],
         });
-      expect(res.status).toBe(200);
+      expect(res.status).toBe(201);
     });
 
     it('rejects marker with timeSeconds exceeding upper bound', async () => {

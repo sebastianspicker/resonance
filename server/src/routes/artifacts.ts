@@ -20,7 +20,7 @@ export function registerArtifactRoutes(
   s3: S3Client,
   requireAuth: (request: FastifyRequest) => Promise<void>
 ) {
-  app.post('/entries/:entryId/artifacts', { preHandler: requireAuth }, async (request) => {
+  app.post('/entries/:entryId/artifacts', { preHandler: requireAuth }, async (request, reply) => {
     const user = request.user!;
     const entryId = (request.params as { entryId: string }).entryId;
     const entry = await prisma.practiceEntry.findUnique({ where: { id: entryId } });
@@ -43,13 +43,14 @@ export function registerArtifactRoutes(
       'durationSeconds',
       { min: 0, max: limits.maxDurationSeconds }
     );
-    return withPrismaErrors(
+    const created = await withPrismaErrors(
       () =>
         prisma.artifact.create({
           data: { id: artifactId, entryId, type, durationSeconds },
         }),
       { conflictMessage: 'An artifact with this ID already exists' }
     );
+    return reply.status(201).send(created);
   });
 
   app.post('/artifacts/:artifactId/presign', { preHandler: requireAuth }, async (request) => {

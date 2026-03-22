@@ -19,7 +19,7 @@ export function registerFeedbackRoutes(
   _s3: S3Client,
   requireAuth: (request: FastifyRequest) => Promise<void>
 ) {
-  app.post('/feedback', { preHandler: requireAuth }, async (request) => {
+  app.post('/feedback', { preHandler: requireAuth }, async (request, reply) => {
     const user = request.user!;
     const body = request.body as Record<string, unknown>;
     const targetType = requireEnum(requireField(body?.targetType, 'targetType'), 'targetType', [
@@ -139,9 +139,9 @@ export function registerFeedbackRoutes(
         notFoundMessage: 'Entry was deleted during feedback creation',
       }
     );
-    return {
+    return reply.status(201).send({
       ...feedback,
       teacherName: feedback.teacher.displayName,
-    };
+    });
   });
 }

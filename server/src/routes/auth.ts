@@ -94,7 +94,7 @@ export function registerAuthRoutes(
         rateLimit: { max: limits.authRateLimitMax, timeWindow: limits.authRateLimitWindow },
       },
     },
-    async (request) => {
+    async (request, reply) => {
       const body = request.body as { code?: string; redirectUri?: string };
       const code = requireString(requireField(body?.code, 'code'), 'code', {
         max: limits.maxAuthCodeLength,
@@ -122,10 +122,10 @@ export function registerAuthRoutes(
         throw new ApiError(401, ErrorCodes.USER_NOT_FOUND, 'User not found');
       }
       const tokens = await issueTokens(prisma, user);
-      return {
+      return reply.status(201).send({
         ...tokens,
         user: { id: user.id, displayName: user.displayName, globalRole: user.globalRole },
-      };
+      });
     }
   );
 
