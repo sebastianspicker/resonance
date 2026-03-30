@@ -34,7 +34,7 @@
     "jsonwebtoken": "^9.0.2",
     "nanoid": "^5.1.7",
     "pino": "^10.3.1",
-    "prisma": "^5.19.1"
+    "prisma": "^7.6.0"
   },
   "overrides": {
     "fast-xml-parser": "5.5.8"
