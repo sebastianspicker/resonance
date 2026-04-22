@@ -6,7 +6,7 @@ A working tree for resonance with an evolving implementation history.
 resonance keeps setup, verification, and known limitations in one place.
 
 ## Status
-Lifecycle stage: maintenance. Maintenance guidance now reflects the stable shape.
+Lifecycle stage: maintenance. Earlier setup detail now lives in maintained guidance.
 
 ## Development
 - Aligned local and CI checks for echo.
@@ -14,9 +14,9 @@ Lifecycle stage: maintenance. Maintenance guidance now reflects the stable shape
 - The document now favors checked behavior over exploratory notes.
 
 ## Usage
-- Merged scattered dir guidance into the docs.
+- Made the vitest assumptions easier to check later.
 
-- The document now favors checked behavior over exploratory notes.
+- Earlier scratch detail is now represented in maintained sections.
 
 ## Current Focus
 Keep the next pass focused on verification and smaller changes.
