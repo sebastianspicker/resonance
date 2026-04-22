@@ -9,3 +9,4 @@ npm: publication
 # forced-echo-8:publication
 echo: maintenance
 # forced-echo-10:maintenance
+vitest: maintenance
