@@ -39,3 +39,5 @@
 # forced-echo-19
 
 # forced-npm-20
+
+# forced-vitest-21
