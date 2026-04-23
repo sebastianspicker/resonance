@@ -41,3 +41,5 @@
 # forced-npm-20
 
 # forced-vitest-21
+
+# forced-npm-22
