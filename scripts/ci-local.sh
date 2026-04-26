@@ -13,13 +13,23 @@ USAGE
 }
 
 WITH_DOCKER=0
-if [[ "${1:-}" == "--help" ]]; then
-	usage
-	exit 0
-fi
-if [[ "${1:-}" == "--with-docker" ]]; then
-	WITH_DOCKER=1
-fi
+while [[ $# -gt 0 ]]; do
+	case "$1" in
+	--help)
+		usage
+		exit 0
+		;;
+	--with-docker)
+		WITH_DOCKER=1
+		;;
+	*)
+		echo "Unknown option: $1" >&2
+		usage >&2
+		exit 1
+		;;
+	esac
+	shift
+done
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT_DIR"
@@ -33,8 +43,13 @@ if ! command -v npm >/dev/null; then
 	exit 1
 fi
 
+HAS_DOCKER=1
+if ! command -v docker >/dev/null; then
+	HAS_DOCKER=0
+fi
+
 if [[ "$WITH_DOCKER" -eq 1 ]]; then
-	if ! command -v docker >/dev/null; then
+	if [[ "$HAS_DOCKER" -eq 0 ]]; then
 		echo "docker is required for --with-docker." >&2
 		exit 1
 	fi
@@ -48,12 +63,18 @@ if [[ "$WITH_DOCKER" -eq 1 ]]; then
 	trap cleanup EXIT
 
 	echo "Waiting for Postgres to be ready..."
+	postgres_ready=0
 	for _ in {1..30}; do
 		if docker compose -f infra/docker-compose.yml exec -T postgres pg_isready -U resonance >/dev/null 2>&1; then
+			postgres_ready=1
 			break
 		fi
 		sleep 1
 	done
+	if [[ "$postgres_ready" -ne 1 ]]; then
+		echo "Postgres did not become ready in time." >&2
+		exit 1
+	fi
 fi
 
 export DATABASE_URL="${DATABASE_URL:-postgresql://resonance:resonance@localhost:5432/resonance_test}"
@@ -70,8 +91,12 @@ export S3_ACCESS_KEY="${S3_ACCESS_KEY:-minioadmin}"
 export S3_SECRET_KEY="${S3_SECRET_KEY:-minioadmin}"
 export S3_FORCE_PATH_STYLE="${S3_FORCE_PATH_STYLE:-true}"
 
-echo "Validating docker compose config..."
-docker compose -f infra/docker-compose.yml config -q
+if [[ "$HAS_DOCKER" -eq 1 ]]; then
+	echo "Validating docker compose config..."
+	docker compose -f infra/docker-compose.yml config -q
+else
+	echo "Skipping docker compose validation: docker is not installed."
+fi
 
 echo "Running secret scan..."
 ./scripts/secret-scan.sh
@@ -83,10 +108,22 @@ echo "Checking committed build artifacts..."
 ./scripts/check-no-build-artifacts.sh
 
 echo "Shellchecking Bash scripts..."
-docker run --rm -v "$ROOT_DIR:/mnt" -w /mnt --entrypoint sh koalaman/shellcheck-alpine:stable -lc 'shellcheck -s bash scripts/*.sh scripts/demo/*.sh'
+if [[ "$HAS_DOCKER" -eq 1 ]]; then
+	docker run --rm -v "$ROOT_DIR:/mnt" -w /mnt --entrypoint sh koalaman/shellcheck-alpine:stable -lc 'shellcheck -s bash scripts/*.sh scripts/demo/*.sh'
+elif command -v shellcheck >/dev/null; then
+	shellcheck -s bash scripts/*.sh scripts/demo/*.sh
+else
+	echo "Skipping shellcheck: neither docker nor shellcheck is available."
+fi
 
 echo "Linting GitHub Actions workflows..."
-docker run --rm -v "$ROOT_DIR:/repo" -w /repo rhysd/actionlint:1.7.7
+if [[ "$HAS_DOCKER" -eq 1 ]]; then
+	docker run --rm -v "$ROOT_DIR:/repo" -w /repo rhysd/actionlint:1.7.7
+elif command -v actionlint >/dev/null; then
+	actionlint
+else
+	echo "Skipping actionlint: neither docker nor actionlint is available."
+fi
 
 echo "Installing dependencies..."
 (cd server && npm ci)

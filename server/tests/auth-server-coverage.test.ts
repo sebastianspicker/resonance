@@ -194,6 +194,13 @@ describe('production auth mode — session and refresh reject invalid input', ()
     expect(res.body.error.message).toBe('Invalid redirectUri');
   });
 
+  it('POST /auth/session requires redirectUri in prod mode', async () => {
+    const res = await request(prodApp.server).post('/auth/session').send({ code: 'some-code' });
+    expect(res.status).toBe(400);
+    expect(res.body.error.code).toBe('VALIDATION_ERROR');
+    expect(res.body.error.message).toBe('redirectUri is required');
+  });
+
   it('POST /auth/refresh rejects an unknown refresh token in prod mode', async () => {
     const res = await request(prodApp.server)
       .post('/auth/refresh')

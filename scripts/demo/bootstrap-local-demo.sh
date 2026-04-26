@@ -25,12 +25,18 @@ echo "[2/6] Starting local infra (Postgres + MinIO)"
 docker compose -f infra/docker-compose.yml up -d postgres minio
 
 echo "[3/6] Waiting for Postgres readiness"
+postgres_ready=0
 for _ in {1..40}; do
   if docker compose -f infra/docker-compose.yml exec -T postgres pg_isready -U resonance >/dev/null 2>&1; then
+    postgres_ready=1
     break
   fi
   sleep 1
 done
+if [[ "$postgres_ready" -ne 1 ]]; then
+  echo "Postgres did not become ready in time." >&2
+  exit 1
+fi
 
 cd "$SERVER_DIR"
 

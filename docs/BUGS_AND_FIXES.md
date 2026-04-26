@@ -20,15 +20,15 @@ Each item can be turned into a separate issue.
 
 ---
 
-### 2. [Bug] `redirectUri` is accepted but never validated — Deferred
+### 2. [Bug] `redirectUri` is accepted but never validated — ✅ Fixed
 
-**Description:** `POST /auth/session` accepts `redirectUri` in the body (and iOS always sends it) but the server does not validate or bind the code to it. Docs state production design will use `redirectUri` validation.
+**Description:** `POST /auth/session` accepted `redirectUri` but only validated it when present, allowing omission in production.
 
 **Impact:** When moving to real OAuth/SSO, lack of redirect binding is a standard code-interception/redirect-abuse vector. Current contract mismatch (client sends, server ignores) is misleading.
 
-**Fix:** Implement `redirectUri` validation when introducing production auth (e.g. allowlist or exact match to registered callback). For dev, document that validation is intentionally skipped.
+**Fix:** In production mode, require `redirectUri` and validate exact match against the configured OIDC redirect URI or the app callback URI.
 
-**Status:** Deferred — will be implemented with production OAuth/SSO. In dev mode, `redirectUri` is intentionally not validated (documented in code comments).
+**Status:** Fixed. `POST /auth/session` now requires `redirectUri` in `AUTH_MODE=prod` and rejects missing or mismatched values with 400 validation errors.
 
 **Sources:** `docs/API.md`, `docs/SECURITY.md`
 
@@ -142,11 +142,11 @@ Each item can be turned into a separate issue.
 
 ---
 
-### 11. [Enhancement] Validate and document `redirectUri` for production auth — Deferred
+### 11. [Enhancement] Validate and document `redirectUri` for production auth — ✅ Fixed
 
-Same as (2): Implement and document `redirectUri` validation when production auth is added.
+Same as (2): `redirectUri` is now required and validated in production mode.
 
-**Status:** Deferred — same as #2. Will be implemented with production OAuth/SSO.
+**Status:** Fixed — same as #2.
 
 ---
 
@@ -294,11 +294,11 @@ Same as (14): Force test DB in setup; never use production/staging URL for `rese
 
 ---
 
-### 24. [Bug] /auth/session does not validate redirectUri — Deferred
+### 24. [Bug] /auth/session does not validate redirectUri — ✅ Fixed
 
-Same as (2): Code exchange does not bind or validate `redirectUri`.
+Same as (2): production session exchange now requires and validates `redirectUri`.
 
-**Status:** Deferred — will be implemented with production OAuth/SSO.
+**Status:** Fixed — same as #2.
 
 **Sources:** `server/src/server.ts`
 

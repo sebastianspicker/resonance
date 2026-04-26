@@ -9,6 +9,7 @@ import { verifyAccessToken } from './auth.js';
 import { config, limits } from './config.js';
 import { ErrorCodes } from './errorCodes.js';
 import { ApiError, sendError } from './errors.js';
+import { isLoopbackIp } from './net.js';
 import { registerArtifactRoutes } from './routes/artifacts.js';
 import { registerAuthRoutes } from './routes/auth.js';
 import { registerCourseRoutes } from './routes/courses.js';
@@ -35,9 +36,6 @@ export function buildServer(prisma: PrismaClient, s3: S3Client) {
   });
 
   // --- Rate limiting --------------------------------------------------------
-  const isLoopback = (ip: string | undefined) =>
-    ip === '127.0.0.1' || ip === '::1' || ip === '::ffff:127.0.0.1';
-
   app.register(rateLimit, {
     max: 100,
     timeWindow: '1 minute',
@@ -45,7 +43,7 @@ export function buildServer(prisma: PrismaClient, s3: S3Client) {
       // Health endpoint should never be throttled (uptime probes, load balancers)
       if (req.url === '/health') return true;
       // In dev mode, exempt localhost to avoid throttling dev/test traffic
-      if (config.authMode === 'dev' && isLoopback(req.ip)) return true;
+      if (config.authMode === 'dev' && isLoopbackIp(req.ip)) return true;
       return false;
     },
   });

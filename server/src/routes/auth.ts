@@ -11,6 +11,7 @@ import {
 import { config, oidcConfig, limits } from '../config.js';
 import { ErrorCodes } from '../errorCodes.js';
 import { ApiError } from '../errors.js';
+import { isLoopbackIp } from '../net.js';
 import { requireEnum, requireField, requireString } from '../validation.js';
 import {
   consumeOidcState,
@@ -31,18 +32,11 @@ export function registerAuthRoutes(
   prisma: PrismaClient,
   requireAuth: (request: FastifyRequest) => Promise<void>
 ) {
-  const isLoopbackAddress = (ip: string | undefined) => {
-    if (!ip) {
-      return false;
-    }
-    return ip === '127.0.0.1' || ip === '::1' || ip === '::ffff:127.0.0.1';
-  };
-
   const requireLocalDevAuth = (request: FastifyRequest) => {
     if (config.authMode !== 'dev') {
       throw new ApiError(404, ErrorCodes.NOT_FOUND, 'Not found');
     }
-    if (!isLoopbackAddress(request.ip)) {
+    if (!isLoopbackIp(request.ip)) {
       throw new ApiError(
         403,
         ErrorCodes.DEV_AUTH_LOCAL_ONLY,
@@ -174,9 +168,6 @@ export function registerAuthRoutes(
     });
 
     const code = issueProdAuthCode(userId);
-    const callbackUrl = new URL(config.appBaseUrl.replace(/\/$/, '') + '/auth/oidc/complete');
-    callbackUrl.searchParams.set('code', code);
-
     // Redirect to the app's custom URL scheme with the internal code.
     // The iOS app registers resonance:// so ASWebAuthenticationSession captures this redirect.
     const appCallbackUrl = new URL('resonance://auth-callback');
@@ -199,9 +190,12 @@ export function registerAuthRoutes(
         max: limits.maxAuthCodeLength,
       });
 
-      // Validate redirectUri in production against the configured callback URI.
+      // In production, require redirectUri and validate against allowed callback URIs.
       const redirectUri = body?.redirectUri;
-      if (config.authMode === 'prod' && oidcConfig && redirectUri) {
+      if (config.authMode === 'prod' && oidcConfig) {
+        if (!redirectUri) {
+          throw new ApiError(400, ErrorCodes.VALIDATION_ERROR, 'redirectUri is required');
+        }
         if (redirectUri !== oidcConfig.redirectUri && redirectUri !== 'resonance://auth-callback') {
           throw new ApiError(400, ErrorCodes.VALIDATION_ERROR, 'Invalid redirectUri');
         }
