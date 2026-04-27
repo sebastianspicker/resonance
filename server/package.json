@@ -23,16 +23,16 @@
     "demo:reset": "tsx prisma/reset.demo.ts"
   },
   "dependencies": {
-    "@aws-sdk/client-s3": "^3.1014.0",
-    "@aws-sdk/s3-request-presigner": "^3.1014.0",
+    "@aws-sdk/client-s3": "^3.1038.0",
+    "@aws-sdk/s3-request-presigner": "^3.1038.0",
     "@fastify/cors": "^11.2.0",
     "@fastify/helmet": "^13.0.2",
     "@fastify/rate-limit": "^10.1.1",
     "@prisma/client": "^5.19.1",
-    "dotenv": "^17.3.1",
-    "fastify": "^5.8.4",
+    "dotenv": "^17.4.2",
+    "fastify": "^5.8.5",
     "jsonwebtoken": "^9.0.2",
-    "nanoid": "^5.1.7",
+    "nanoid": "^5.1.9",
     "openid-client": "^5.7.1",
     "pino": "^10.3.1",
     "prisma": "^5.19.1"
