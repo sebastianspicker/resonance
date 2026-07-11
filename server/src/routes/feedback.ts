@@ -230,7 +230,8 @@ function markerSetsMatch(
 
 function normalizeMarkers(markers: Array<{ timeSeconds: number; text: string }>) {
   const normalized: Array<{ timeSeconds: number; text: string }> = [];
-  for (let index = 0; index < markers.length; index += 1) {
+  for (let index = 0; index < limits.maxMarkers; index += 1) {
+    if (index >= markers.length) break;
     const marker = markers[index]!;
     normalized.push({ timeSeconds: marker.timeSeconds, text: marker.text });
   }
