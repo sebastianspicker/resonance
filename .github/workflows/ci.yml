@@ -63,9 +63,6 @@ jobs:
         run: |
           jwt_secret="$(openssl rand -hex 32)"
           database_url="postgresql://resonance:${POSTGRES_PASSWORD}@localhost:5432/resonance_test"
-          echo "::add-mask::$POSTGRES_PASSWORD"
-          echo "::add-mask::$jwt_secret"
-          echo "::add-mask::$database_url"
           {
             echo "DATABASE_URL=$database_url"
             echo "JWT_SECRET=$jwt_secret"

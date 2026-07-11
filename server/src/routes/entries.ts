@@ -71,9 +71,13 @@ type EntryPatchBase = Pick<
 
 function normalizeTags(rawTags: unknown) {
   const tags = requireStringArray(rawTags, 'tags', { max: limits.maxTags });
-  return tags.map((tag) =>
-    requireString(tag, 'tags[]', { minLength: 1, max: limits.maxTagLength })
-  );
+  const normalized: string[] = [];
+  for (let index = 0; index < tags.length; index += 1) {
+    normalized.push(
+      requireString(tags[index], 'tags[]', { minLength: 1, max: limits.maxTagLength })
+    );
+  }
+  return normalized;
 }
 
 function optionalDurationSeconds(body: Record<string, unknown>) {

@@ -10,6 +10,21 @@ const serverLogs: string[] = [];
 
 let serverProcess: ChildProcessWithoutNullStreams;
 let baseUrl: string;
+let serverPort: number;
+
+function testServerUrl(path: string): URL {
+  const url = new URL(path, baseUrl);
+  if (
+    url.protocol !== 'http:' ||
+    url.hostname !== '127.0.0.1' ||
+    url.port !== String(serverPort) ||
+    url.username !== '' ||
+    url.password !== ''
+  ) {
+    throw new Error(`Refusing E2E request outside the local test server: ${url.origin}`);
+  }
+  return url;
+}
 
 async function findFreePort(): Promise<number> {
   const server = net.createServer();
@@ -77,7 +92,7 @@ async function requestJson<T>(
     headers.set('content-type', 'application/json');
   }
 
-  const response = await fetch(`${baseUrl}${path}`, { ...options, headers });
+  const response = await fetch(testServerUrl(path), { ...options, headers });
   const text = await response.text();
   const body = (text ? JSON.parse(text) : null) as T;
   return { response, body };
@@ -110,11 +125,11 @@ beforeAll(async () => {
   await resetDatabase();
   await seedCourse();
 
-  const port = await findFreePort();
-  baseUrl = `http://127.0.0.1:${port}`;
+  serverPort = await findFreePort();
+  baseUrl = `http://127.0.0.1:${serverPort}`;
   serverProcess = spawn('node', ['dist/index.js'], {
     cwd: process.cwd(),
-    env: { ...process.env, PORT: String(port) },
+    env: { ...process.env, PORT: String(serverPort) },
   });
 
   serverProcess.stdout.on('data', (chunk: Buffer) => serverLogs.push(chunk.toString()));

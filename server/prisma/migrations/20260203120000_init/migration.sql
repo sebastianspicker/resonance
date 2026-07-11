@@ -30,15 +30,15 @@ CREATE TABLE "PracticeEntry" (
     "id" TEXT PRIMARY KEY,
     "courseId" TEXT NOT NULL,
     "studentId" TEXT NOT NULL,
-    "createdAt" TIMESTAMP (3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "practiceDate" TIMESTAMP (3) NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "practiceDate" TIMESTAMP(3) NOT NULL,
     "goalText" TEXT NOT NULL,
     "durationSeconds" INTEGER,
     "tags" TEXT [] NOT NULL,
     "notes" TEXT,
     "status" "EntryStatus" NOT NULL DEFAULT 'draft',
-    "updatedAt" TIMESTAMP (3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "deletedAt" TIMESTAMP (3)
+    "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "deletedAt" TIMESTAMP(3)
 );
 
 CREATE TABLE "Artifact" (
@@ -46,7 +46,7 @@ CREATE TABLE "Artifact" (
     "entryId" TEXT NOT NULL,
     "type" "ArtifactType" NOT NULL,
     "durationSeconds" INTEGER NOT NULL,
-    "createdAt" TIMESTAMP (3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "uploadState" "UploadState" NOT NULL DEFAULT 'pending',
     "storageKey" TEXT,
     "remoteUrl" TEXT
@@ -57,7 +57,7 @@ CREATE TABLE "Feedback" (
     "targetType" "FeedbackTargetType" NOT NULL,
     "targetId" TEXT NOT NULL,
     "teacherId" TEXT NOT NULL,
-    "createdAt" TIMESTAMP (3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "status" "FeedbackStatus" NOT NULL,
     "commentsText" TEXT NOT NULL
 );
@@ -73,9 +73,9 @@ CREATE TABLE "RefreshToken" (
     "id" TEXT PRIMARY KEY,
     "userId" TEXT NOT NULL,
     "tokenHash" TEXT NOT NULL,
-    "expiresAt" TIMESTAMP (3) NOT NULL,
-    "revokedAt" TIMESTAMP (3),
-    "createdAt" TIMESTAMP (3) NOT NULL DEFAULT CURRENT_TIMESTAMP
+    "expiresAt" TIMESTAMP(3) NOT NULL,
+    "revokedAt" TIMESTAMP(3),
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 -- Foreign keys

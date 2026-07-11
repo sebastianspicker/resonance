@@ -31,7 +31,7 @@ CREATE TABLE "CaptureMarker" (
     "timeSeconds" INTEGER NOT NULL,
     "kind" "CaptureMarkerKind" NOT NULL,
     "note" TEXT,
-    "createdAt" TIMESTAMP (3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "CaptureMarker_pkey" PRIMARY KEY ("id")
 );

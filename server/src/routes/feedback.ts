@@ -47,16 +47,20 @@ export function registerFeedbackRoutes(
         `Too many markers (max ${limits.maxMarkers})`
       );
     }
-    const markers = rawMarkers.map((marker) => ({
-      timeSeconds: requireNumber(marker?.timeSeconds, 'marker.timeSeconds', {
-        integer: true,
-        min: 0,
-        max: limits.maxMarkerTimeSeconds,
-      }),
-      text: requireString(requireField(marker?.text, 'marker.text'), 'marker.text', {
-        max: limits.maxMarkerTextLength,
-      }),
-    }));
+    const markers: Array<{ timeSeconds: number; text: string }> = [];
+    for (let index = 0; index < rawMarkers.length; index += 1) {
+      const marker = rawMarkers[index];
+      markers.push({
+        timeSeconds: requireNumber(marker?.timeSeconds, 'marker.timeSeconds', {
+          integer: true,
+          min: 0,
+          max: limits.maxMarkerTimeSeconds,
+        }),
+        text: requireString(requireField(marker?.text, 'marker.text'), 'marker.text', {
+          max: limits.maxMarkerTextLength,
+        }),
+      });
+    }
 
     let courseId: string;
     let reviewEntryId: string;
@@ -131,6 +135,16 @@ export function registerFeedbackRoutes(
       });
     }
 
+    const markerCreates: Array<{ id: string; timeSeconds: number; text: string }> = [];
+    for (let index = 0; index < markers.length; index += 1) {
+      const marker = markers[index]!;
+      markerCreates.push({
+        id: `mk_${nanoid(10)}`,
+        timeSeconds: marker.timeSeconds,
+        text: marker.text,
+      });
+    }
+
     const feedback = await withPrismaErrors(
       () =>
         prisma.$transaction(async (tx) => {
@@ -144,11 +158,7 @@ export function registerFeedbackRoutes(
               status,
               commentsText,
               markers: {
-                create: markers.map((marker) => ({
-                  id: `mk_${nanoid(10)}`,
-                  timeSeconds: marker.timeSeconds,
-                  text: marker.text,
-                })),
+                create: markerCreates,
               },
             },
             include: { markers: true, teacher: true },
@@ -204,6 +214,9 @@ function markerSetsMatch(
   if (existingMarkers.length !== requestedMarkers.length) {
     return false;
   }
+  if (existingMarkers.length > limits.maxMarkers) {
+    return false;
+  }
 
   const existing = normalizeMarkers(existingMarkers);
   const requested = normalizeMarkers(requestedMarkers);
@@ -214,7 +227,10 @@ function markerSetsMatch(
 }
 
 function normalizeMarkers(markers: Array<{ timeSeconds: number; text: string }>) {
-  return markers
-    .map((marker) => ({ timeSeconds: marker.timeSeconds, text: marker.text }))
-    .sort((a, b) => a.timeSeconds - b.timeSeconds || a.text.localeCompare(b.text));
+  const normalized: Array<{ timeSeconds: number; text: string }> = [];
+  for (let index = 0; index < markers.length; index += 1) {
+    const marker = markers[index]!;
+    normalized.push({ timeSeconds: marker.timeSeconds, text: marker.text });
+  }
+  return normalized.sort((a, b) => a.timeSeconds - b.timeSeconds || a.text.localeCompare(b.text));
 }
