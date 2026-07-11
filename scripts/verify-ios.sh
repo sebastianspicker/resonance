@@ -18,7 +18,7 @@ command -v jq >/dev/null || fail "jq is required to select an available iPhone s
 [[ -d "$PROJECT" ]] || fail "native project not found at $PROJECT."
 [[ -f "$SCHEME_FILE" ]] || fail "shared scheme not found at $SCHEME_FILE."
 find "$APP_DIR/Tests" -name '*.swift' -type f -print -quit | grep -q . || fail "no XCTest source files found under $APP_DIR/Tests."
-rg -q 'func test' "$APP_DIR/Tests" || fail "no XCTest methods found under $APP_DIR/Tests."
+grep -R -q --include='*.swift' 'func test' "$APP_DIR/Tests" || fail "no XCTest methods found under $APP_DIR/Tests."
 
 if [[ -n "${IOS_DESTINATION:-}" ]]; then
 	DESTINATION="$IOS_DESTINATION"
