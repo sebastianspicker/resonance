@@ -1,5 +1,6 @@
 import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process';
 import { once } from 'node:events';
+import { request as httpRequest } from 'node:http';
 import net from 'node:net';
 import { setTimeout as delay } from 'node:timers/promises';
 import { PrismaClient } from '@prisma/client';
@@ -85,17 +86,47 @@ async function waitForHealth(): Promise<void> {
 
 async function requestJson<T>(
   path: string,
-  options: Parameters<typeof fetch>[1] = {}
-): Promise<{ response: Response; body: T }> {
+  options: { method?: string; headers?: Record<string, string>; body?: string } = {}
+): Promise<{ response: { status: number }; body: T }> {
   const headers = new Headers(options.headers);
   if (options.body !== undefined && !headers.has('content-type')) {
     headers.set('content-type', 'application/json');
   }
 
-  const response = await fetch(testServerUrl(path), { ...options, headers });
-  const text = await response.text();
+  const url = testServerUrl(path);
+  const requestHeaders: Record<string, string> = {};
+  headers.forEach((value, name) => {
+    requestHeaders[name] = value;
+  });
+  const { status, text } = await new Promise<{ status: number; text: string }>(
+    (resolve, reject) => {
+      const request = httpRequest(
+        {
+          protocol: 'http:',
+          hostname: '127.0.0.1',
+          port: serverPort,
+          method: options.method ?? 'GET',
+          path: `${url.pathname}${url.search}`,
+          headers: requestHeaders,
+        },
+        (response) => {
+          response.setEncoding('utf8');
+          let responseText = '';
+          response.on('data', (chunk: string) => {
+            responseText += chunk;
+          });
+          response.on('end', () => {
+            resolve({ status: response.statusCode ?? 0, text: responseText });
+          });
+        }
+      );
+      request.on('error', reject);
+      if (options.body !== undefined) request.write(options.body);
+      request.end();
+    }
+  );
   const body = (text ? JSON.parse(text) : null) as T;
-  return { response, body };
+  return { response: { status }, body };
 }
 
 async function issueSession(userId: string): Promise<string> {

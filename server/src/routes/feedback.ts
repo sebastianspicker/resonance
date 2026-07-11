@@ -48,8 +48,9 @@ export function registerFeedbackRoutes(
       );
     }
     const markers: Array<{ timeSeconds: number; text: string }> = [];
-    for (let index = 0; index < rawMarkers.length; index += 1) {
-      const marker = rawMarkers[index];
+    for (let index = 0; index < limits.maxMarkers; index += 1) {
+      if (index >= rawMarkers.length) break;
+      const marker = rawMarkers[index]!;
       markers.push({
         timeSeconds: requireNumber(marker?.timeSeconds, 'marker.timeSeconds', {
           integer: true,
@@ -136,7 +137,8 @@ export function registerFeedbackRoutes(
     }
 
     const markerCreates: Array<{ id: string; timeSeconds: number; text: string }> = [];
-    for (let index = 0; index < markers.length; index += 1) {
+    for (let index = 0; index < limits.maxMarkers; index += 1) {
+      if (index >= markers.length) break;
       const marker = markers[index]!;
       markerCreates.push({
         id: `mk_${nanoid(10)}`,

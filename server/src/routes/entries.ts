@@ -72,7 +72,8 @@ type EntryPatchBase = Pick<
 function normalizeTags(rawTags: unknown) {
   const tags = requireStringArray(rawTags, 'tags', { max: limits.maxTags });
   const normalized: string[] = [];
-  for (let index = 0; index < tags.length; index += 1) {
+  for (let index = 0; index < limits.maxTags; index += 1) {
+    if (index >= tags.length) break;
     normalized.push(
       requireString(tags[index], 'tags[]', { minLength: 1, max: limits.maxTagLength })
     );
