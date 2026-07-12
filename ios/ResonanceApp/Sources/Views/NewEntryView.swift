@@ -100,44 +100,67 @@ struct NewEntryView: View {
 
     private func saveEntry() {
         validationMessage = nil
+        guard let goal = validatedGoal(),
+              validateDuration(),
+              validateTags(),
+              validateNotes(),
+              let session = authManager.session
+        else { return }
+
+        persist(makeEntry(goal: goal, studentId: session.userId))
+    }
+
+    private func validatedGoal() -> String? {
         let goal = goalText.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !goal.isEmpty else {
-            validationMessage = "Add a practice goal before saving."
-            focusedField = .goal
-            return
+            _ = failValidation("Add a practice goal before saving.", field: .goal)
+            return nil
         }
-        let minutes: Int?
-        if durationMinutes.isEmpty {
-            minutes = nil
-        } else if let value = Int(durationMinutes), (0...480).contains(value) {
-            minutes = value
-        } else {
-            validationMessage = "Duration must be between 0 and 480 minutes."
-            focusedField = .duration
-            return
-        }
-        let parsedTags = tags.split(separator: ",").map {
+        return goal
+    }
+
+    private func validateDuration() -> Bool {
+        guard durationMinutes.isEmpty ||
+            (Int(durationMinutes).map { (0...480).contains($0) } ?? false)
+        else { return failValidation("Duration must be between 0 and 480 minutes.", field: .duration) }
+        return true
+    }
+
+    private var parsedTags: [String] {
+        tags.split(separator: ",").map {
             $0.trimmingCharacters(in: .whitespacesAndNewlines)
         }.filter { !$0.isEmpty }
-        guard parsedTags.count <= 30, parsedTags.allSatisfy({ $0.count <= 100 }) else {
-            validationMessage = "Use no more than 30 tags, with 100 characters per tag."
-            focusedField = .tags
-            return
-        }
-        guard notes.count <= 10_000, let session = authManager.session else {
-            validationMessage = "Notes must contain no more than 10,000 characters."
-            focusedField = .notes
-            return
-        }
+    }
 
-        let entry = LocalPracticeEntry(
+    private func validateTags() -> Bool {
+        guard parsedTags.count <= 30, parsedTags.allSatisfy({ $0.count <= 100 }) else {
+            return failValidation("Use no more than 30 tags, with 100 characters per tag.", field: .tags)
+        }
+        return true
+    }
+
+    private func validateNotes() -> Bool {
+        guard notes.count <= 10_000 else {
+            return failValidation("Notes must contain no more than 10,000 characters.", field: .notes)
+        }
+        return true
+    }
+
+    private func failValidation(_ message: String, field: Field) -> Bool {
+        validationMessage = message
+        focusedField = field
+        return false
+    }
+
+    private func makeEntry(goal: String, studentId: String) -> LocalPracticeEntry {
+        LocalPracticeEntry(
             id: UUID().uuidString,
             courseId: courseId,
-            studentId: session.userId,
+            studentId: studentId,
             details: PracticeEntryDetails(
                 practiceDate: practiceDate,
                 goalText: goal,
-                durationSeconds: minutes.map { $0 * 60 },
+                durationSeconds: Int(durationMinutes).map { $0 * 60 },
                 tags: parsedTags,
                 notes: notes.isEmpty ? nil : notes
             ),
@@ -149,6 +172,9 @@ struct NewEntryView: View {
                 captureProfile: entryKind == .teachingLesson ? captureProfile : nil
             )
         )
+    }
+
+    private func persist(_ entry: LocalPracticeEntry) {
         modelContext.insert(entry)
         do {
             try modelContext.save()

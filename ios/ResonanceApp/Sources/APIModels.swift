@@ -132,6 +132,26 @@ final class EntryReconciliationService {
     }
 
     func refresh(courseId: String, accessToken: String) async throws {
+        let responses = try await fetchAllEntries(courseId: courseId, accessToken: accessToken)
+        let localEntries = try modelContext.fetch(
+            FetchDescriptor<LocalPracticeEntry>(predicate: #Predicate { $0.courseId == courseId })
+        )
+        let localById = Dictionary(uniqueKeysWithValues: localEntries.map { ($0.id, $0) })
+        let remoteIds = Set(responses.map(\.id))
+        let queuedEntryIds = pendingEntryIds()
+
+        for response in responses {
+            upsert(response, existing: localById[response.id])
+        }
+
+        for local in localEntries where local.remoteUpdatedAt != nil &&
+            !remoteIds.contains(local.id) && !queuedEntryIds.contains(local.id) {
+            modelContext.delete(local)
+        }
+        try modelContext.save()
+    }
+
+    private func fetchAllEntries(courseId: String, accessToken: String) async throws -> [EntryResponse] {
         var responses: [EntryResponse] = []
         var cursor: String?
         var seen = Set<String>()
@@ -150,49 +170,38 @@ final class EntryReconciliationService {
             cursor = next
         } while cursor != nil
 
-        let localEntries = try modelContext.fetch(
-            FetchDescriptor<LocalPracticeEntry>(predicate: #Predicate { $0.courseId == courseId })
-        )
-        let localById = Dictionary(uniqueKeysWithValues: localEntries.map { ($0.id, $0) })
-        let remoteIds = Set(responses.map(\.id))
-        let queuedEntryIds = pendingEntryIds()
+        return responses
+    }
 
-        for response in responses {
-            if let local = localById[response.id] {
-                merge(response, into: local)
-            } else {
-                let details = PracticeEntryDetails(
-                    practiceDate: response.practiceDate,
-                    goalText: response.goalText,
-                    durationSeconds: response.durationSeconds,
-                    tags: response.tags,
-                    notes: response.notes
-                )
-                let context = CaptureContext(
-                    kind: EntryKind(rawValue: response.kind ?? "practice") ?? .practice,
-                    consentConfirmedAt: response.consentConfirmedAt,
-                    consentScope: response.consentScope.flatMap(ConsentScope.init(rawValue:)),
-                    captureProfile: response.captureProfile.flatMap(CaptureProfile.init(rawValue:))
-                )
-                let local = LocalPracticeEntry(
-                    id: response.id,
-                    courseId: response.courseId,
-                    studentId: response.studentId,
-                    details: details,
-                    status: EntryStatus(rawValue: response.status) ?? .draft,
-                    captureContext: context
-                )
-                local.remoteUpdatedAt = response.updatedAt ?? response.createdAt ?? Date()
-                modelContext.insert(local)
-                mergeArtifacts(response.artifacts ?? [], into: local)
-            }
+    private func upsert(_ response: EntryResponse, existing local: LocalPracticeEntry?) {
+        guard let local else {
+            let details = PracticeEntryDetails(
+                practiceDate: response.practiceDate,
+                goalText: response.goalText,
+                durationSeconds: response.durationSeconds,
+                tags: response.tags,
+                notes: response.notes
+            )
+            let context = CaptureContext(
+                kind: EntryKind(rawValue: response.kind ?? "practice") ?? .practice,
+                consentConfirmedAt: response.consentConfirmedAt,
+                consentScope: response.consentScope.flatMap(ConsentScope.init(rawValue:)),
+                captureProfile: response.captureProfile.flatMap(CaptureProfile.init(rawValue:))
+            )
+            let inserted = LocalPracticeEntry(
+                id: response.id,
+                courseId: response.courseId,
+                studentId: response.studentId,
+                details: details,
+                status: EntryStatus(rawValue: response.status) ?? .draft,
+                captureContext: context
+            )
+            inserted.remoteUpdatedAt = response.updatedAt ?? response.createdAt ?? Date()
+            modelContext.insert(inserted)
+            mergeArtifacts(response.artifacts ?? [], into: inserted)
+            return
         }
-
-        for local in localEntries where local.remoteUpdatedAt != nil &&
-            !remoteIds.contains(local.id) && !queuedEntryIds.contains(local.id) {
-            modelContext.delete(local)
-        }
-        try modelContext.save()
+        merge(response, into: local)
     }
 
     private func merge(_ response: EntryResponse, into local: LocalPracticeEntry) {
