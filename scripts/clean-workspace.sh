@@ -68,6 +68,18 @@ for target in "${TARGETS[@]}"; do
   remove_path "$target"
 done
 
+while IFS= read -r -d '' local_work_file; do
+  remove_path "${local_work_file#./}"
+done < <(
+  find . -maxdepth 1 -type f \
+    \( -name 'STATUS.md' -o -name '*_STATUS.md' \
+    -o -name 'PLAN.md' -o -name '*_PLAN.md' -o -name 'plan.md' \
+    -o -name 'LEDGER.md' -o -name '*_LEDGER.md' \
+    -o -name 'REMEDIATION.md' -o -name 'REMEDIATION_*.md' -o -name '*_REMEDIATION.md' \
+    -o -name 'AGENT.md' -o -name 'AGENT_*.md' -o -name '*_AGENT.md' \) \
+    -print0
+)
+
 while IFS= read -r -d '' metadata_file; do
   remove_path "${metadata_file#./}"
 done < <(find . -name .DS_Store -type f -print0)

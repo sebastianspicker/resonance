@@ -4,13 +4,13 @@
 
 Please do not open public issues for security vulnerabilities.
 
-Send a private report with details and reproduction steps via GitHub's private vulnerability reporting on this repository.
+Send a private report with details and reproduction steps through [GitHub private vulnerability reporting](https://github.com/sebastianspicker/resonance/security/advisories/new) for this repository.
 
 We will acknowledge receipt within 7 days and provide a remediation timeline.
 
 ## Project Status
 
-This is a production-pilot work tree, not a production deployment. Source controls are described below; operator and external-service requirements remain unverified until deployed and tested in the target environment.
+`v0.1.0-alpha.1` is a source-only public alpha, not a production deployment. Source controls are described below; operator, signing, and external-service requirements remain unverified until deployed and tested in the target environment.
 
 ## Implemented Source Controls
 
@@ -25,7 +25,7 @@ This is a production-pilot work tree, not a production deployment. Source contro
 - The source supports configured OIDC behind the app-facing `/auth/login` entrypoint. Configure `OIDC_DISCOVERY_URL`, `OIDC_CLIENT_ID`, `OIDC_CLIENT_SECRET`, and `OIDC_REDIRECT_URI` to enable it; no live provider is proven by this repository. See [docs/SSO_BRIDGE.md](./SSO_BRIDGE.md).
 - Environment variables are required for secrets and must not be committed.
 
-## Threat Model (Production-Pilot Scope)
+## Threat Model (Alpha Source and Production-Pilot Target)
 
 ### Assets
 

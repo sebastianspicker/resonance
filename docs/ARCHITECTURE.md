@@ -179,4 +179,4 @@ The checked-in server test suite contains coverage for:
 - Security headers, CORS, rate limiting, and content-type enforcement
 - Error handling (structured errors, Prisma error mapping, stack trace suppression)
 
-On 2026-07-15, the iOS XCTest target passed all 158 tests with zero diagnostics. Backend formatting, lint, TypeScript compilation, and 208 database-independent tests passed; the remaining 270 database-backed tests could not start because PostgreSQL was not running locally.
+Release-specific commands, counts, and measured results are recorded in the immutable [alpha release notes](./release-notes/v0.1.0-alpha.1.md). The complete local gate is `./scripts/ci-local.sh --with-docker`; subset runs must not be presented as evidence for database-backed behavior.

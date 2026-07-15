@@ -27,10 +27,10 @@ docker compose -f infra/docker-compose.yml down
 
 ## Backend (Fastify + Prisma)
 
-Install deps:
+Install the locked dependencies:
 ```bash
 cd server
-npm install
+npm ci
 ```
 
 Generate Prisma client:
@@ -172,7 +172,7 @@ Remove local build/runtime artifacts:
 ./scripts/clean-workspace.sh
 ```
 
-## Local Pilot Demo (Mock University)
+## Local Alpha Demo (Mock University)
 
 Bootstrap deterministic local demo state:
 ```bash
@@ -186,7 +186,9 @@ Reset demo records only:
 
 Screenshot instructions:
 
-- See `docs/RELEASE_CANDIDATE_SCREENSHOTS.md`
+- See `docs/LOCAL_DEMO.md` for the deterministic fixture and capture command.
+- See `docs/SCREENSHOTS.md` for review, sanitization, and promotion rules.
+- See `docs/ALPHA_WALKTHROUGH.md` for the approved public alpha set.
 
 ## Production Deployment Requirements (Unvalidated)
 

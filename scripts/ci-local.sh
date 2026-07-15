@@ -170,6 +170,9 @@ echo "Running secret scan..."
 echo "Validating demo fixture..."
 node ./scripts/demo/validate-fixture.mjs
 
+echo "Validating public documentation and screenshots..."
+node ./scripts/validate-public-docs.mjs
+
 echo "Checking committed build artifacts..."
 ./scripts/check-no-build-artifacts.sh
 
