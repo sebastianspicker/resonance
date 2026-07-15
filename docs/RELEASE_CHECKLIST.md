@@ -10,7 +10,7 @@ Current status: open production-pilot checklist. This repository does not yet co
 ## Build/Test Gates
 
 - [ ] Server lint/build/tests pass.
-- [ ] Server runtime `/health` smoke probe passes.
+- [ ] Server liveness `/health` and dependency readiness `/ready` probes pass.
 - [ ] iOS simulator XCTest passes via `./scripts/verify-ios.sh`.
 - [ ] Build artifact guard passes.
 - [ ] Security secret scan passes.

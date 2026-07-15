@@ -43,6 +43,11 @@ Run migrations:
 npm run prisma:migrate
 ```
 
+The `20260715110000` security migration revokes refresh tokens created by older
+versions because those rows have no reliable rotation-lineage identifier. Users
+must sign in again after that upgrade; new sessions retain lineage-scoped replay
+containment.
+
 ### Current Migration History
 
 Five historical migration files were formatting-normalized without changing the resulting PostgreSQL schema: `20260203120000_init`, `20260321120000_add_entry_course_deleted_index`, `20260324120000_add_feedback_entry_id`, `20260429120000_add_teaching_lesson_entries`, and `20260429130000_add_capture_guidance`. Their tracked checksums therefore differ from earlier copies of the repository.
@@ -153,9 +158,10 @@ This runs repository hygiene and security checks, backend formatting/lint/build/
 The server handles `SIGTERM` and `SIGINT` for graceful shutdown:
 
 1. Logs the received signal.
-2. Calls `app.close()`, which stops accepting new connections and drains in-flight requests.
-3. Disconnects the Prisma client (`prisma.$disconnect()`).
-4. Exits with code 0.
+2. Cancels the periodic storage-cleanup timer.
+3. Gives HTTP shutdown, any active durable storage cleanup, and Prisma disconnect independent bounded grace periods.
+4. Leaves unfinished object-deletion jobs durably queued for the next process when a grace period expires.
+5. Exits with code 0.
 
 Unhandled promise rejections are logged and cause an immediate exit with code 1.
 
@@ -210,6 +216,9 @@ OIDC_CLIENT_ID=<oidc-client-id>
 OIDC_CLIENT_SECRET=<oidc-client-secret>
 OIDC_REDIRECT_URI=https://<your-domain>/auth/oidc/callback
 
+# Bounds PostgreSQL and object-storage startup/readiness/operation waits.
+DEPENDENCY_TIMEOUT_MS=10000
+
 S3_ENDPOINT=https://minio.<your-domain>
 S3_REGION=<region>
 S3_BUCKET=<bucket-name>
@@ -240,9 +249,10 @@ S3_FORCE_PATH_STYLE=true  # true for MinIO path-style
    ```
    The server listens on `PORT` (default 4000). Put it behind operator-managed TLS termination.
 
-4. **Health check**: Confirm the server is up:
+4. **Health and readiness checks**: Confirm the process is live and its database/object-storage dependencies respond:
    ```bash
    curl -fsS https://<your-domain>/health
+   curl -fsS https://<your-domain>/ready
    ```
 
 5. **Secrets**: Never use `CHANGE-ME` values or `minioadmin`/`resonance` credentials in production. Rotate secrets after any suspected exposure.

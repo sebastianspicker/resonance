@@ -29,11 +29,11 @@ Open production-pilot work:
 - Manual VoiceOver, keyboard, switch, Dynamic Type, device-window, and performance validation.
 - Deployment validation with real OIDC, PostgreSQL, and object storage.
 
-Local evidence from 2026-07-11:
+Local evidence from 2026-07-15:
 
 - Generic iOS device build passed with Xcode 26.3.
-- 125 XCTest methods passed on an iPhone 17 Pro simulator.
-- Backend checks were not rerun after the latest media endpoint change because this checkout does not currently contain `server/node_modules`.
+- 158 XCTest methods passed on an iPhone 17 Pro simulator with zero diagnostics.
+- Backend formatting, lint, TypeScript compilation, and 208 database-independent tests passed. The 270 database-backed tests could not start because PostgreSQL was not running locally; they reported no application assertion failures.
 
 No current UI screenshots are published: the previous RC captures represented the retired interface and were removed. See the [screenshot playbook](docs/RELEASE_CANDIDATE_SCREENSHOTS.md) for future approved captures.
 
