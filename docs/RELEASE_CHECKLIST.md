@@ -11,15 +11,15 @@ Checked items record evidence already collected for this candidate. The release 
 - [x] Private server package version is `0.1.0-alpha.1`; iOS marketing version remains `0.1.0`, build `1`.
 - [x] Root status, ledger, remediation, plan, agent-state, archive, log, cache, build, and local screenshot material is untracked and blocked from publication.
 - [x] Active regression tests and the tracked Codacy analyzer pin remain present.
-- [ ] `git diff --check`, clean candidate status, secret scan, and publication-boundary guard pass on the final commit.
+- [x] `git diff --check`, clean candidate status, secret scan, and publication-boundary guard pass on the final commit.
 
 ## Build and test gates
 
-- [ ] `./scripts/ci-local.sh --with-docker` passes on the final commit.
-- [ ] Fixture validation, migrations, readiness, process-level service E2E, and database-backed tests pass.
-- [ ] Server formatting, lint, TypeScript build, production dependency audit, and coverage thresholds pass.
-- [ ] ShellCheck, Actionlint, CodeQL configuration, and repository guards pass.
-- [ ] iOS generic build and simulator XCTest pass.
+- [x] `./scripts/ci-local.sh --with-docker` passes on the final assembled candidate.
+- [x] Fixture validation, migrations, readiness, process-level service E2E, and database-backed tests pass.
+- [x] Server formatting, lint, TypeScript build, production dependency audit, and coverage thresholds pass.
+- [x] ShellCheck, Actionlint, CodeQL configuration, and repository guards pass.
+- [x] iOS generic build and simulator XCTest pass.
 
 ## Documentation and screenshots
 
@@ -28,15 +28,15 @@ Checked items record evidence already collected for this candidate. The release 
 - [x] The 12-screen [walkthrough](./ALPHA_WALKTHROUGH.md) uses descriptive alt text and deterministic mock data.
 - [x] Approved screenshots come from a clean source commit and have validated hashes, dimensions, uniqueness, privacy, and human visual review.
 - [x] Capture logs and local paths are absent from the public screenshot directory and manifest.
-- [ ] All public Markdown links and images resolve on the final commit.
-- [ ] A context-free reader can identify the audience, capabilities, limitations, setup, screenshot boundary, and security-reporting path.
+- [x] All public Markdown links and images resolve on the final commit.
+- [x] A context-free reader can identify the audience, capabilities, limitations, setup, screenshot boundary, and security-reporting path.
 
 ## GitHub and publication
 
 - [x] Bug and pull-request templates request alpha version, surface, role, device/toolchain, connectivity, redaction, full-CI, docs, and screenshot evidence.
 - [x] CODEOWNERS covers release notes and approved screenshot assets.
 - [x] Repository description and topics identify the iOS/iPadOS, offline-first, music-education, Fastify, Prisma, and accessibility scope.
-- [ ] Draft PR `release: prepare v0.1.0-alpha.1` is opened against `main`.
+- [x] Draft PR [`release: prepare v0.1.0-alpha.1`](https://github.com/sebastianspicker/resonance/pull/51) is opened against `main`.
 - [ ] Required GitHub Actions and CodeQL checks pass on the PR.
 - [ ] Visual QA and a fresh-reader documentation review pass on the PR.
 - [ ] PR is merged with a merge commit; the tag is created on that merged `main` commit.
