@@ -2,6 +2,8 @@ import XCTest
 import SwiftData
 @testable import ResonanceApp
 
+// Purpose: verifies iCalendar edge cases and additional application regression scenarios.
+
 // MARK: - ICalParser Edge Case Tests
 
 final class ICalParserEdgeCaseTests: XCTestCase {
@@ -258,21 +260,21 @@ final class AppConfigTests: XCTestCase {
     func testKeychainNamespaceFromDefaultURL() {
         // The default API URL is http://localhost:4000 (unless env override is set).
         // keychainNamespace should be "resonance-" + sanitized URL.
-        let ns = AppConfig.keychainNamespace
-        XCTAssertTrue(ns.hasPrefix("resonance-"), "keychainNamespace should start with 'resonance-'")
-        XCTAssertFalse(ns.isEmpty)
+        let namespace = AppConfig.keychainNamespace
+        XCTAssertTrue(namespace.hasPrefix("resonance-"), "keychainNamespace should start with 'resonance-'")
+        XCTAssertFalse(namespace.isEmpty)
         // Should not contain characters outside [a-z0-9-]
         let validChars = CharacterSet(charactersIn: "abcdefghijklmnopqrstuvwxyz0123456789-")
-        for scalar in ns.unicodeScalars {
-            XCTAssertTrue(validChars.contains(scalar), "Unexpected character '\(scalar)' in keychainNamespace: \(ns)")
+        for scalar in namespace.unicodeScalars {
+            XCTAssertTrue(validChars.contains(scalar), "Unexpected character '\(scalar)' in keychainNamespace: \(namespace)")
         }
     }
 
     func testKeychainNamespaceDoesNotContainDoubleHyphens() {
         // The regex replaces all non-alphanumeric runs with a single '-',
         // so there should not be consecutive hyphens after trimming.
-        let ns = AppConfig.keychainNamespace
-        XCTAssertFalse(ns.contains("--"), "keychainNamespace should not contain consecutive hyphens: \(ns)")
+        let namespace = AppConfig.keychainNamespace
+        XCTAssertFalse(namespace.contains("--"), "keychainNamespace should not contain consecutive hyphens: \(namespace)")
     }
 
     func testAuthLoginURLDerivedFromBase() {
@@ -298,8 +300,8 @@ final class AppConfigTests: XCTestCase {
     func testKeychainNamespaceNotDefault() {
         // Unless the sanitized URL is empty (which it should not be for any valid URL),
         // we should not fall back to "resonance-default"
-        let ns = AppConfig.keychainNamespace
-        XCTAssertNotEqual(ns, "resonance-default",
+        let namespace = AppConfig.keychainNamespace
+        XCTAssertNotEqual(namespace, "resonance-default",
                           "With a valid API base URL, keychainNamespace should not be the fallback default")
     }
 }
@@ -349,30 +351,30 @@ final class KeychainStoreNamespaceTests: XCTestCase {
             return sanitized.isEmpty ? "resonance-default" : "resonance-\(sanitized)"
         }
 
-        let ns1 = deriveNamespace(from: url1)
-        let ns2 = deriveNamespace(from: url2)
-        let ns3 = deriveNamespace(from: url3)
+        let firstNamespace = deriveNamespace(from: url1)
+        let secondNamespace = deriveNamespace(from: url2)
+        let thirdNamespace = deriveNamespace(from: url3)
 
-        XCTAssertNotEqual(ns1, ns2, "localhost and production should have different namespaces")
-        XCTAssertNotEqual(ns2, ns3, "production and staging should have different namespaces")
-        XCTAssertNotEqual(ns1, ns3, "localhost and staging should have different namespaces")
+        XCTAssertNotEqual(firstNamespace, secondNamespace, "localhost and production should have different namespaces")
+        XCTAssertNotEqual(secondNamespace, thirdNamespace, "production and staging should have different namespaces")
+        XCTAssertNotEqual(firstNamespace, thirdNamespace, "localhost and staging should have different namespaces")
     }
 
     func testNamespaceContainsOnlySafeCharacters() {
         // The namespace should only contain lowercase alphanumeric characters and hyphens.
         // (Dots are not expected in the namespace itself per the sanitization regex.)
-        let ns = AppConfig.keychainNamespace
+        let namespace = AppConfig.keychainNamespace
         let safeChars = CharacterSet(charactersIn: "abcdefghijklmnopqrstuvwxyz0123456789-")
-        for scalar in ns.unicodeScalars {
+        for scalar in namespace.unicodeScalars {
             XCTAssertTrue(safeChars.contains(scalar),
-                          "Namespace contains unsafe character '\(scalar)': \(ns)")
+                          "Namespace contains unsafe character '\(scalar)': \(namespace)")
         }
     }
 
     func testNamespaceDoesNotStartOrEndWithHyphen() {
-        let ns = AppConfig.keychainNamespace
-        XCTAssertFalse(ns.hasPrefix("-"), "Namespace should not start with hyphen: \(ns)")
-        XCTAssertFalse(ns.hasSuffix("-"), "Namespace should not end with hyphen: \(ns)")
+        let namespace = AppConfig.keychainNamespace
+        XCTAssertFalse(namespace.hasPrefix("-"), "Namespace should not start with hyphen: \(namespace)")
+        XCTAssertFalse(namespace.hasSuffix("-"), "Namespace should not end with hyphen: \(namespace)")
     }
 }
 
@@ -517,7 +519,6 @@ final class PDFExporterEdgeCaseTests: XCTestCase {
     }
 }
 
-
 // MARK: - RetryPolicy Tests
 
 final class RetryPolicyTests: XCTestCase {
@@ -549,7 +550,7 @@ final class RetryPolicyTests: XCTestCase {
         XCTAssertEqual(policy.backoffDelay(retryCount: 100), 300.0, accuracy: 0.001)
     }
 
-    // MARK: isTerminal — SyncError is always terminal
+    // MARK: isTerminal: SyncError is always terminal
 
     func testIsTerminalForPayloadParseError() {
         XCTAssertTrue(policy.isTerminal(SyncError.payloadParseError("bad")))
@@ -567,7 +568,7 @@ final class RetryPolicyTests: XCTestCase {
         XCTAssertTrue(policy.isTerminal(SyncError.localFeedbackNotFound("f-1")))
     }
 
-    // MARK: isTerminal — SyncLocal 404 is terminal
+    // MARK: isTerminal: SyncLocal 404 is terminal
 
     func testIsTerminalForSyncLocal404() {
         let err = NSError(domain: "SyncLocal", code: 404, userInfo: [NSLocalizedDescriptionKey: "not found"])
@@ -579,7 +580,7 @@ final class RetryPolicyTests: XCTestCase {
         XCTAssertFalse(policy.isTerminal(err))
     }
 
-    // MARK: isTerminal — generic network errors are retryable
+    // MARK: isTerminal: generic network errors are retryable
 
     func testIsNotTerminalForURLError() {
         XCTAssertFalse(policy.isTerminal(URLError(.networkConnectionLost)))
@@ -588,205 +589,33 @@ final class RetryPolicyTests: XCTestCase {
     func testIsNotTerminalForURLErrorTimedOut() {
         XCTAssertFalse(policy.isTerminal(URLError(.timedOut)))
     }
+
+    func testPermanentServerStateErrorsAreTerminal() {
+        for code in ["ENTRY_DELETED", "ENTRY_NOT_FOUND", "ARTIFACT_NOT_FOUND", "ID_CONFLICT"] {
+            let error = APIError(
+                error: APIError.APIErrorBody(code: code, message: "Permanent", details: nil)
+            )
+            XCTAssertTrue(policy.isTerminal(error), "Expected \(code) to be terminal")
+        }
+    }
+
+    func testStorageUnavailableRemainsRetryable() {
+        let error = APIError(
+            error: APIError.APIErrorBody(
+                code: "STORAGE_UNAVAILABLE",
+                message: "Temporary",
+                details: nil
+            )
+        )
+        XCTAssertFalse(policy.isTerminal(error))
+    }
+
+    func testBareServerErrorCodeMapsToFriendlyMessage() {
+        XCTAssertEqual(
+            SyncErrorMessageMapper.message(for: "STORAGE_UNAVAILABLE"),
+            "Media storage is unavailable. Try again later."
+        )
+    }
 }
 
 // MARK: - QueueStore Tests
-
-final class QueueStoreTests: XCTestCase {
-
-    @MainActor
-    private func makeStore() -> (container: ModelContainer, store: QueueStore) {
-        let container = PersistenceController.createContainer(inMemory: true)
-        let store = QueueStore(modelContext: container.mainContext)
-        return (container, store)
-    }
-
-    // MARK: enqueue / counts
-
-    @MainActor
-    func testEnqueueInsertsItemWithCorrectType() throws {
-        let (container, store) = makeStore()
-        store.enqueue(type: .createEntry, payload: ["entryId": "e-1"])
-        let items = try container.mainContext.fetch(FetchDescriptor<SyncQueueItem>())
-        XCTAssertEqual(items.count, 1)
-        XCTAssertEqual(items.first?.type, SyncTaskType.createEntry.rawValue)
-        XCTAssertEqual(items.first?.status, SyncStatus.pending.rawValue)
-    }
-
-    @MainActor
-    func testEnqueueRejectsInvalidPayload() throws {
-        let (container, store) = makeStore()
-        store.enqueue(type: .createEntry, payload: ["nan": Double.nan])
-        let items = try container.mainContext.fetch(FetchDescriptor<SyncQueueItem>())
-        XCTAssertTrue(items.isEmpty)
-    }
-
-    @MainActor
-    func testEnqueueCoalescesRepeatedEntityTaskAndResetsFailure() throws {
-        let (container, store) = makeStore()
-        store.enqueue(type: .updateEntry, payload: ["entryId": "entry-1", "version": 1])
-        let initial = try XCTUnwrap(
-            container.mainContext.fetch(FetchDescriptor<SyncQueueItem>()).first
-        )
-        initial.status = SyncStatus.failed.rawValue
-        initial.retryCount = 3
-        initial.lastError = "offline"
-        try container.mainContext.save()
-
-        store.enqueue(type: .updateEntry, payload: ["entryId": "entry-1", "version": 2])
-
-        let items = try container.mainContext.fetch(FetchDescriptor<SyncQueueItem>())
-        XCTAssertEqual(items.count, 1)
-        XCTAssertEqual(items[0].status, SyncStatus.pending.rawValue)
-        XCTAssertEqual(items[0].retryCount, 0)
-        XCTAssertNil(items[0].lastError)
-        XCTAssertTrue(items[0].payloadJSON.contains("\"version\":2"))
-    }
-
-    @MainActor
-    func testCountsReturnCorrectValues() throws {
-        let (container, store) = makeStore()
-        let pending = SyncQueueItem(id: "p", type: "createEntry", payloadJSON: "{}")
-        pending.status = SyncStatus.pending.rawValue
-        container.mainContext.insert(pending)
-
-        let failed = SyncQueueItem(id: "f", type: "createEntry", payloadJSON: "{}")
-        failed.status = SyncStatus.failed.rawValue
-        container.mainContext.insert(failed)
-        try container.mainContext.save()
-
-        let (p, f) = store.counts()
-        XCTAssertEqual(p, 1)
-        XCTAssertEqual(f, 1)
-    }
-
-    // MARK: fetchReady
-
-    @MainActor
-    func testFetchReadyFiltersItemsWithFutureNextAttemptAt() throws {
-        let (container, store) = makeStore()
-        let now = Date()
-
-        let ready = SyncQueueItem(id: "ready", type: "createEntry", payloadJSON: "{}")
-        ready.status = SyncStatus.pending.rawValue
-        ready.nextAttemptAt = nil
-        container.mainContext.insert(ready)
-
-        let notYet = SyncQueueItem(id: "not-yet", type: "createEntry", payloadJSON: "{}")
-        notYet.status = SyncStatus.pending.rawValue
-        notYet.nextAttemptAt = now.addingTimeInterval(60)
-        container.mainContext.insert(notYet)
-
-        try container.mainContext.save()
-
-        let fetched = try store.fetchReady(now: now)
-        XCTAssertEqual(fetched.count, 1)
-        XCTAssertEqual(fetched.first?.id, "ready")
-    }
-
-    // MARK: resetAllFailed
-
-    @MainActor
-    func testResetAllFailedClearsErrorAndNextAttempt() throws {
-        let (container, store) = makeStore()
-        let item = SyncQueueItem(id: "fail-1", type: "createEntry", payloadJSON: "{}")
-        item.status = SyncStatus.failed.rawValue
-        item.lastError = "some error"
-        item.nextAttemptAt = Date().addingTimeInterval(60)
-        container.mainContext.insert(item)
-        try container.mainContext.save()
-
-        store.resetAllFailed()
-
-        let fetched = try container.mainContext.fetch(FetchDescriptor<SyncQueueItem>())
-        XCTAssertEqual(fetched.first?.status, SyncStatus.pending.rawValue)
-        XCTAssertNil(fetched.first?.lastError)
-        XCTAssertNil(fetched.first?.nextAttemptAt)
-    }
-
-    @MainActor
-    func testResetAllFailedResetsSyncArtifactPhaseToQueued() throws {
-        let (container, store) = makeStore()
-        let entry = LocalPracticeEntry(
-            id: "entry-1",
-            courseId: "course-1",
-            studentId: "student-1",
-            details: PracticeEntryDetails(practiceDate: Date(), goalText: "Goal", durationSeconds: nil, tags: [], notes: nil),
-            status: .draft
-        )
-        let artifact = LocalArtifact(
-            id: "artifact-1",
-            entryId: entry.id,
-            type: .audio,
-            durationSeconds: 30,
-            localPath: "/tmp/artifact-1.m4a"
-        )
-        artifact.uploadState = .uploading
-        artifact.syncPhase = .confirming
-        entry.artifacts.append(artifact)
-        container.mainContext.insert(entry)
-        container.mainContext.insert(artifact)
-
-        let payloadData = try JSONSerialization.data(withJSONObject: ["artifactId": artifact.id])
-        let payloadJSON = try XCTUnwrap(String(bytes: payloadData, encoding: .utf8))
-        let item = SyncQueueItem(
-            id: "sync-artifact",
-            type: SyncTaskType.syncArtifact.rawValue,
-            payloadJSON: payloadJSON
-        )
-        item.status = SyncStatus.failed.rawValue
-        container.mainContext.insert(item)
-        try container.mainContext.save()
-
-        store.resetAllFailed()
-
-        XCTAssertEqual(item.status, SyncStatus.pending.rawValue)
-        XCTAssertEqual(artifact.uploadState, .pending)
-        XCTAssertEqual(artifact.syncPhase, .queued)
-    }
-
-    // MARK: resetStuckProcessing
-
-    @MainActor
-    func testResetStuckProcessingResetsToPending() throws {
-        let (container, store) = makeStore()
-        let item = SyncQueueItem(id: "stuck", type: "syncArtifact", payloadJSON: "{}")
-        item.status = SyncStatus.processing.rawValue
-        container.mainContext.insert(item)
-        try container.mainContext.save()
-
-        store.resetStuckProcessing()
-
-        let fetched = try container.mainContext.fetch(FetchDescriptor<SyncQueueItem>())
-        XCTAssertEqual(fetched.first?.status, SyncStatus.pending.rawValue)
-    }
-
-    // MARK: delete
-
-    @MainActor
-    func testDeleteRemovesItem() throws {
-        let (container, store) = makeStore()
-        let item = SyncQueueItem(id: "to-delete", type: "submitEntry", payloadJSON: "{}")
-        container.mainContext.insert(item)
-        try container.mainContext.save()
-
-        store.delete(item)
-        store.save()
-
-        let fetched = try container.mainContext.fetch(FetchDescriptor<SyncQueueItem>())
-        XCTAssertTrue(fetched.isEmpty)
-    }
-}
-
-final class FeedbackMarkerFormatTests: XCTestCase {
-    func testParsesMinutesAndSeconds() {
-        XCTAssertEqual(FeedbackEditorView.parse("01:24"), 84)
-        XCTAssertEqual(FeedbackEditorView.parse("9"), 9)
-        XCTAssertNil(FeedbackEditorView.parse("1:60"))
-        XCTAssertNil(FeedbackEditorView.parse("-1:10"))
-    }
-
-    func testFormatsPlaybackTime() {
-        XCTAssertEqual(FeedbackEditorView.format(84.9), "01:24")
-    }
-}

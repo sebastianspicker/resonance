@@ -1,35 +1,81 @@
-# Release Checklist
+# v0.1.0-alpha.1 release checklist
 
-Current status: open production-pilot checklist. This repository does not yet contain real-SSO, production-storage, deployment, full localization, accessibility-matrix, or performance proof.
+This checklist applies to a source-only GitHub pre-release. It does not cover a
+signed application, TestFlight, hosted service, or production deployment.
 
-## Local Demo & Screenshot Gates
+All verification items must be completed from the final source-freeze commit.
+The working tree is not currently release evidence.
 
-- [ ] Mock demo seeded (`npm run prisma:seed:demo`).
-- [ ] Current reviewed screenshot set complete according to `docs/RELEASE_CANDIDATE_SCREENSHOTS.md`.
+## Source and versions
 
-## Build/Test Gates
+- [ ] Release branch is based on the intended `main` commit.
+- [ ] Worktree contains only intentional release changes.
+- [ ] Server package version is `0.1.0-alpha.1`.
+- [ ] iOS marketing version is `0.1.0` and build version is `1`.
+- [ ] Node.js 24.x is active.
+- [ ] `server/.env.example` is present, current, sanitized, and tracked.
+- [ ] The only Prisma migration is
+  `20260716000000_alpha_baseline`.
+- [ ] A disposable database is rebuilt and migrated from the baseline without
+  editing `_prisma_migrations`.
 
-- [ ] Server lint/build/tests pass.
-- [ ] Server runtime `/health` smoke probe passes.
-- [ ] iOS simulator XCTest passes via `./scripts/verify-ios.sh`.
-- [ ] Build artifact guard passes.
-- [ ] Security secret scan passes.
-- [ ] Shellcheck and workflow lint pass.
+## Automated verification
 
-## Production-Pilot UI Gates
+- [ ] `./scripts/ci-local.sh --with-docker`
+- [ ] Backend coverage thresholds pass.
+- [ ] Process-level E2E passes with PostgreSQL and MinIO.
+- [ ] SwiftLint 0.63.2 passes.
+- [ ] iOS XCTest passes with the Xcode-bundled compiler.
+- [ ] iOS XCTest passes with Swift 6.3.3.
+- [ ] `node scripts/validate-public-docs.mjs`
+- [ ] `./scripts/secret-scan.sh`
+- [ ] `./scripts/check-no-build-artifacts.sh`
+- [ ] `git diff --check`
 
-- [ ] Student and teacher course-role actions verified.
-- [ ] Two-user isolation and pending-work sign-out verified.
-- [ ] Fresh-install hydration, offline cache, and queued-edit merge verified.
-- [ ] Owner and same-course teacher playback succeeds; unrelated access fails.
-- [ ] One-tap submission waits for media and duplicate taps coalesce.
-- [ ] Light/dark and German/English verified on iPhone and iPad.
-- [ ] Large, AX1, AX3, AX5, Bold Text, Increase Contrast, Reduce Motion, and Reduce Transparency verified.
-- [ ] VoiceOver, Voice Control, Switch Control, and keyboard traversal verified.
-- [ ] Loading, empty, stale/offline, recoverable error, permission, and destructive states verified.
+## Manual review
 
-## Documentation Gates
+- [ ] Student and teacher workflows match the documented role boundaries.
+- [ ] Private media and account replacement behavior are reviewed.
+- [ ] README, runbook, API, architecture, security, support, and release notes
+  render correctly.
+- [ ] Commands, paths, environment names, links, and examples match the final
+  source.
+- [ ] A fresh reader can install, configure, run, test, and troubleshoot the
+  repository from the documentation.
+- [ ] Limitations distinguish source behavior from unvalidated external
+  services and device matrices.
 
-- [ ] `docs/RELEASE_CANDIDATE_DEMO.md` reflects current commands.
-- [ ] `docs/RELEASE_CANDIDATE_SCREENSHOTS.md` matches latest UI.
-- [ ] `README.md` and `docs/RUNBOOK.md` describe the local demo without presenting it as production proof.
+## Screenshots
+
+- [ ] All 12 walkthrough scenarios are captured from the exact source-freeze
+  commit.
+- [ ] Every image passes clipping, role, state, privacy, and debug-content
+  review.
+- [ ] The sanitized manifest records the source commit, platform, device,
+  dimensions, filename, and SHA-256 value.
+- [ ] Reviewed PNGs and the manifest are placed under
+  `docs/assets/screenshots/approved/v0.1.0-alpha.1/`.
+- [ ] Every approved image has a public Markdown reference with useful alt
+  text.
+- [ ] `node scripts/validate-public-docs.mjs --release` passes.
+
+## GitHub state
+
+- [ ] Repository description and topics are current.
+- [ ] Draft release pull request targets `main`.
+- [ ] Required CI, CodeQL, dependency, and security checks pass.
+- [ ] Code-owner and visual reviews pass.
+- [ ] Pull request is merged before tagging.
+- [ ] Tag `v0.1.0-alpha.1` points to the verified merged commit.
+- [ ] GitHub release is marked as a pre-release and contains source archives
+  only.
+- [ ] README, support and security links, tag, notes, and archives are checked
+  in a logged-out browser.
+
+## Work outside this release
+
+- German localization and complete English fallback.
+- Full Dynamic Type, assistive-technology, keyboard, device-window,
+  performance, and poor-network matrices.
+- Live OpenID Connect, production PostgreSQL and object storage, TLS, backups,
+  retention, monitoring, signing, TestFlight, and deployment validation.

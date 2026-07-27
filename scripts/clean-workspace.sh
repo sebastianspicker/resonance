@@ -1,13 +1,27 @@
 #!/usr/bin/env bash
+# Remove ignored/generated workspace outputs while preserving tracked source and approved evidence.
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT_DIR"
 
 DRY_RUN=0
-if [[ "${1:-}" == "--dry-run" ]]; then
-  DRY_RUN=1
-fi
+case "$#" in
+  0) ;;
+  1)
+    if [[ "$1" == "--dry-run" ]]; then
+      DRY_RUN=1
+    else
+      echo "Unknown argument: $1" >&2
+      echo "Usage: ./scripts/clean-workspace.sh [--dry-run]" >&2
+      exit 2
+    fi
+    ;;
+  *)
+    echo "Usage: ./scripts/clean-workspace.sh [--dry-run]" >&2
+    exit 2
+    ;;
+esac
 
 TARGETS=(
   "server/node_modules"
@@ -15,9 +29,13 @@ TARGETS=(
   "server/.vitest"
   "server/coverage"
   "server/test-results"
+  "server/tests/fixtures/generated"
+  "node_modules"
   "ios/ResonanceApp/.build"
+  "ios/ResonanceApp/Tests/GeneratedFixtures"
   "test-results"
   "reports"
+  ".test-environments"
   ".codacy/generated"
   ".codacy/logs"
   ".codacy/tmp"
@@ -27,9 +45,14 @@ TARGETS=(
   ".codacy/codacy.yaml"
   ".codacy/codacy.config.json"
   ".codegraph"
-  ".serena/cache"
-  ".serena/project.local.yml"
-  ".DS_Store"
+  ".serena"
+  ".tmp"
+  "artifacts"
+  "docs/assets/screenshots/local"
+  "docs/assets/screenshots/rc"
+  "docs/assets/screenshots/retired"
+  "deprecated"
+  "RELEASE_STATUS.md"
 )
 
 remove_path() {
@@ -47,6 +70,10 @@ remove_path() {
 for target in "${TARGETS[@]}"; do
   remove_path "$target"
 done
+
+while IFS= read -r -d '' metadata_file; do
+  remove_path "${metadata_file#./}"
+done < <(find . -name .DS_Store -type f -print0)
 
 if [[ "$DRY_RUN" -eq 1 ]]; then
   echo "Dry run complete."

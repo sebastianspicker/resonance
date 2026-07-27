@@ -1,6 +1,9 @@
+/** Environment-backed runtime configuration and validated operational limits. */
 import dotenv from 'dotenv';
 
-dotenv.config();
+if (process.env.NODE_ENV !== 'test') {
+  dotenv.config();
+}
 
 function requireEnv(name: string): string {
   const value = process.env[name];
@@ -8,6 +11,43 @@ function requireEnv(name: string): string {
     throw new Error(`Missing environment variable: ${name}`);
   }
   return value;
+}
+
+function booleanEnv(name: string, fallback: boolean): boolean {
+  const value = process.env[name];
+  if (value === undefined) return fallback;
+  if (value === 'true') return true;
+  if (value === 'false') return false;
+  throw new Error(`${name} must be "true" or "false".`);
+}
+
+type AuthMode = 'dev' | 'prod';
+
+function readAuthMode(): AuthMode {
+  const mode = process.env.AUTH_MODE ?? 'prod';
+  if (mode !== 'dev' && mode !== 'prod') {
+    throw new Error('AUTH_MODE must be "dev" or "prod"');
+  }
+  return mode;
+}
+
+function readHost(authMode: AuthMode): string {
+  const host = process.env.HOST?.trim();
+
+  if (authMode === 'dev') {
+    if (host && !['127.0.0.1', '::1', 'localhost'].includes(host)) {
+      throw new Error('AUTH_MODE=dev requires HOST to be a loopback address.');
+    }
+    return host || '127.0.0.1';
+  }
+
+  if (!host) {
+    throw new Error('AUTH_MODE=prod requires HOST to be set explicitly.');
+  }
+  if (host.includes('://') || /\s/.test(host)) {
+    throw new Error('HOST must be a hostname or IP address without a URL scheme.');
+  }
+  return host;
 }
 
 type OidcEnv = {
@@ -73,25 +113,24 @@ export function validateDevCallbackUrl(url: string): string {
   );
 }
 
+const authMode = readAuthMode();
+
+/** Parse once at startup so invalid deployment configuration fails before serving requests. */
 export const config = {
   port: Number(process.env.PORT ?? 4000),
-  authMode: (() => {
-    const mode = process.env.AUTH_MODE ?? 'prod';
-    if (mode !== 'dev' && mode !== 'prod') {
-      throw new Error('AUTH_MODE must be "dev" or "prod"');
-    }
-    return mode;
-  })(),
+  host: readHost(authMode),
+  authMode,
   jwtSecret: requireEnv('JWT_SECRET'),
   accessTokenTtlMinutes: Number(process.env.ACCESS_TOKEN_TTL_MINUTES ?? 15),
   refreshTokenTtlDays: Number(process.env.REFRESH_TOKEN_TTL_DAYS ?? 7),
+  dependencyTimeoutMs: Number(process.env.DEPENDENCY_TIMEOUT_MS ?? 10_000),
   s3: {
     endpoint: requireEnv('S3_ENDPOINT'),
     region: process.env.S3_REGION ?? 'us-east-1',
     bucket: requireEnv('S3_BUCKET'),
     accessKey: requireEnv('S3_ACCESS_KEY'),
     secretKey: requireEnv('S3_SECRET_KEY'),
-    forcePathStyle: (process.env.S3_FORCE_PATH_STYLE ?? 'true') === 'true',
+    forcePathStyle: booleanEnv('S3_FORCE_PATH_STYLE', true),
     presignTtlSeconds: Number(process.env.S3_PRESIGN_TTL_SECONDS ?? 900),
   },
   corsOrigins: (process.env.CORS_ORIGINS ?? '')
@@ -109,20 +148,47 @@ if (config.jwtSecret.length < 32) {
   throw new Error('JWT_SECRET must be at least 32 characters long for security.');
 }
 
-if (Number.isNaN(config.port)) {
-  throw new Error('PORT must be a valid number.');
+if (
+  !Number.isFinite(config.port) ||
+  !Number.isInteger(config.port) ||
+  config.port < 1 ||
+  config.port > 65535
+) {
+  throw new Error('PORT must be an integer between 1 and 65535.');
 }
 
-if (Number.isNaN(config.accessTokenTtlMinutes) || config.accessTokenTtlMinutes <= 0) {
-  throw new Error('ACCESS_TOKEN_TTL_MINUTES must be a positive number.');
+if (
+  !Number.isFinite(config.accessTokenTtlMinutes) ||
+  !Number.isInteger(config.accessTokenTtlMinutes) ||
+  config.accessTokenTtlMinutes <= 0
+) {
+  throw new Error('ACCESS_TOKEN_TTL_MINUTES must be a positive integer.');
 }
 
-if (Number.isNaN(config.refreshTokenTtlDays) || config.refreshTokenTtlDays <= 0) {
-  throw new Error('REFRESH_TOKEN_TTL_DAYS must be a positive number.');
+if (
+  !Number.isFinite(config.refreshTokenTtlDays) ||
+  !Number.isInteger(config.refreshTokenTtlDays) ||
+  config.refreshTokenTtlDays <= 0
+) {
+  throw new Error('REFRESH_TOKEN_TTL_DAYS must be a positive integer.');
 }
 
-if (Number.isNaN(config.s3.presignTtlSeconds) || config.s3.presignTtlSeconds <= 0) {
-  throw new Error('S3_PRESIGN_TTL_SECONDS must be positive');
+if (
+  !Number.isFinite(config.dependencyTimeoutMs) ||
+  !Number.isInteger(config.dependencyTimeoutMs) ||
+  config.dependencyTimeoutMs < 100 ||
+  config.dependencyTimeoutMs > 300_000
+) {
+  throw new Error('DEPENDENCY_TIMEOUT_MS must be an integer between 100 and 300000.');
+}
+
+if (
+  !Number.isFinite(config.s3.presignTtlSeconds) ||
+  !Number.isInteger(config.s3.presignTtlSeconds) ||
+  config.s3.presignTtlSeconds < 1 ||
+  config.s3.presignTtlSeconds > 604_800
+) {
+  throw new Error('S3_PRESIGN_TTL_SECONDS must be an integer between 1 and 604800.');
 }
 
 if (config.jwtRefreshSecret.length < 32) {
@@ -158,7 +224,7 @@ export const oidcConfig = (() => {
   };
 })();
 
-/** Application limits — extracted from inline magic numbers. */
+/** Application limits extracted from inline magic numbers. */
 export const limits = {
   /** Maximum number of markers per feedback item */
   maxMarkers: 50,

@@ -1,42 +1,22 @@
+// Exercises security regressions across identifiers, authorization, replay, and retired routes.
 import request from 'supertest';
-import { beforeAll, afterAll, beforeEach, describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import {
   app,
-  setupApp,
-  teardownApp,
-  resetDb,
-  seedBasic,
   getAccessToken,
+  installBasicSuite,
+  issueDevSession,
+  login,
   prisma,
-} from './testUtils.js';
-
-function login(role: 'student' | 'teacher') {
-  const userId = role === 'student' ? 'student-1' : 'teacher-1';
-  return getAccessToken(role, { userId });
-}
+} from './support/testUtils.js';
 
 describe('security', () => {
-  beforeAll(async () => {
-    await setupApp();
-  });
-
-  afterAll(async () => {
-    await teardownApp();
-  });
-
-  beforeEach(async () => {
-    await resetDb();
-    await seedBasic();
-  });
+  installBasicSuite();
 
   // Bug #33: /auth/refresh gated by AUTH_MODE
   describe('auth/refresh auth mode gate', () => {
     it('allows refresh in dev mode', async () => {
-      const issue = await request(app.server).post('/dev/issue').send({ role: 'student' });
-      const session = await request(app.server).post('/auth/session').send({
-        code: issue.body.code,
-        redirectUri: 'resonance://auth-callback',
-      });
+      const { session } = await issueDevSession('student');
       const refreshToken = session.body.refreshToken as string;
       const res = await request(app.server).post('/auth/refresh').send({ refreshToken });
       expect(res.status).toBe(200);
@@ -121,7 +101,7 @@ describe('security', () => {
       expect(res.body.id).toBe('entry_2025-03-21_abc123');
     });
 
-    it('returns 409 on duplicate entry ID', async () => {
+    it('treats an exact duplicate entry request as an idempotent retry', async () => {
       const token = await login('student');
       const payload = {
         id: 'duplicate-entry-id',
@@ -139,8 +119,8 @@ describe('security', () => {
         .post('/courses/COURSE_TEST/entries')
         .set('Authorization', `Bearer ${token}`)
         .send(payload);
-      expect(second.status).toBe(409);
-      expect(second.body.error?.code).toBe('ID_CONFLICT');
+      expect(second.status).toBe(200);
+      expect(second.body.id).toBe(payload.id);
     });
 
     it('rejects artifact ID with special characters', async () => {
@@ -158,14 +138,22 @@ describe('security', () => {
 
       const token = await login('student');
       const res = await request(app.server)
-        .post('/entries/entry-for-artifact-id-test/artifacts')
+        .post('/api/v1/artifact-sessions')
         .set('Authorization', `Bearer ${token}`)
-        .send({ id: 'art<script>alert(1)</script>', type: 'audio', durationSeconds: 10 });
+        .send({
+          operationId: 'special-character-operation',
+          entryId: 'entry-for-artifact-id-test',
+          artifactId: 'art<script>alert(1)</script>',
+          type: 'audio',
+          durationSeconds: 10,
+          sizeBytes: 1,
+          baseVersion: 1,
+        });
       expect(res.status).toBe(400);
       expect(res.body.error?.code).toBe('VALIDATION_ERROR');
     });
 
-    it('returns 409 on duplicate artifact ID', async () => {
+    it('treats an exact duplicate artifact request as an idempotent retry', async () => {
       await prisma.practiceEntry.create({
         data: {
           id: 'entry-for-dup-artifact',
@@ -179,19 +167,29 @@ describe('security', () => {
       });
 
       const token = await login('student');
-      const payload = { id: 'dup-artifact-id', type: 'audio', durationSeconds: 10 };
+      const payload = {
+        operationId: 'dup-artifact-operation',
+        entryId: 'entry-for-dup-artifact',
+        artifactId: 'dup-artifact-id',
+        type: 'audio',
+        durationSeconds: 10,
+        sizeBytes: 1,
+        baseVersion: 1,
+      };
       const first = await request(app.server)
-        .post('/entries/entry-for-dup-artifact/artifacts')
+        .post('/api/v1/artifact-sessions')
         .set('Authorization', `Bearer ${token}`)
         .send(payload);
-      expect(first.status).toBe(201);
+      expect(first.status).toBe(200);
 
       const second = await request(app.server)
-        .post('/entries/entry-for-dup-artifact/artifacts')
+        .post('/api/v1/artifact-sessions')
         .set('Authorization', `Bearer ${token}`)
         .send(payload);
-      expect(second.status).toBe(409);
-      expect(second.body.error?.code).toBe('ID_CONFLICT');
+      expect(second.status).toBe(200);
+      expect(second.body.sessionId).toBe(first.body.sessionId);
+      expect(second.body.artifact.id).toBe(payload.artifactId);
+      expect(second.body.artifact.expectedSizeBytes).toBe(payload.sizeBytes);
     });
   });
 
@@ -213,10 +211,18 @@ describe('security', () => {
 
       const token = await login('student');
       const res = await request(app.server)
-        .post('/entries/entry-deleted-for-artifact/artifacts')
+        .post('/api/v1/artifact-sessions')
         .set('Authorization', `Bearer ${token}`)
-        .send({ id: 'artifact-on-deleted', type: 'audio', durationSeconds: 5 });
-      expect(res.status).toBe(404);
+        .send({
+          operationId: 'deleted-artifact-operation',
+          entryId: 'entry-deleted-for-artifact',
+          artifactId: 'artifact-on-deleted',
+          type: 'audio',
+          durationSeconds: 5,
+          sizeBytes: 1,
+          baseVersion: 1,
+        });
+      expect(res.status).toBe(410);
     });
 
     it('rejects feedback on deleted entry', async () => {

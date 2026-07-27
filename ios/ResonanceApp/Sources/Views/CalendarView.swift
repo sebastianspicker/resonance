@@ -1,6 +1,8 @@
 import SwiftUI
 import SwiftData
 
+// Presents subscribed calendar events and the controls for refreshing or changing that subscription.
+
 struct CalendarView: View {
     @Environment(\.modelContext) private var modelContext
     @Query(sort: \CalendarEvent.startDate) private var events: [CalendarEvent]
@@ -17,18 +19,27 @@ struct CalendarView: View {
                             .accessibilityLabel("iCal URL")
                             .accessibilityHint("Enter your ASIMUT calendar URL")
                         Button("Save & Refresh") {
-                            CalendarSubscriptionStore.save(icalURLString)
-                            Task { await refresh() }
+                            do {
+                                try CalendarSubscriptionStore.save(icalURLString)
+                                Task { await refresh() }
+                            } catch {
+                                errorMessage = error.localizedDescription
+                            }
                         }
                         .accessibilityLabel("Save and refresh calendar")
                         .accessibilityHint("Double-tap to save the URL and reload calendar events")
                     }
                 }
+                .scrollContentBackground(.hidden)
+                .background(AppTheme.workspaceBackground)
 
                 List(events) { event in
                     VStack(alignment: .leading) {
                         Text(event.summary)
-                        Text("\(event.startDate.formatted(date: .abbreviated, time: .shortened)) – \(event.endDate.formatted(date: .abbreviated, time: .shortened))")
+                        Text(
+                            "\(event.startDate.formatted(date: .abbreviated, time: .shortened)) – " +
+                                "\(event.endDate.formatted(date: .abbreviated, time: .shortened))"
+                        )
                             .font(.caption)
                             .foregroundStyle(.secondary)
                         if let location = event.location {
@@ -38,7 +49,10 @@ struct CalendarView: View {
                         }
                     }
                 }
+                .scrollContentBackground(.hidden)
+                .background(AppTheme.workspaceBackground)
             }
+            .background(AppTheme.workspaceBackground)
             .navigationTitle("Calendar")
             .alert("Calendar refresh failed", isPresented: Binding(
                 get: { errorMessage != nil },

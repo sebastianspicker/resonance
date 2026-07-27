@@ -1,6 +1,8 @@
 import SwiftUI
 import SwiftData
 
+// Selects the signed-in app shell or login surface from the current authentication state.
+
 struct ContentView: View {
     let modelContext: ModelContext
     @EnvironmentObject var appState: AppState
@@ -18,11 +20,19 @@ struct ContentView: View {
             } else if let userId = conflictingProfileUserId {
                 LocalProfileConflictView(
                     continueWithAccount: {
-                        appState.replaceLocalProfile(with: userId)
-                        conflictingProfileUserId = nil
-                        activeLocalProfileUserId = userId
+                        Task {
+                            do {
+                                try await appState.replaceLocalProfile(with: userId)
+                                conflictingProfileUserId = nil
+                                activeLocalProfileUserId = userId
+                            } catch {
+                                appState.reportError(error)
+                            }
+                        }
                     },
-                    signOut: { authManager.signOut() }
+                    signOut: {
+                        Task { await appState.signOutAndDeleteLocalData() }
+                    }
                 )
             } else if activeLocalProfileUserId != authManager.session?.userId {
                 ProgressView("Preparing local profile…")
@@ -35,9 +45,14 @@ struct ContentView: View {
             if let userId = authManager.session?.userId {
                 prepareLocalProfile(userId: userId)
             }
-            await syncManager.processQueue()
+            if ScreenshotScenario.current == nil,
+               conflictingProfileUserId == nil,
+               activeLocalProfileUserId == authManager.session?.userId {
+                await syncManager.processQueue()
+            }
         }
         .onChange(of: authManager.session?.userId) { _, userId in
+            syncManager.invalidateProcessing()
             if let userId {
                 prepareLocalProfile(userId: userId)
             } else {
@@ -47,6 +62,10 @@ struct ContentView: View {
         }
         .onChange(of: scenePhase) { _, newPhase in
             if newPhase == .active {
+                guard ScreenshotScenario.current == nil,
+                      conflictingProfileUserId == nil,
+                      activeLocalProfileUserId == authManager.session?.userId
+                else { return }
                 Task { await syncManager.processQueue() }
             }
         }
@@ -57,15 +76,22 @@ struct ContentView: View {
                 Text(message)
             }
         }
+        .tint(AppTheme.accent)
     }
 
     private func prepareLocalProfile(userId: String) {
-        if appState.activateLocalProfile(userId: userId) {
-            activeLocalProfileUserId = userId
-            conflictingProfileUserId = nil
-        } else {
+        do {
+            if try appState.activateLocalProfile(userId: userId) {
+                activeLocalProfileUserId = userId
+                conflictingProfileUserId = nil
+            } else {
+                activeLocalProfileUserId = nil
+                conflictingProfileUserId = userId
+            }
+        } catch {
             activeLocalProfileUserId = nil
             conflictingProfileUserId = userId
+            appState.reportError(error)
         }
     }
 
@@ -80,6 +106,7 @@ struct ContentView: View {
 
         if !scenario.requiresAuthenticatedSession {
             if authManager.session != nil {
+                syncManager.invalidateProcessing()
                 authManager.signOut()
             }
             return

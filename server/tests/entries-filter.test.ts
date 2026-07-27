@@ -1,6 +1,21 @@
-import request from 'supertest';
+// Verifies entry filtering and cursor pagination without weakening course visibility rules.
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { PrismaClient } from '@prisma/client';
+
+function listEntries(app: any, accessToken: string, query = '') {
+  return app.inject({
+    method: 'GET',
+    url: `/courses/COURSE_101/entries${query}`,
+    headers: { authorization: `Bearer ${accessToken}` },
+  });
+}
+
+function expectInvalidCursor(res: { statusCode: number; json: () => any }) {
+  const body = res.json();
+  expect(res.statusCode).toBe(400);
+  expect(body.error.code).toBe('VALIDATION_ERROR');
+  expect(body.error.message).toContain('cursor');
+}
 
 describe('GET /courses/:courseId/entries status filter', () => {
   let app: any;
@@ -13,13 +28,22 @@ describe('GET /courses/:courseId/entries status filter', () => {
 
     prisma = new PrismaClient();
     app = buildServer(prisma, {} as any);
+    await prisma.$connect();
     await app.ready();
 
     // Get a dev auth token
-    const issueRes = await request(app.server).post('/dev/issue').send({ role: 'student' });
-    const code = issueRes.body.code;
-    const sessionRes = await request(app.server).post('/auth/session').send({ code });
-    accessToken = sessionRes.body.accessToken;
+    const issueRes = await app.inject({
+      method: 'POST',
+      url: '/dev/issue',
+      payload: { role: 'student' },
+    });
+    const code = issueRes.json().code;
+    const sessionRes = await app.inject({
+      method: 'POST',
+      url: '/auth/session',
+      payload: { code },
+    });
+    accessToken = sessionRes.json().accessToken;
   });
 
   afterAll(async () => {
@@ -28,54 +52,41 @@ describe('GET /courses/:courseId/entries status filter', () => {
   });
 
   it('rejects invalid status filter with VALIDATION_ERROR', async () => {
-    const res = await request(app.server)
-      .get('/courses/COURSE_101/entries?status=invalid')
-      .set('Authorization', `Bearer ${accessToken}`);
-    expect(res.status).toBe(400);
-    expect(res.body.error.code).toBe('VALIDATION_ERROR');
-    expect(res.body.error.message).toContain('Invalid status filter');
+    const res = await listEntries(app, accessToken, '?status=invalid');
+    const body = res.json();
+    expect(res.statusCode).toBe(400);
+    expect(body.error.code).toBe('VALIDATION_ERROR');
+    expect(body.error.message).toContain('Invalid status filter');
   });
 
   it('accepts valid status filter (draft)', async () => {
-    const res = await request(app.server)
-      .get('/courses/COURSE_101/entries?status=draft')
-      .set('Authorization', `Bearer ${accessToken}`);
-    expect(res.status).toBe(200);
-    expect(Array.isArray(res.body.items)).toBe(true);
+    const res = await listEntries(app, accessToken, '?status=draft');
+    expect(res.statusCode).toBe(200);
+    expect(Array.isArray(res.json().items)).toBe(true);
   });
 
   it('accepts valid status filter (submitted)', async () => {
-    const res = await request(app.server)
-      .get('/courses/COURSE_101/entries?status=submitted')
-      .set('Authorization', `Bearer ${accessToken}`);
-    expect(res.status).toBe(200);
-    expect(Array.isArray(res.body.items)).toBe(true);
+    const res = await listEntries(app, accessToken, '?status=submitted');
+    expect(res.statusCode).toBe(200);
+    expect(Array.isArray(res.json().items)).toBe(true);
   });
 
   it('accepts valid status filter (reviewed)', async () => {
-    const res = await request(app.server)
-      .get('/courses/COURSE_101/entries?status=reviewed')
-      .set('Authorization', `Bearer ${accessToken}`);
-    expect(res.status).toBe(200);
-    expect(Array.isArray(res.body.items)).toBe(true);
+    const res = await listEntries(app, accessToken, '?status=reviewed');
+    expect(res.statusCode).toBe(200);
+    expect(Array.isArray(res.json().items)).toBe(true);
   });
 
   it('returns all entries when no status filter is provided (student)', async () => {
-    const res = await request(app.server)
-      .get('/courses/COURSE_101/entries')
-      .set('Authorization', `Bearer ${accessToken}`);
-    expect(res.status).toBe(200);
-    expect(Array.isArray(res.body.items)).toBe(true);
+    const res = await listEntries(app, accessToken);
+    expect(res.statusCode).toBe(200);
+    expect(Array.isArray(res.json().items)).toBe(true);
   });
 
   it('rejects unknown cursor id with VALIDATION_ERROR', async () => {
     // cursor references a non-existent entry → 400 invalid cursor
-    const res = await request(app.server)
-      .get('/courses/COURSE_101/entries?cursor=nonexistent-entry')
-      .set('Authorization', `Bearer ${accessToken}`);
-    expect(res.status).toBe(400);
-    expect(res.body.error.code).toBe('VALIDATION_ERROR');
-    expect(res.body.error.message).toContain('cursor');
+    const res = await listEntries(app, accessToken, '?cursor=nonexistent-entry');
+    expectInvalidCursor(res);
   });
 
   it('rejects cursor ids outside the visible student entry scope', async () => {
@@ -107,12 +118,7 @@ describe('GET /courses/:courseId/entries status filter', () => {
       },
     });
 
-    const res = await request(app.server)
-      .get('/courses/COURSE_101/entries?cursor=foreign-cursor-entry')
-      .set('Authorization', `Bearer ${accessToken}`);
-
-    expect(res.status).toBe(400);
-    expect(res.body.error.code).toBe('VALIDATION_ERROR');
-    expect(res.body.error.message).toContain('cursor');
+    const res = await listEntries(app, accessToken, '?cursor=foreign-cursor-entry');
+    expectInvalidCursor(res);
   });
 });

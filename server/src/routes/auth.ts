@@ -1,10 +1,12 @@
+/** HTTP authentication flows, including refresh-family rotation boundaries. */
 import type { PrismaClient } from '@prisma/client';
 import type { FastifyInstance, FastifyRequest } from 'fastify';
 import {
   consumeDevAuthCode,
   hashToken,
   issueDevAuthCode,
-  issueTokens,
+  issueSessionTokens,
+  revokeRefreshTokenFamily,
   rotateRefreshToken,
   upsertDevUser,
 } from '../auth.js';
@@ -59,14 +61,7 @@ export function registerAuthRoutes(
   prisma: PrismaClient,
   requireAuth: (request: FastifyRequest) => Promise<void>
 ) {
-  const isLoopbackAddress = (ip: string | undefined) => {
-    if (!ip) {
-      return false;
-    }
-    return ip === '127.0.0.1' || ip === '::1' || ip === '::ffff:127.0.0.1';
-  };
-
-  const requireLocalDevAuth = (request: FastifyRequest) => {
+  const requireLocalDevAuth = (request: FastifyRequest): void => {
     if (config.authMode !== 'dev') {
       throw new ApiError(404, ErrorCodes.NOT_FOUND, 'Not found');
     }
@@ -79,6 +74,20 @@ export function registerAuthRoutes(
     }
   };
 
+  registerLoginRoutes(app, prisma, requireLocalDevAuth);
+  registerOidcRoutes(app, prisma);
+  registerSessionRoutes(app, prisma, requireAuth);
+}
+
+function isLoopbackAddress(ip: string | undefined): boolean {
+  return ip === '127.0.0.1' || ip === '::1' || ip === '::ffff:127.0.0.1';
+}
+
+function registerLoginRoutes(
+  app: FastifyInstance,
+  prisma: PrismaClient,
+  requireLocalDevAuth: (request: FastifyRequest) => void
+) {
   app.get('/auth/login', async (request, reply) => {
     // Keep the iOS app on one stable login URL. The server owns whether that
     // means localhost-only dev auth or the production OIDC redirect.
@@ -133,9 +142,9 @@ export function registerAuthRoutes(
     const code = issueDevAuthCode(user.id);
     return { code };
   });
+}
 
-  // ── OIDC routes (production only) ───────────────────────────────────────────
-
+function registerOidcRoutes(app: FastifyInstance, prisma: PrismaClient) {
   app.get('/auth/oidc/login', async (request, reply) => {
     if (!oidcConfig) {
       throw new ApiError(
@@ -145,7 +154,7 @@ export function registerAuthRoutes(
       );
     }
     const client = await getOidcClient();
-    const state = issueOidcState();
+    const state = await issueOidcState(prisma);
     const authorizationUrl = client.authorizationUrl({
       scope: oidcConfig.scopes,
       state,
@@ -165,7 +174,7 @@ export function registerAuthRoutes(
     const params = client.callbackParams(request.raw);
     const state = typeof params.state === 'string' ? params.state : undefined;
 
-    if (!state || !consumeOidcState(state)) {
+    if (!state || !(await consumeOidcState(prisma, state))) {
       throw new ApiError(
         400,
         ErrorCodes.VALIDATION_ERROR,
@@ -197,7 +206,7 @@ export function registerAuthRoutes(
       create: { id: userId, displayName, globalRole },
     });
 
-    const code = issueProdAuthCode(userId);
+    const code = await issueProdAuthCode(prisma, userId);
 
     // Redirect to the app's custom URL scheme with the internal code.
     // The iOS app registers resonance:// so ASWebAuthenticationSession captures this redirect.
@@ -205,9 +214,13 @@ export function registerAuthRoutes(
     appCallbackUrl.searchParams.set('code', code);
     reply.redirect(appCallbackUrl.toString());
   });
+}
 
-  // ── Session exchange ─────────────────────────────────────────────────────────
-
+function registerSessionRoutes(
+  app: FastifyInstance,
+  prisma: PrismaClient,
+  requireAuth: (request: FastifyRequest) => Promise<void>
+) {
   app.post(
     '/auth/session',
     {
@@ -236,7 +249,7 @@ export function registerAuthRoutes(
       if (config.authMode === 'dev') {
         userId = consumeDevAuthCode(code);
       } else {
-        userId = consumeProdAuthCode(code);
+        userId = await consumeProdAuthCode(prisma, code);
       }
 
       if (!userId) {
@@ -247,7 +260,7 @@ export function registerAuthRoutes(
       if (!user) {
         throw new ApiError(401, ErrorCodes.USER_NOT_FOUND, 'User not found');
       }
-      const tokens = await issueTokens(prisma, user);
+      const tokens = await issueSessionTokens(prisma, user);
       return reply.status(201).send({
         ...tokens,
         user: { id: user.id, displayName: user.displayName, globalRole: user.globalRole },
@@ -321,10 +334,7 @@ export function registerAuthRoutes(
         where: { tokenHash },
       });
       if (token) {
-        await prisma.refreshToken.updateMany({
-          where: { userId: token.userId, revokedAt: null },
-          data: { revokedAt: new Date() },
-        });
+        await revokeRefreshTokenFamily(prisma, token.userId);
       }
       return { success: true };
     }
@@ -334,15 +344,7 @@ export function registerAuthRoutes(
     const user = request.user!;
 
     // Revoke all refresh tokens for this user
-    await prisma.refreshToken.updateMany({
-      where: {
-        userId: user.id,
-        revokedAt: null,
-      },
-      data: {
-        revokedAt: new Date(),
-      },
-    });
+    await revokeRefreshTokenFamily(prisma, user.id);
 
     return { success: true };
   });

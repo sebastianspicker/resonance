@@ -1,30 +1,64 @@
-# Documentation Index
+# Documentation
 
-This index is the canonical entry point for Resonance documentation.
+The repository documents the current source-only alpha and a separate set of
+post-alpha requirements. A requirement is not evidence that a device,
+accessibility, identity, storage, signing, or deployment check has passed.
 
-## Canonical Docs
+## Build, run, and operate
 
-- [Product contract](../PRODUCT.md)
-- [Design contract](../DESIGN.md)
-- [PRD](./PRD.md)
-- [Architecture](./ARCHITECTURE.md)
-- [API](./API.md)
-- [Security](./SECURITY.md)
-- [Scientific Audit: Teaching-Lesson Video](./SCIENTIFIC_AUDIT.md)
-- [SSO Bridge](./SSO_BRIDGE.md)
-- [UI](./UI.md)
-- [Runbook](./RUNBOOK.md)
-- [Local Demo](./RELEASE_CANDIDATE_DEMO.md)
-- [Screenshot Validation Playbook](./RELEASE_CANDIDATE_SCREENSHOTS.md)
-- [Release Checklist](./RELEASE_CHECKLIST.md)
+- [Project overview](../README.md): purpose, capabilities, limitations,
+  requirements, setup, configuration, and common commands.
+- [Development and operations](./RUNBOOK.md): local services, backend and iOS
+  workflows, verification, probes, production application contract, and
+  troubleshooting.
+- [Local demo](./LOCAL_DEMO.md): deterministic fixture setup, in-app loading,
+  reset behavior, and local screenshot capture.
+- [API reference](./API.md): routes, request and response contracts, limits,
+  authorization, and error codes.
+- [Architecture](./ARCHITECTURE.md): runtime components, data flow,
+  synchronization, persistence, and test seams.
 
-## Repository Guides
+## Security and identity
 
-- [Project README](../README.md)
+- [Security policy](../SECURITY.md): supported versions and private
+  vulnerability reporting.
+- [Security model](./SECURITY.md): trust boundaries, implemented controls,
+  privacy behavior, threats, and deployment obligations.
+- [OIDC configuration](./SSO_BRIDGE.md): production authentication flow,
+  required settings, role mapping, and failure cases.
+
+## Product and interface
+
+- [Product scope](../PRODUCT.md): users, purpose, product language, and
+  accessibility targets.
+- [Design system](../DESIGN.md): visual tokens, native components, layout, and
+  motion.
+- [Native UI behavior](./UI.md): routes, role-based actions, capture behavior,
+  and validation targets.
+- [Post-alpha pilot requirements](./PRD.md): remaining acceptance work and
+  non-goals.
+- [Teaching-lesson evidence basis](./TEACHING_LESSON_EVIDENCE.md): sources and
+  product boundaries for video evidence.
+
+## Release material
+
+- [Release procedure](./RELEASING.md): source freeze, verification, screenshot
+  review, pull request, and publication.
+- [Alpha release checklist](./RELEASE_CHECKLIST.md): candidate gates and
+  unresolved release work.
+- [Alpha release notes](./release-notes/v0.1.0-alpha.1.md): candidate contents,
+  limitations, and evidence status.
+- [Screenshot policy](./SCREENSHOTS.md): capture provenance, review, promotion,
+  and evidence boundaries.
+- [Screenshot walkthrough](./ALPHA_WALKTHROUGH.md): the required 12-scenario
+  capture set.
+
+## Repository participation
+
 - [Contributing](../CONTRIBUTING.md)
-- [Security Policy](../SECURITY.md)
+- [Support](../SUPPORT.md)
 - [Changelog](../CHANGELOG.md)
 
-Only current, public documentation belongs in this directory. Local audits, ledgers, status snapshots, generated reports, and superseded planning are excluded from version control. Product or engineering changes must update the canonical docs above in the same change.
-
-The repository is under production-pilot development. A documented requirement is not evidence that its device, accessibility, deployment, or external-service validation has passed; verification status is recorded in the README and release checklist.
+Only current technical and product references belong in the active
+documentation tree. Update the relevant document when code, configuration,
+commands, data contracts, or operating requirements change.

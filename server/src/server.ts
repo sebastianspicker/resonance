@@ -1,3 +1,4 @@
+/** Fastify composition root for middleware, routes, and readiness coordination. */
 import type { S3Client } from '@aws-sdk/client-s3';
 import cors from '@fastify/cors';
 import helmet from '@fastify/helmet';
@@ -14,6 +15,9 @@ import { registerAuthRoutes } from './routes/auth.js';
 import { registerCourseRoutes } from './routes/courses.js';
 import { registerEntryRoutes } from './routes/entries.js';
 import { registerFeedbackRoutes } from './routes/feedback.js';
+import { registerV1Routes } from './routes/v1.js';
+import { withDeadline } from './services/deadline.js';
+import { checkBucketAvailable } from './storage.js';
 
 /** HTTP methods that carry a request body and must send application/json. */
 const BODY_METHODS = new Set(['POST', 'PUT', 'PATCH']);
@@ -48,7 +52,7 @@ function classifyFastifyError(error: FastifyErrorShape) {
     return errorResponse(
       429,
       ErrorCodes.RATE_LIMITED,
-      'Too many requests — please try again later'
+      'Too many requests. Please try again later.'
     );
   }
   if (typeof error.code === 'string' && error.code.startsWith('FST_ERR_CTP')) {
@@ -63,6 +67,10 @@ function classifyFastifyError(error: FastifyErrorShape) {
   );
 }
 
+/**
+ * Compose the API around injected database and storage clients so production
+ * lifecycle code and tests exercise the same middleware and route graph.
+ */
 export function buildServer(prisma: PrismaClient, s3: S3Client) {
   const app = Fastify({
     logger: {
@@ -78,6 +86,32 @@ export function buildServer(prisma: PrismaClient, s3: S3Client) {
     requestIdLogLabel: 'requestId',
     bodyLimit: limits.bodyLimitBytes,
   });
+  let activeReadinessCheck: Promise<void> | null = null;
+
+  /** Share one dependency probe across concurrent readiness callers. */
+  function checkDependencies(): Promise<void> {
+    if (activeReadinessCheck) return activeReadinessCheck;
+    const check = (async () => {
+      const results = await Promise.allSettled([
+        prisma.$queryRaw`SELECT 1`,
+        checkBucketAvailable(s3),
+      ]);
+      const failure = results.find(
+        (result): result is PromiseRejectedResult => result.status === 'rejected'
+      );
+      if (failure) throw failure.reason;
+    })();
+    activeReadinessCheck = check;
+    void check.then(
+      () => {
+        if (activeReadinessCheck === check) activeReadinessCheck = null;
+      },
+      () => {
+        if (activeReadinessCheck === check) activeReadinessCheck = null;
+      }
+    );
+    return check;
+  }
 
   // --- Rate limiting --------------------------------------------------------
   const isLoopback = (ip: string | undefined) =>
@@ -88,7 +122,7 @@ export function buildServer(prisma: PrismaClient, s3: S3Client) {
     timeWindow: '1 minute',
     allowList: (req, _key) => {
       // Health endpoint should never be throttled (uptime probes, load balancers)
-      if (req.url === '/health') return true;
+      if (req.url === '/health' || req.url === '/ready') return true;
       // In dev mode, exempt localhost to avoid throttling dev/test traffic
       if (config.authMode === 'dev' && isLoopback(req.ip)) return true;
       return false;
@@ -118,7 +152,7 @@ export function buildServer(prisma: PrismaClient, s3: S3Client) {
       config.authMode === 'prod' ? { maxAge: 31_536_000, includeSubDomains: true } : false,
     // Referrer leak prevention
     referrerPolicy: { policy: 'no-referrer' },
-    // Not an HTML app — disable DNS prefetch, download-guard, permitted-cross-domain
+    // This is not an HTML app, so disable DNS prefetch, download guard, and permitted cross-domain policies.
     dnsPrefetchControl: { allow: false },
     permittedCrossDomainPolicies: { permittedPolicies: 'none' },
   });
@@ -148,7 +182,7 @@ export function buildServer(prisma: PrismaClient, s3: S3Client) {
   // --- Error handler --------------------------------------------------------
   app.setErrorHandler((error, request, reply) => {
     if (error instanceof ApiError) {
-      return sendError(reply, error);
+      return sendError(reply, error, request.id);
     }
 
     const fastifyErr = error as FastifyErrorShape;
@@ -159,11 +193,16 @@ export function buildServer(prisma: PrismaClient, s3: S3Client) {
     } else {
       request.log.warn(error);
     }
-    return reply.code(errorResult.status).send(errorResult.body);
+    return reply.code(errorResult.status).send({
+      error: {
+        ...errorResult.body.error,
+        requestId: request.id,
+      },
+    });
   });
 
-  app.setNotFoundHandler((_request, reply) => {
-    sendError(reply, new ApiError(404, ErrorCodes.NOT_FOUND, 'Route not found'));
+  app.setNotFoundHandler((request, reply) => {
+    sendError(reply, new ApiError(404, ErrorCodes.NOT_FOUND, 'Route not found'), request.id);
   });
 
   // --- Auth hook ------------------------------------------------------------
@@ -184,12 +223,26 @@ export function buildServer(prisma: PrismaClient, s3: S3Client) {
 
   // --- Routes ---------------------------------------------------------------
   app.get('/health', async () => ({ status: 'ok' }));
+  app.get('/ready', async (request, reply) => {
+    try {
+      await withDeadline(
+        () => checkDependencies(),
+        config.dependencyTimeoutMs,
+        'Dependency readiness check'
+      );
+      return { status: 'ready' };
+    } catch (error) {
+      request.log.warn({ err: error }, 'Readiness dependency check failed');
+      return reply.status(503).send({ status: 'unavailable' });
+    }
+  });
 
   registerAuthRoutes(app, prisma, requireAuth);
   registerCourseRoutes(app, prisma, requireAuth);
-  registerEntryRoutes(app, prisma, s3, requireAuth);
+  registerEntryRoutes(app, prisma, requireAuth);
   registerArtifactRoutes(app, prisma, s3, requireAuth);
   registerFeedbackRoutes(app, prisma, requireAuth);
+  registerV1Routes(app, prisma, s3, requireAuth);
 
   return app;
 }

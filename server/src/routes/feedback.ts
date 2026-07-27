@@ -1,15 +1,18 @@
-import type { PrismaClient } from '@prisma/client';
+/** Feedback HTTP routes and their locked-entry authorization workflow. */
+import type { PracticeEntry, PrismaClient } from '@prisma/client';
 import type { FastifyInstance, FastifyRequest } from 'fastify';
 import { nanoid } from 'nanoid';
 import { limits } from '../config.js';
 import { ErrorCodes } from '../errorCodes.js';
 import { ApiError, withPrismaErrors } from '../errors.js';
+import { type EntryTransaction, withLockedEntry } from '../services/entryTransaction.js';
 import {
   requireCourseRole,
   requireClientId,
   requireEnum,
   requireField,
   requireNumber,
+  requireRecord,
   requireString,
 } from '../validation.js';
 
@@ -20,171 +23,278 @@ export function registerFeedbackRoutes(
 ) {
   app.post('/feedback', { preHandler: requireAuth }, async (request, reply) => {
     const user = request.user!;
-    const body = request.body as Record<string, unknown>;
-    const requestedFeedbackId = body?.id === undefined ? undefined : requireClientId(body.id, 'id');
-    const targetType = requireEnum(requireField(body?.targetType, 'targetType'), 'targetType', [
-      'entry',
-      'artifact',
-    ] as const);
-    const targetId = requireString(requireField(body?.targetId, 'targetId'), 'targetId');
-    const status = requireEnum(requireField(body?.status, 'status'), 'status', [
-      'ok',
-      'needs_revision',
-      'next_goal',
-    ] as const);
-    const commentsText = requireString(
-      requireField(body?.commentsText, 'commentsText'),
-      'commentsText',
-      { minLength: 1, max: limits.maxCommentsTextLength }
-    );
-    const rawMarkers = Array.isArray(body?.markers)
-      ? (body.markers as Record<string, unknown>[])
-      : [];
-    if (rawMarkers.length > limits.maxMarkers) {
-      throw new ApiError(
-        400,
-        ErrorCodes.VALIDATION_ERROR,
-        `Too many markers (max ${limits.maxMarkers})`
-      );
-    }
-    const markers: Array<{ timeSeconds: number; text: string }> = [];
-    for (let index = 0; index < limits.maxMarkers; index += 1) {
-      if (index >= rawMarkers.length) break;
-      const marker = rawMarkers[index]!;
-      markers.push({
-        timeSeconds: requireNumber(marker?.timeSeconds, 'marker.timeSeconds', {
-          integer: true,
-          min: 0,
-          max: limits.maxMarkerTimeSeconds,
-        }),
-        text: requireString(requireField(marker?.text, 'marker.text'), 'marker.text', {
-          max: limits.maxMarkerTextLength,
-        }),
-      });
-    }
-
-    let courseId: string;
-    let reviewEntryId: string;
-    if (targetType === 'entry') {
-      const entry = await prisma.practiceEntry.findUnique({ where: { id: targetId } });
-      if (!entry) {
-        throw new ApiError(404, ErrorCodes.ENTRY_NOT_FOUND, 'Entry not found');
-      }
-      if (entry.deletedAt) {
-        throw new ApiError(410, ErrorCodes.ENTRY_DELETED, 'Entry has been deleted');
-      }
-      if (entry.status === 'draft') {
-        throw new ApiError(
-          409,
-          ErrorCodes.ENTRY_NOT_SUBMITTED,
-          'Entry must be submitted before feedback can be added'
-        );
-      }
-      courseId = entry.courseId;
-      reviewEntryId = entry.id;
-    } else if (targetType === 'artifact') {
-      const artifact = await prisma.artifact.findUnique({
-        where: { id: targetId },
-        include: { entry: true },
-      });
-      if (!artifact) {
-        throw new ApiError(404, ErrorCodes.ARTIFACT_NOT_FOUND, 'Artifact not found');
-      }
-      if (artifact.entry.deletedAt) {
-        throw new ApiError(410, ErrorCodes.ENTRY_DELETED, 'Entry has been deleted');
-      }
-      if (artifact.entry.status === 'draft') {
-        throw new ApiError(
-          409,
-          ErrorCodes.ENTRY_NOT_SUBMITTED,
-          'Entry must be submitted before feedback can be added'
-        );
-      }
-      courseId = artifact.entry.courseId;
-      reviewEntryId = artifact.entry.id;
-    } else {
-      throw new ApiError(400, ErrorCodes.INVALID_TARGET, 'Invalid target type');
-    }
+    const parsed = parseFeedbackRequest(requireRecord(request.body, 'body'));
+    const target = await resolveFeedbackTarget(prisma, parsed.targetType, parsed.targetId);
 
     // Feedback is course-scoped. A global teacher role is not enough; the user
     // must be a teacher on the target entry's course.
-    const roleInCourse = await requireCourseRole(prisma, user.id, courseId);
+    const roleInCourse = await requireCourseRole(prisma, user.id, target.courseId);
     if (roleInCourse !== 'teacher') {
       throw new ApiError(403, ErrorCodes.TEACHER_ONLY, 'Only course teachers can leave feedback');
     }
 
-    const feedbackId = requestedFeedbackId ?? `fb_${nanoid(12)}`;
-    const existingFeedback = requestedFeedbackId
-      ? await prisma.feedback.findUnique({
-          where: { id: requestedFeedbackId },
-          include: { markers: true, teacher: true },
-        })
-      : null;
-    if (existingFeedback) {
-      if (
-        existingFeedback.teacherId !== user.id ||
-        existingFeedback.targetType !== targetType ||
-        existingFeedback.targetId !== targetId ||
-        existingFeedback.entryId !== reviewEntryId ||
-        !feedbackBodyMatches(existingFeedback, { status, commentsText, markers })
-      ) {
-        throw new ApiError(409, ErrorCodes.ID_CONFLICT, 'Feedback ID already exists');
-      }
-      return reply.status(200).send({
-        ...existingFeedback,
-        teacherName: existingFeedback.teacher.displayName,
-      });
-    }
+    const feedbackId = parsed.requestedFeedbackId ?? `fb_${nanoid(12)}`;
+    const markerCreates = makeMarkerCreates(parsed.markers);
 
-    const markerCreates: Array<{ id: string; timeSeconds: number; text: string }> = [];
-    for (let index = 0; index < limits.maxMarkers; index += 1) {
-      if (index >= markers.length) break;
-      const marker = markers[index]!;
-      markerCreates.push({
-        id: `mk_${nanoid(10)}`,
-        timeSeconds: marker.timeSeconds,
-        text: marker.text,
-      });
-    }
-
-    const feedback = await withPrismaErrors(
+    const result = await withPrismaErrors(
       () =>
-        prisma.$transaction(async (tx) => {
-          const created = await tx.feedback.create({
-            data: {
-              id: feedbackId,
-              targetType,
-              targetId,
-              teacherId: user.id,
-              entryId: reviewEntryId,
-              status,
-              commentsText,
-              markers: {
-                create: markerCreates,
-              },
-            },
-            include: { markers: true, teacher: true },
-          });
-
-          // Product rule: any teacher feedback, whether on the entry or one of
-          // its artifacts, marks the parent entry as reviewed.
-          await tx.practiceEntry.update({
-            where: { id: reviewEntryId },
-            data: { status: 'reviewed' },
-          });
-
-          return created;
-        }),
+        withLockedEntry(prisma, target.reviewEntryId, (tx, lockedEntry) =>
+          processLockedFeedback(tx, lockedEntry, {
+            userId: user.id,
+            requestedFeedbackId: parsed.requestedFeedbackId,
+            feedbackId,
+            targetType: parsed.targetType,
+            targetId: parsed.targetId,
+            reviewEntryId: target.reviewEntryId,
+            status: parsed.status,
+            commentsText: parsed.commentsText,
+            markers: parsed.markers,
+            markerCreates,
+          })
+        ),
       {
         notFoundCode: ErrorCodes.ENTRY_NOT_FOUND,
         notFoundMessage: 'Entry was deleted during feedback creation',
       }
     );
-    return reply.status(201).send({
-      ...feedback,
-      teacherName: feedback.teacher.displayName,
+    return reply.status(result.created ? 201 : 200).send({
+      ...result.feedback,
+      teacherName: result.feedback.teacher.displayName,
     });
   });
+}
+
+type ParsedFeedbackRequest = {
+  requestedFeedbackId: string | undefined;
+  targetType: 'entry' | 'artifact';
+  targetId: string;
+  status: 'ok' | 'needs_revision' | 'next_goal';
+  commentsText: string;
+  markers: Array<{ timeSeconds: number; text: string }>;
+};
+
+function parseFeedbackRequest(body: Record<string, unknown>): ParsedFeedbackRequest {
+  const requestedFeedbackId = body.id === undefined ? undefined : requireClientId(body.id, 'id');
+  const targetType = requireEnum(requireField(body.targetType, 'targetType'), 'targetType', [
+    'entry',
+    'artifact',
+  ] as const);
+  const targetId = requireString(requireField(body.targetId, 'targetId'), 'targetId');
+  const status = requireEnum(requireField(body.status, 'status'), 'status', [
+    'ok',
+    'needs_revision',
+    'next_goal',
+  ] as const);
+  const commentsText = requireString(
+    requireField(body.commentsText, 'commentsText'),
+    'commentsText',
+    { minLength: 1, max: limits.maxCommentsTextLength }
+  );
+  const rawMarkers = Object.prototype.hasOwnProperty.call(body, 'markers')
+    ? requireMarkerArray(body.markers)
+    : [];
+  return {
+    requestedFeedbackId,
+    targetType,
+    targetId,
+    status,
+    commentsText,
+    markers: parseFeedbackMarkers(rawMarkers),
+  };
+}
+
+function parseFeedbackMarkers(
+  rawMarkers: Record<string, unknown>[]
+): Array<{ timeSeconds: number; text: string }> {
+  if (rawMarkers.length > limits.maxMarkers) {
+    throw new ApiError(
+      400,
+      ErrorCodes.VALIDATION_ERROR,
+      `Too many markers (max ${limits.maxMarkers})`
+    );
+  }
+  return rawMarkers.map((marker) => ({
+    timeSeconds: requireNumber(marker.timeSeconds, 'marker.timeSeconds', {
+      integer: true,
+      min: 0,
+      max: limits.maxMarkerTimeSeconds,
+    }),
+    text: requireString(requireField(marker.text, 'marker.text'), 'marker.text', {
+      max: limits.maxMarkerTextLength,
+    }),
+  }));
+}
+
+function makeMarkerCreates(markers: Array<{ timeSeconds: number; text: string }>) {
+  return markers.map((marker) => ({
+    id: `mk_${nanoid(10)}`,
+    timeSeconds: marker.timeSeconds,
+    text: marker.text,
+  }));
+}
+
+async function resolveFeedbackTarget(
+  prisma: PrismaClient,
+  targetType: ParsedFeedbackRequest['targetType'],
+  targetId: string
+): Promise<{ courseId: string; reviewEntryId: string }> {
+  if (targetType === 'entry') {
+    const entry = await prisma.practiceEntry.findUnique({ where: { id: targetId } });
+    if (!entry) throw new ApiError(404, ErrorCodes.ENTRY_NOT_FOUND, 'Entry not found');
+    requireSubmittedEntry(entry);
+    return { courseId: entry.courseId, reviewEntryId: entry.id };
+  }
+
+  const artifact = await prisma.artifact.findUnique({
+    where: { id: targetId },
+    include: { entry: true },
+  });
+  if (!artifact) throw new ApiError(404, ErrorCodes.ARTIFACT_NOT_FOUND, 'Artifact not found');
+  requireSubmittedEntry(artifact.entry);
+  return { courseId: artifact.entry.courseId, reviewEntryId: artifact.entry.id };
+}
+
+function requireSubmittedEntry(entry: Pick<PracticeEntry, 'deletedAt' | 'status'>): void {
+  if (entry.deletedAt) {
+    throw new ApiError(410, ErrorCodes.ENTRY_DELETED, 'Entry has been deleted');
+  }
+  if (entry.status === 'draft') {
+    throw new ApiError(
+      409,
+      ErrorCodes.ENTRY_NOT_SUBMITTED,
+      'Entry must be submitted before feedback can be added'
+    );
+  }
+}
+
+type FeedbackInput = {
+  userId: string;
+  requestedFeedbackId: string | undefined;
+  feedbackId: string;
+  targetType: 'entry' | 'artifact';
+  targetId: string;
+  reviewEntryId: string;
+  status: 'ok' | 'needs_revision' | 'next_goal';
+  commentsText: string;
+  markers: Array<{ timeSeconds: number; text: string }>;
+  markerCreates: Array<{ id: string; timeSeconds: number; text: string }>;
+};
+
+async function processLockedFeedback(
+  tx: EntryTransaction,
+  lockedEntry: PracticeEntry,
+  input: FeedbackInput
+) {
+  requireActiveLockedEntry(lockedEntry);
+  await requireLockedFeedbackTarget(tx, lockedEntry, input.targetType, input.targetId);
+
+  const existingFeedback = await findExistingFeedback(tx, input.requestedFeedbackId);
+  if (existingFeedback) {
+    requireMatchingFeedback(existingFeedback, input);
+    if (lockedEntry.status !== 'reviewed') {
+      await markEntryReviewed(tx, input.reviewEntryId);
+    }
+    return { feedback: existingFeedback, created: false };
+  }
+
+  const feedback = await tx.feedback.create({
+    data: {
+      id: input.feedbackId,
+      targetType: input.targetType,
+      targetId: input.targetId,
+      teacherId: input.userId,
+      entryId: input.reviewEntryId,
+      status: input.status,
+      commentsText: input.commentsText,
+      markers: { create: input.markerCreates },
+    },
+    include: { markers: true, teacher: true },
+  });
+
+  // Product rule: any teacher feedback, whether on the entry or one of its
+  // artifacts, marks the parent entry as reviewed.
+  await markEntryReviewed(tx, input.reviewEntryId);
+  return { feedback, created: true };
+}
+
+function requireActiveLockedEntry(lockedEntry: PracticeEntry): void {
+  if (lockedEntry.deletedAt) {
+    throw new ApiError(410, ErrorCodes.ENTRY_DELETED, 'Entry has been deleted');
+  }
+  if (lockedEntry.status === 'draft') {
+    throw new ApiError(
+      409,
+      ErrorCodes.ENTRY_NOT_SUBMITTED,
+      'Entry must be submitted before feedback can be added'
+    );
+  }
+}
+
+async function requireLockedFeedbackTarget(
+  tx: EntryTransaction,
+  lockedEntry: PracticeEntry,
+  targetType: FeedbackInput['targetType'],
+  targetId: string
+): Promise<void> {
+  // The target may have changed while authorization was evaluated. Re-resolve
+  // it under the same parent-entry lock used by related entry mutations.
+  if (targetType === 'entry') {
+    if (targetId !== lockedEntry.id) {
+      throw new ApiError(404, ErrorCodes.ENTRY_NOT_FOUND, 'Entry not found');
+    }
+    return;
+  }
+
+  const lockedArtifact = await tx.artifact.findUnique({ where: { id: targetId } });
+  if (!lockedArtifact || lockedArtifact.entryId !== lockedEntry.id) {
+    throw new ApiError(404, ErrorCodes.ARTIFACT_NOT_FOUND, 'Artifact not found');
+  }
+}
+
+function findExistingFeedback(tx: EntryTransaction, requestedFeedbackId: string | undefined) {
+  return requestedFeedbackId
+    ? tx.feedback.findUnique({
+        where: { id: requestedFeedbackId },
+        include: { markers: true, teacher: true },
+      })
+    : null;
+}
+
+function requireMatchingFeedback(
+  existingFeedback: {
+    teacherId: string;
+    targetType: string;
+    targetId: string;
+    entryId: string | null;
+    status: string;
+    commentsText: string;
+    markers: Array<{ timeSeconds: number; text: string }>;
+  },
+  input: FeedbackInput
+): void {
+  if (
+    existingFeedback.teacherId !== input.userId ||
+    existingFeedback.targetType !== input.targetType ||
+    existingFeedback.targetId !== input.targetId ||
+    existingFeedback.entryId !== input.reviewEntryId ||
+    !feedbackBodyMatches(existingFeedback, input)
+  ) {
+    throw new ApiError(409, ErrorCodes.ID_CONFLICT, 'Feedback ID already exists');
+  }
+}
+
+async function markEntryReviewed(tx: EntryTransaction, reviewEntryId: string): Promise<void> {
+  await tx.practiceEntry.update({
+    where: { id: reviewEntryId },
+    data: { status: 'reviewed', version: { increment: 1 } },
+  });
+}
+
+function requireMarkerArray(value: unknown): Record<string, unknown>[] {
+  if (!Array.isArray(value)) {
+    throw new ApiError(400, ErrorCodes.VALIDATION_ERROR, 'Invalid array: markers');
+  }
+  return value as Record<string, unknown>[];
 }
 
 function feedbackBodyMatches(

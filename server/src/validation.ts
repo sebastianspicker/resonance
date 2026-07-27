@@ -1,3 +1,4 @@
+/** Reusable request validation and course-access enforcement helpers. */
 import { CourseRole, PrismaClient } from '@prisma/client';
 import { ErrorCodes } from './errorCodes.js';
 import { ApiError } from './errors.js';
@@ -8,6 +9,14 @@ export function requireField<T>(value: T | undefined | null, name: string) {
     throw new ApiError(400, ErrorCodes.VALIDATION_ERROR, `Missing field: ${name}`);
   }
   return value;
+}
+
+/** Require a JSON object (not null or an array) from a request body. */
+export function requireRecord(value: unknown, name: string): Record<string, unknown> {
+  if (value === null || typeof value !== 'object' || Array.isArray(value)) {
+    throw new ApiError(400, ErrorCodes.VALIDATION_ERROR, `Invalid object: ${name}`);
+  }
+  return value as Record<string, unknown>;
 }
 
 /**
@@ -208,22 +217,41 @@ export async function requireEntryAccess(prisma: PrismaClient, user: AuthUser, e
     throw new ApiError(410, ErrorCodes.ENTRY_DELETED, 'Entry has been deleted');
   }
 
-  // Use course role for authorization, not global role
-  const roleInCourse = await requireCourseRole(prisma, user.id, entry.courseId);
+  const roleInCourse = await requireVisibleCourseEntry(prisma, user.id, entry);
+  return { ...entry, roleInCourse };
+}
 
-  // Students can only access their own entries
-  if (roleInCourse === 'student' && entry.studentId !== user.id) {
+/**
+ * Enforce the read boundary shared by entry and artifact routes. Students can
+ * read only their own entries; teachers can read only submitted or reviewed
+ * work in courses where they currently hold a teacher membership.
+ */
+export async function requireVisibleCourseEntry(
+  prisma: PrismaClient,
+  userId: string,
+  entry: { courseId: string; studentId: string; status: string }
+) {
+  const roleInCourse = await requireCourseRole(prisma, userId, entry.courseId);
+
+  if (roleInCourse === 'student' && entry.studentId !== userId) {
     throw new ApiError(403, ErrorCodes.ENTRY_ACCESS_DENIED, 'Entry does not belong to student');
   }
+  if (roleInCourse === 'teacher' && entry.status === 'draft') {
+    throw new ApiError(
+      403,
+      ErrorCodes.ENTRY_ACCESS_DENIED,
+      'Draft entries are not visible to teachers'
+    );
+  }
 
-  return { ...entry, roleInCourse };
+  return roleInCourse;
 }
 
 /**
  * Require that the user is a student and the owner of the given entry.
  * Combines course-role check with ownership check in one step.
  *
- * When `knownRole` is provided, the membership lookup is skipped — use this
+ * When `knownRole` is provided, the membership lookup is skipped. Use this
  * when the caller has already obtained the role (e.g. from `requireEntryAccess`)
  * to avoid a redundant database query.
  */

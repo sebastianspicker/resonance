@@ -1,3 +1,4 @@
+// Establishes isolated test credentials, guarded database cleanup, and shared mock resets.
 // ── Test-only credentials ───────────────────────────────────────────
 // These values are exclusively for local/CI test runs.  They must
 // NEVER be reused in staging or production environments.
@@ -18,9 +19,10 @@ process.env.DATABASE_URL =
   process.env.DATABASE_URL ?? 'postgresql://resonance:resonance@localhost:5432/resonance_test';
 
 // Safety check: only allow explicit test databases.
-const dbUrl = process.env.DATABASE_URL;
-if (!dbUrl || !dbUrl.toLowerCase().includes('test')) {
-  console.error('\nRefusing to run tests: DATABASE_URL must point to a test database.');
-  console.error(`Current DATABASE_URL: ${dbUrl ?? '<unset>'}`);
+const { assertTestDatabaseUrl } = await import('./support/databaseSafety.js');
+try {
+  assertTestDatabaseUrl(process.env.DATABASE_URL);
+} catch (error) {
+  console.error(`\n${(error as Error).message}`);
   process.exit(1);
 }

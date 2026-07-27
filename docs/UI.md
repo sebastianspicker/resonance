@@ -8,8 +8,8 @@ the product register and [DESIGN.md](../DESIGN.md) defines the semantic visual s
 ```text
 University sign-in
 └── Courses
-    ├── Student course: Entries → Draft/capture → Entry detail/feedback
-    └── Teacher course: To review / Reviewed → Submission detail → Feedback
+    ├── Student course: Entries -> Draft or capture -> Entry detail and feedback
+    └── Teacher course: To review or Reviewed -> Submission detail -> Feedback
 
 Sidebar tools: Calendar, Export (student course only), Sync status, Settings
 ```
@@ -21,6 +21,11 @@ offered entry creation or export. Students do not receive teacher-review tools.
 
 - Use native `NavigationSplitView`, `List`, `Form`, `Section`, toolbars, sheets,
   and `ContentUnavailableView`.
+- Teacher wide layout: course sidebar, review queue, evidence stage, and feedback
+  compose, with a status rail naming lifecycle and privacy scope.
+- Student detail shows an offline honesty banner before the media stage when the
+  device is offline; lifecycle uses labeled `StatusPill` chips (Local only,
+  Draft, Queued, Submitted, Reviewed, Sync failed).
 - Keep existing content visible during refresh. Put recoverable errors beside
   the affected content with a specific retry action.
 - Describe local, queued, uploading, submitted, reviewed, stale, and failed
@@ -60,4 +65,4 @@ recoverable-error, and terminal-error states. Release validation covers light
 and dark appearance, German and English, iPhone and iPad, Large/AX1/AX3/AX5
 text, keyboard, VoiceOver, Voice Control, and Switch Control.
 
-These are acceptance requirements. They have not all been exercised in the current local checkout; see the release checklist for the open matrix.
+These are acceptance requirements. `v0.1.0-alpha.1` has not exercised the complete matrix; see the [release checklist](./RELEASE_CHECKLIST.md) for the explicit gaps.

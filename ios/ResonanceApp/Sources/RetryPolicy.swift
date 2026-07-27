@@ -1,5 +1,7 @@
 import Foundation
 
+// Defines bounded retry classification and backoff rules for synchronization failures.
+
 /// Stateless retry policy for sync queue items.
 ///
 /// Provides backoff delay calculation and terminal-error classification
@@ -16,11 +18,14 @@ struct RetryPolicy {
         min(pow(2.0, Double(retryCount)), 300)
     }
 
-    /// Returns `true` when the error is terminal — the item should be
+    /// Returns `true` when the error is terminal, so the item should be
     /// marked failed immediately rather than retried.
     func isTerminal(_ error: Error) -> Bool {
         if let apiError = error as? APIError {
             return isTerminalAPIError(apiError)
+        }
+        if case SyncError.commandRetryable = error {
+            return false
         }
         if error is SyncError {
             return true
@@ -37,10 +42,16 @@ struct RetryPolicy {
         switch error.error.code {
         case "VALIDATION_ERROR",
              "ENTRY_LOCKED",
+             "ENTRY_DELETED",
              "ENTRY_NOT_SUBMITTED",
              "ARTIFACTS_NOT_UPLOADED",
-             "MISSING_STORAGE_KEY",
+             "CONSENT_REQUIRED",
              "INVALID_TARGET",
+             "NOT_FOUND",
+             "ENTRY_NOT_FOUND",
+             "ARTIFACT_NOT_FOUND",
+             "COURSE_NOT_FOUND",
+             "ID_CONFLICT",
              "STUDENT_ONLY",
              "TEACHER_ONLY",
              "ENTRY_ACCESS_DENIED",
@@ -52,6 +63,15 @@ struct RetryPolicy {
             return true
         default:
             return false
+        }
+    }
+}
+
+extension Array {
+    func chunked(into size: Int) -> [[Element]] {
+        precondition(size > 0)
+        return stride(from: 0, to: count, by: size).map {
+            Array(self[$0 ..< Swift.min($0 + size, count)])
         }
     }
 }

@@ -2,7 +2,52 @@ import XCTest
 import SwiftData
 @testable import ResonanceApp
 
+// Purpose: verifies deterministic screenshot configuration and core synchronization behavior.
+
 final class ResonanceAppTests: XCTestCase {
+    func testWalkthroughScreenshotScenariosAreDebugOnlyAndDeterministic() throws {
+        XCTAssertNil(ScreenshotScenario.from(environment: [:]))
+        XCTAssertNil(ScreenshotScenario.from(environment: [
+            "RESONANCE_SCREENSHOT_MODE": "1",
+            "RESONANCE_SCREENSHOT_ROLE": "student",
+            "RESONANCE_SCREENSHOT_SCREEN": "unknown"
+        ]))
+
+        let newEntry = try XCTUnwrap(ScreenshotScenario.from(environment: [
+            "RESONANCE_SCREENSHOT_MODE": "1",
+            "RESONANCE_SCREENSHOT_ROLE": "student",
+            "RESONANCE_SCREENSHOT_SCREEN": "new-entry"
+        ]))
+        XCTAssertEqual(newEntry.formContent, .walkthrough)
+        XCTAssertEqual(newEntry.roleInCourse, "student")
+
+        let reviewed = try XCTUnwrap(ScreenshotScenario.from(environment: [
+            "RESONANCE_SCREENSHOT_MODE": "1",
+            "RESONANCE_SCREENSHOT_ROLE": "student",
+            "RESONANCE_SCREENSHOT_SCREEN": "reviewed-feedback"
+        ]))
+        XCTAssertEqual(reviewed.selectedEntryID, "demo_entry_lea_reviewed_1")
+        XCTAssertTrue(reviewed.startsAtFeedback)
+    }
+
+    func testTeacherWalkthroughScenarioSuppliesFeedbackAndQueuedState() throws {
+        let draft = try XCTUnwrap(ScreenshotScenario.from(environment: [
+            "RESONANCE_SCREENSHOT_MODE": "1",
+            "RESONANCE_SCREENSHOT_ROLE": "teacher",
+            "RESONANCE_SCREENSHOT_SCREEN": "feedback-editor"
+        ]))
+        XCTAssertEqual(draft.feedbackContent, .walkthrough)
+        XCTAssertEqual(draft.selectedEntryID, "demo_entry_lea_submitted_1")
+
+        let queued = try XCTUnwrap(ScreenshotScenario.from(environment: [
+            "RESONANCE_SCREENSHOT_MODE": "1",
+            "RESONANCE_SCREENSHOT_ROLE": "teacher",
+            "RESONANCE_SCREENSHOT_SCREEN": "feedback-queued"
+        ]))
+        XCTAssertEqual(queued.roleInCourse, "teacher")
+        XCTAssertEqual(queued.queuedFeedbackEntryIDs, ["demo_entry_lea_submitted_1"])
+    }
+
     @MainActor
     func testTagsRoundTripWithCommas() {
         let entry = LocalPracticeEntry(
@@ -38,10 +83,7 @@ final class ResonanceAppTests: XCTestCase {
 
     @MainActor
     func testSyncQueueEnqueue() throws {
-        let container = PersistenceController.createContainer(inMemory: true)
-        let client = APIClient()
-        let auth = AuthManager(apiClient: client)
-        let syncManager = SyncManager(modelContext: container.mainContext, authManager: auth, apiClient: client)
+        let (container, syncManager) = makeSyncManagerTestSUT()
 
         syncManager.enqueue(type: .createEntry, payload: ["entryId": "entry-1"])
 
@@ -75,14 +117,10 @@ final class SyncManagerTests: XCTestCase {
     /// Creates an in-memory ModelContainer and returns it alongside a SyncManager wired to its mainContext.
     @MainActor
     private func makeSUT() -> (container: ModelContainer, syncManager: SyncManager) {
-        let container = PersistenceController.createContainer(inMemory: true)
-        let client = APIClient()
-        let auth = AuthManager(apiClient: client)
-        let syncManager = SyncManager(modelContext: container.mainContext, authManager: auth, apiClient: client)
-        return (container, syncManager)
+        makeSyncManagerTestSUT()
     }
 
-    // MARK: 1 — retryFailedItems resets status
+    // MARK: 1: retryFailedItems resets status
 
     @MainActor
     func testRetryFailedItemsResetsStatusToPending() throws {
@@ -90,14 +128,24 @@ final class SyncManagerTests: XCTestCase {
         let ctx = container.mainContext
 
         // Insert items with "failed" status, a lastError, and a nextAttemptAt date.
-        let item1 = SyncQueueItem(id: "fail-1", type: "createEntry", payloadJSON: "{}")
+        let item1 = SyncQueueItem(
+            id: "fail-1",
+            type: "createEntry",
+            payloadJSON: "{}",
+            ownerId: "student-1"
+        )
         item1.status = "failed"
         item1.retryCount = 3
         item1.lastError = "Server timeout"
         item1.nextAttemptAt = Date().addingTimeInterval(60)
         ctx.insert(item1)
 
-        let item2 = SyncQueueItem(id: "fail-2", type: "syncArtifact", payloadJSON: "{}")
+        let item2 = SyncQueueItem(
+            id: "fail-2",
+            type: "syncArtifact",
+            payloadJSON: "{}",
+            ownerId: "student-1"
+        )
         item2.status = "failed"
         item2.retryCount = 5
         item2.lastError = "Network error"
@@ -124,12 +172,22 @@ final class SyncManagerTests: XCTestCase {
         let (container, syncManager) = makeSUT()
         let ctx = container.mainContext
 
-        let pending = SyncQueueItem(id: "pend-1", type: "createEntry", payloadJSON: "{}")
+        let pending = SyncQueueItem(
+            id: "pend-1",
+            type: "createEntry",
+            payloadJSON: "{}",
+            ownerId: "student-1"
+        )
         pending.status = "pending"
         pending.nextAttemptAt = Date().addingTimeInterval(30)
         ctx.insert(pending)
 
-        let failed = SyncQueueItem(id: "fail-1", type: "createEntry", payloadJSON: "{}")
+        let failed = SyncQueueItem(
+            id: "fail-1",
+            type: "createEntry",
+            payloadJSON: "{}",
+            ownerId: "student-1"
+        )
         failed.status = "failed"
         failed.lastError = "some error"
         ctx.insert(failed)
@@ -148,7 +206,7 @@ final class SyncManagerTests: XCTestCase {
         XCTAssertNil(failedItems.first?.lastError)
     }
 
-    // MARK: 2 — Exponential backoff calculation (via RetryPolicy)
+    // MARK: 2: Exponential backoff calculation (via RetryPolicy)
 
     func testExponentialBackoffRetryCount0() {
         XCTAssertEqual(RetryPolicy().backoffDelay(retryCount: 0), 1.0, accuracy: 0.001)
@@ -170,7 +228,7 @@ final class SyncManagerTests: XCTestCase {
         XCTAssertEqual(RetryPolicy().backoffDelay(retryCount: 9), 300.0, accuracy: 0.001)
     }
 
-    // MARK: 3 — FIFO ordering
+    // MARK: 3: FIFO ordering
 
     @MainActor
     func testFIFOOrderingBySortDescriptor() throws {
@@ -203,7 +261,7 @@ final class SyncManagerTests: XCTestCase {
         XCTAssertEqual(fetched[2].id, "fifo-2", "Newest item should be last")
     }
 
-    // MARK: 4 — Background expiration resets processing items
+    // MARK: 4: Background expiration resets processing items
 
     @MainActor
     func testBackgroundExpirationResetsProcessingToPending() throws {
@@ -251,7 +309,7 @@ final class SyncManagerTests: XCTestCase {
         XCTAssertEqual(pendingFetch.first?.status, "pending")
     }
 
-    // MARK: 5 — Enqueue with JSON serialization failure
+    // MARK: 5: Enqueue with JSON serialization failure
 
     @MainActor
     func testEnqueueWithInvalidPayloadDoesNotInsertItem() throws {
@@ -281,7 +339,7 @@ final class SyncManagerTests: XCTestCase {
         XCTAssertEqual(items.count, 1, "Valid payloads should be inserted")
     }
 
-    // MARK: 6 — Queue item creation fields
+    // MARK: 6: Queue item creation fields
 
     @MainActor
     func testEnqueueCreatesItemWithCorrectFields() throws {
@@ -342,6 +400,27 @@ final class SyncManagerTests: XCTestCase {
                            "Item at index \(index) should have type '\(taskType.rawValue)'")
         }
     }
+}
+
+@MainActor
+private func makeSyncManagerTestSUT() -> (container: ModelContainer, syncManager: SyncManager) {
+    let container = PersistenceController.createContainer(inMemory: true)
+    let client = APIClient()
+    let auth = AuthManager(apiClient: client)
+    auth.session = AuthSession(
+        accessToken: "access-token",
+        refreshToken: "refresh-token",
+        userId: "student-1",
+        displayName: "Student",
+        globalRole: "student"
+    )
+    let syncManager = SyncManager(
+        modelContext: container.mainContext,
+        authManager: auth,
+        apiClient: client,
+        verifiedOwner: { "student-1" }
+    )
+    return (container, syncManager)
 }
 
 // MARK: - Model Enum Raw Value Tests
@@ -409,9 +488,9 @@ final class ModelEnumRawValueTests: XCTestCase {
         XCTAssertEqual(ArtifactSyncPhase.failed.rawValue, "failed")
     }
 
-    // FeedbackStatus raw values — note snake_case mapping
+    // FeedbackStatus raw values: note snake_case mapping
     func testFeedbackStatusRawValues() {
-        XCTAssertEqual(FeedbackStatus.ok.rawValue, "ok")
+        XCTAssertEqual(FeedbackStatus.accepted.rawValue, "ok")
         XCTAssertEqual(FeedbackStatus.needsRevision.rawValue, "needs_revision")
         XCTAssertEqual(FeedbackStatus.nextGoal.rawValue, "next_goal")
     }
@@ -425,7 +504,7 @@ final class ModelEnumRawValueTests: XCTestCase {
     }
 
     func testFeedbackStatusInitFromRawValue() {
-        XCTAssertEqual(FeedbackStatus(rawValue: "ok"), .ok)
+        XCTAssertEqual(FeedbackStatus(rawValue: "ok"), .accepted)
         XCTAssertEqual(FeedbackStatus(rawValue: "needs_revision"), .needsRevision)
         XCTAssertEqual(FeedbackStatus(rawValue: "next_goal"), .nextGoal)
         XCTAssertNil(FeedbackStatus(rawValue: "NEEDS_REVISION"))
