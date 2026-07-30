@@ -11,6 +11,14 @@ import {
   teardownApp,
 } from './support/testUtils.js';
 
+function expectReviewedResult(response: { body: { results: unknown[] } }) {
+  expect(response.body.results[0]).toMatchObject({
+    status: 'applied',
+    currentVersion: 5,
+    resource: { status: 'reviewed' },
+  });
+}
+
 describe('v1 sync command receipts and versions', () => {
   let studentToken: string;
   let teacherToken: string;
@@ -237,11 +245,7 @@ describe('v1 sync command receipts and versions', () => {
         payload: feedbackPayload,
       },
     ]);
-    expect(reviewed.body.results[0]).toMatchObject({
-      status: 'applied',
-      currentVersion: 5,
-      resource: { status: 'reviewed' },
-    });
+    expectReviewedResult(reviewed);
     await expect(prisma.feedback.count({ where: { entryId } })).resolves.toBe(1);
 
     const idempotentFeedback = await execute(teacherToken, [
@@ -253,11 +257,7 @@ describe('v1 sync command receipts and versions', () => {
         payload: feedbackPayload,
       },
     ]);
-    expect(idempotentFeedback.body.results[0]).toMatchObject({
-      status: 'applied',
-      currentVersion: 5,
-      resource: { status: 'reviewed' },
-    });
+    expectReviewedResult(idempotentFeedback);
     await expect(prisma.feedback.count({ where: { entryId } })).resolves.toBe(1);
   });
 
