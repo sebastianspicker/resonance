@@ -1,4 +1,5 @@
 name: Pages
+# Publishes the dependency-free walkthrough from demo/site.
 
 on:
   push:
