@@ -80,6 +80,14 @@ describe('v1 sync command receipts and versions', () => {
     expect(first.body.results[0]).toMatchObject({ status: 'applied', currentVersion: 1 });
     expect(retry.status).toBe(200);
     expect(retry.body.results[0]).toMatchObject({ status: 'duplicate', currentVersion: 1 });
+
+    const equivalent = await execute(studentToken, [create('v1-create-equivalent')]);
+    expect(equivalent.body.results[0]).toMatchObject({ status: 'applied', currentVersion: 1 });
+
+    const conflicting = create('v1-create-conflicting');
+    conflicting.payload.goalText = 'Conflicting entry identity';
+    const conflict = await execute(studentToken, [conflicting]);
+    expect(conflict.body.results[0]).toMatchObject({ status: 'rejected', code: 'ID_CONFLICT' });
   });
 
   it('does not replay an entry resource after membership is revoked', async () => {
@@ -148,8 +156,20 @@ describe('v1 sync command receipts and versions', () => {
   it('applies the teaching-lesson command lifecycle through reviewed feedback', async () => {
     const entryId = 'v1-teaching-entry';
     const artifactId = 'v1-teaching-video';
+    const lifecycleStudentToken = await enrollCourseMember(
+      'student',
+      'student-teaching-lifecycle',
+      'Teaching Lifecycle Student'
+    );
+    const captureMarkerPayload = (
+      id: string,
+      markerArtifactId: string,
+      timeSeconds: number,
+      kind: string,
+      note: string | null
+    ) => ({ markers: [{ id, artifactId: markerArtifactId, timeSeconds, kind, note }] });
 
-    const created = await execute(studentToken, [
+    const created = await execute(lifecycleStudentToken, [
       {
         operationId: 'v1-teaching-create',
         entityId: entryId,
@@ -174,7 +194,7 @@ describe('v1 sync command receipts and versions', () => {
       resource: { id: entryId, kind: 'teaching_lesson', status: 'draft' },
     });
 
-    const updated = await execute(studentToken, [
+    const updated = await execute(lifecycleStudentToken, [
       {
         operationId: 'v1-teaching-update',
         entityId: entryId,
@@ -200,29 +220,45 @@ describe('v1 sync command receipts and versions', () => {
       },
     });
 
-    const markers = await execute(studentToken, [
+    const missingArtifactMarker = await execute(lifecycleStudentToken, [
+      {
+        operationId: 'v1-teaching-marker-missing-artifact',
+        entityId: entryId,
+        kind: 'replaceCaptureMarkers',
+        baseVersion: 2,
+        payload: captureMarkerPayload(
+          'v1-missing-artifact-marker',
+          'v1-missing-video',
+          3,
+          'phase_setup',
+          null
+        ),
+      },
+    ]);
+    expect(missingArtifactMarker.body.results[0]).toMatchObject({
+      status: 'rejected',
+      code: 'ARTIFACT_NOT_FOUND',
+    });
+
+    const markers = await execute(lifecycleStudentToken, [
       {
         operationId: 'v1-teaching-markers',
         entityId: entryId,
         kind: 'replaceCaptureMarkers',
         baseVersion: 2,
-        payload: {
-          markers: [
-            {
-              id: 'v1-capture-marker',
-              artifactId,
-              timeSeconds: 18,
-              kind: 'phase_modeling',
-              note: 'Teacher models the pulse.',
-            },
-          ],
-        },
+        payload: captureMarkerPayload(
+          'v1-capture-marker',
+          artifactId,
+          18,
+          'phase_modeling',
+          'Teacher models the pulse.'
+        ),
       },
     ]);
     expect(markers.body.results[0]).toMatchObject({ status: 'applied', currentVersion: 3 });
     await expect(prisma.captureMarker.count({ where: { entryId } })).resolves.toBe(1);
 
-    const submitted = await execute(studentToken, [
+    const submitted = await execute(lifecycleStudentToken, [
       {
         operationId: 'v1-teaching-submit',
         entityId: entryId,
@@ -315,6 +351,19 @@ describe('v1 sync command receipts and versions', () => {
     await prisma.practiceEntry.update({
       where: { id: entryId },
       data: { status: 'submitted' },
+    });
+    const studentFeedback = await execute(isolatedStudentToken, [
+      {
+        operationId: 'v1-feedback-student-rejected',
+        entityId: 'v1-feedback-student-id',
+        kind: 'createFeedback',
+        baseVersion: 1,
+        payload: feedbackPayload,
+      },
+    ]);
+    expect(studentFeedback.body.results[0]).toMatchObject({
+      status: 'rejected',
+      code: 'TEACHER_ONLY',
     });
     const appliedFeedback = await execute(isolatedTeacherToken, [
       {
