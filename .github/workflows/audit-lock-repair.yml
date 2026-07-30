@@ -25,7 +25,7 @@ jobs:
           cache-dependency-path: server/package-lock.json
       - name: Repair production advisory lock entries
         working-directory: server
-        run: npm audit fix --package-lock-only
+        run: npm audit fix --package-lock-only --omit=dev
       - name: Verify clean install
         working-directory: server
         run: npm ci --ignore-scripts
