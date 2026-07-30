@@ -246,11 +246,18 @@ describe('v1 sync command receipts and versions', () => {
 
   it('deletes an entry through the command pipeline and records its tombstone', async () => {
     const entryId = 'v1-entry-delete';
+    await prisma.user.create({
+      data: { id: 'student-delete', displayName: 'Delete Student', globalRole: 'student' },
+    });
+    await prisma.membership.create({
+      data: { userId: 'student-delete', courseId: 'COURSE_TEST', roleInCourse: 'student' },
+    });
+    const deleteToken = await getAccessToken('student', { userId: 'student-delete' });
     const created = create('v1-delete-create');
     created.entityId = entryId;
-    await execute(studentToken, [created]);
+    await execute(deleteToken, [created]);
 
-    const deleted = await execute(studentToken, [
+    const deleted = await execute(deleteToken, [
       {
         operationId: 'v1-delete-apply',
         entityId: entryId,
