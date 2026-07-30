@@ -85,6 +85,9 @@ jobs:
       - name: Validate demo fixture
         run: node ./scripts/demo/validate-fixture.mjs
 
+      - name: Validate static Pages demo
+        run: node ./scripts/demo/validate-static-site.mjs
+
       - name: Validate public documentation and screenshots
         run: node ./scripts/validate-public-docs.mjs
 
