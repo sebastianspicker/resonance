@@ -167,7 +167,6 @@ jobs:
         run: |
           node dist/index.js >/tmp/resonance-server.log 2>&1 &
           server_pid=$!
-          # shellcheck disable=SC2317 # Invoked indirectly by the EXIT trap.
           cleanup() {
             kill "$server_pid" >/dev/null 2>&1 || true
             # The server has three independent five-second shutdown budgets.
@@ -184,11 +183,15 @@ jobs:
           trap cleanup EXIT
           for _ in {1..30}; do
             if curl -fsS http://127.0.0.1:4000/ready >/dev/null; then
+              trap - EXIT
+              cleanup
               exit 0
             fi
             sleep 1
           done
           cat /tmp/resonance-server.log
+          trap - EXIT
+          cleanup
           exit 1
 
       - name: Test with coverage
