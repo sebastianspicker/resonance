@@ -7,6 +7,7 @@ const scriptDirectory = path.dirname(fileURLToPath(import.meta.url));
 const repositoryRoot = path.resolve(scriptDirectory, "../..");
 const siteDirectory = path.join(repositoryRoot, "demo/site");
 
+// Keep the published walkthrough self-contained and presentation-only.
 const siteFiles = ["index.html", "styles.css", "demo.js"];
 await Promise.all(siteFiles.map((file) => access(path.join(siteDirectory, file))));
 
