@@ -19,6 +19,20 @@ function expectReviewedResult(response: { body: { results: unknown[] } }) {
   });
 }
 
+async function enrollCourseMember(
+  role: 'student' | 'teacher',
+  userId: string,
+  displayName: string
+) {
+  await prisma.user.create({
+    data: { id: userId, displayName, globalRole: role },
+  });
+  await prisma.membership.create({
+    data: { userId, courseId: 'COURSE_TEST', roleInCourse: role },
+  });
+  return getAccessToken(role, { userId });
+}
+
 describe('v1 sync command receipts and versions', () => {
   let studentToken: string;
   let teacherToken: string;
@@ -261,15 +275,79 @@ describe('v1 sync command receipts and versions', () => {
     await expect(prisma.feedback.count({ where: { entryId } })).resolves.toBe(1);
   });
 
+  it('enforces feedback state and stable feedback identities', async () => {
+    const entryId = 'v1-feedback-entry';
+    const isolatedStudentToken = await enrollCourseMember(
+      'student',
+      'student-feedback-errors',
+      'Feedback Student'
+    );
+    const isolatedTeacherToken = await enrollCourseMember(
+      'teacher',
+      'teacher-feedback-errors',
+      'Feedback Teacher'
+    );
+    const created = create('v1-feedback-entry-create');
+    created.entityId = entryId;
+    await execute(isolatedStudentToken, [created]);
+
+    const feedbackPayload = {
+      targetType: 'entry',
+      targetId: entryId,
+      status: 'ok',
+      commentsText: 'The pulse is stable.',
+      markers: [],
+    };
+    const draftFeedback = await execute(isolatedTeacherToken, [
+      {
+        operationId: 'v1-feedback-draft',
+        entityId: 'v1-feedback-stable-id',
+        kind: 'createFeedback',
+        baseVersion: 1,
+        payload: feedbackPayload,
+      },
+    ]);
+    expect(draftFeedback.body.results[0]).toMatchObject({
+      status: 'rejected',
+      code: 'ENTRY_NOT_SUBMITTED',
+    });
+
+    await prisma.practiceEntry.update({
+      where: { id: entryId },
+      data: { status: 'submitted' },
+    });
+    const appliedFeedback = await execute(isolatedTeacherToken, [
+      {
+        operationId: 'v1-feedback-applied',
+        entityId: 'v1-feedback-stable-id',
+        kind: 'createFeedback',
+        baseVersion: 1,
+        payload: feedbackPayload,
+      },
+    ]);
+    expect(appliedFeedback.body.results[0]).toMatchObject({
+      status: 'applied',
+      currentVersion: 2,
+    });
+
+    const mismatchedFeedback = await execute(isolatedTeacherToken, [
+      {
+        operationId: 'v1-feedback-mismatched',
+        entityId: 'v1-feedback-stable-id',
+        kind: 'createFeedback',
+        baseVersion: 2,
+        payload: { ...feedbackPayload, commentsText: 'Different feedback content.' },
+      },
+    ]);
+    expect(mismatchedFeedback.body.results[0]).toMatchObject({
+      status: 'rejected',
+      code: 'ID_CONFLICT',
+    });
+  });
+
   it('deletes an entry through the command pipeline and records its tombstone', async () => {
     const entryId = 'v1-entry-delete';
-    await prisma.user.create({
-      data: { id: 'student-delete', displayName: 'Delete Student', globalRole: 'student' },
-    });
-    await prisma.membership.create({
-      data: { userId: 'student-delete', courseId: 'COURSE_TEST', roleInCourse: 'student' },
-    });
-    const deleteToken = await getAccessToken('student', { userId: 'student-delete' });
+    const deleteToken = await enrollCourseMember('student', 'student-delete', 'Delete Student');
     const created = create('v1-delete-create');
     created.entityId = entryId;
     await execute(deleteToken, [created]);
