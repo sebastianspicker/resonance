@@ -215,28 +215,45 @@ describe('v1 sync command receipts and versions', () => {
       resource: { status: 'submitted' },
     });
 
+    const feedbackPayload = {
+      targetType: 'artifact',
+      targetId: artifactId,
+      status: 'next_goal',
+      commentsText: 'Keep the modeled phrase short before adding variation.',
+      markers: [
+        {
+          id: 'v1-feedback-marker',
+          timeSeconds: 18,
+          text: 'The pulse is clear here.',
+        },
+      ],
+    };
     const reviewed = await execute(teacherToken, [
       {
         operationId: 'v1-teaching-feedback',
         entityId: 'v1-feedback',
         kind: 'createFeedback',
         baseVersion: 4,
-        payload: {
-          targetType: 'artifact',
-          targetId: artifactId,
-          status: 'next_goal',
-          commentsText: 'Keep the modeled phrase short before adding variation.',
-          markers: [
-            {
-              id: 'v1-feedback-marker',
-              timeSeconds: 18,
-              text: 'The pulse is clear here.',
-            },
-          ],
-        },
+        payload: feedbackPayload,
       },
     ]);
     expect(reviewed.body.results[0]).toMatchObject({
+      status: 'applied',
+      currentVersion: 5,
+      resource: { status: 'reviewed' },
+    });
+    await expect(prisma.feedback.count({ where: { entryId } })).resolves.toBe(1);
+
+    const idempotentFeedback = await execute(teacherToken, [
+      {
+        operationId: 'v1-teaching-feedback-idempotent',
+        entityId: 'v1-feedback',
+        kind: 'createFeedback',
+        baseVersion: 5,
+        payload: feedbackPayload,
+      },
+    ]);
+    expect(idempotentFeedback.body.results[0]).toMatchObject({
       status: 'applied',
       currentVersion: 5,
       resource: { status: 'reviewed' },
