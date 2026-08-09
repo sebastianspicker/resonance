@@ -1,5 +1,7 @@
 import XCTest
 import SwiftData
+import SwiftUI
+import UIKit
 @testable import ResonanceApp
 
 // Purpose: verifies iCalendar edge cases and additional application regression scenarios.
@@ -619,3 +621,180 @@ final class RetryPolicyTests: XCTestCase {
 }
 
 // MARK: - QueueStore Tests
+
+final class ViewCompositionSmokeTests: XCTestCase {
+    @MainActor
+    func testHotspotViewsComposeWithDeterministicOfflineFixture() throws {
+        let container = PersistenceController.createContainer(inMemory: true)
+        let context = container.mainContext
+        let course = LocalCourse(id: "course-smoke", title: "Composition", roleInCourse: "student")
+        let entry = LocalPracticeEntry(
+            id: "entry-smoke", courseId: course.id, studentId: "student-1",
+            details: PracticeEntryDetails(
+                practiceDate: Date(timeIntervalSince1970: 1_700_000_000),
+                goalText: "Shape the phrase", durationSeconds: 1_200, tags: ["legato"], notes: "Keep pulse"
+            ),
+            status: .draft
+        )
+        context.insert(course)
+        context.insert(entry)
+        try context.save()
+        let state = makeOfflineAppState(context: context)
+        state.syncManager.conflictedEntryIDs.insert(entry.id)
+        state.syncManager.enqueue(type: .createEntry, payload: ["entryId": entry.id])
+        let review = ReviewQueueEntry(
+            id: entry.id, courseId: course.id, studentId: entry.studentId, studentName: "Student",
+            kind: EntryKind.practice.rawValue, practiceDate: entry.practiceDate, goalText: entry.goalText,
+            notes: entry.notes, consentConfirmedAt: nil, consentScope: nil, captureProfile: nil,
+            captureMarkerCount: 0,
+            artifacts: [
+                ArtifactResponse(
+                    id: "artifact-smoke", entryId: entry.id, type: "audio", durationSeconds: 75,
+                    expectedSizeBytes: nil, uploadState: "uploaded", storageKey: nil, remoteUrl: nil
+                )
+            ]
+        )
+        let windows = [
+            render(EntryDetailView(entry: entry, showsArtifacts: false), container: container, state: state),
+            render(TeacherQueueView(courseId: course.id, screenshotQueue: [review]), container: container, state: state),
+            render(NewEntryView(courseId: course.id, initialContent: .walkthrough, wrapsInNavigationStack: false), container: container, state: state),
+            render(FeedbackEditorView(entry: review, initialContent: .walkthrough, presentation: .workspace), container: container, state: state),
+            render(SyncQueueView(), container: container, state: state),
+            render(MainSplitView(modelContext: context), container: container, state: state)
+        ]
+        XCTAssertEqual(TeacherQueueView.kindDisplayName(review.kind), "Practice")
+        XCTAssertEqual(TeacherQueueView.totalDurationLabel(for: review), "1:15")
+        XCTAssertEqual(windows.count, 6)
+        XCTAssertTrue(windows.allSatisfy { $0.rootViewController?.view.bounds.width ?? 0 > 0 })
+        withExtendedLifetime(windows) {}
+    }
+    @MainActor
+    private func makeOfflineAppState(context: ModelContext) -> AppState {
+        AppState(
+            modelContext: context,
+            fetchArtifacts: { [] },
+            saveChanges: { try context.save() },
+            removeStoredMediaFiles: {},
+            hasStoredMediaFiles: { false },
+            removeCalendarSubscription: {},
+            localDataOwner: { "student-1" },
+            setLocalDataOwner: { _ in },
+            removeLocalDataOwner: {},
+            clearLocalCredentials: { nil },
+            revokeRemoteSession: { _ in },
+            apiClient: APIClient(),
+            networkMonitor: NetworkMonitor()
+        )
+    }
+    @MainActor
+    private func render<V: View>(_ view: V, container: ModelContainer, state: AppState) -> UIWindow {
+        let hosted = view
+            .modelContainer(container)
+            .environmentObject(state)
+            .environmentObject(state.authManager)
+            .environmentObject(state.syncManager)
+            .environmentObject(state.networkMonitor)
+        let controller = UIHostingController(rootView: hosted)
+        let window = UIWindow(frame: CGRect(x: 0, y: 0, width: 1_024, height: 768))
+        window.rootViewController = controller
+        window.makeKeyAndVisible()
+        controller.view.setNeedsLayout()
+        controller.view.layoutIfNeeded()
+        XCTAssertGreaterThan(controller.view.bounds.width, 0)
+        XCTAssertGreaterThan(controller.view.bounds.height, 0)
+        return window
+    }
+}
+
+final class NewEntryDraftTests: XCTestCase {
+    func testValidationReportsFieldsInFormOrderAndParsesTrimmedTags() {
+        let invalidGoal = makeDraft(goalText: "   ", durationMinutes: "999", tags: "one")
+        assertValidation(invalidGoal, expected: .missingGoal)
+        let invalidDuration = makeDraft(goalText: "Practice", durationMinutes: "481", tags: "one")
+        assertValidation(invalidDuration, expected: .invalidDuration)
+        let invalidTags = makeDraft(
+            goalText: "Practice",
+            tags: (0...30).map { "tag\($0)" }.joined(separator: ",")
+        )
+        assertValidation(invalidTags, expected: .invalidTags)
+        let invalidNotes = makeDraft(goalText: "Practice", notes: String(repeating: "n", count: 10_001))
+        assertValidation(invalidNotes, expected: .invalidNotes)
+        let valid = makeDraft(goalText: "Practice", tags: " tone, , phrasing ,legato ")
+        XCTAssertEqual(valid.parsedTags, ["tone", "phrasing", "legato"])
+        XCTAssertNoThrow(try valid.validate())
+    }
+
+    @MainActor
+    func testMakeEntryPreservesPracticeAndTeachingConsentProfileSemantics() {
+        let practiceDate = Date(timeIntervalSince1970: 1_700_000_000)
+        let practice = makeDraft(
+            goalText: "  Shape tone  ",
+            practiceDate: practiceDate,
+            durationMinutes: "25",
+            tags: "tone, phrasing",
+            notes: "Reflection",
+            entryKind: .practice,
+            consentConfirmed: true,
+            captureProfile: .ensembleGroup
+        ).makeEntry(studentId: "student-1")
+        XCTAssertEqual(practice.goalText, "Shape tone")
+        XCTAssertEqual(practice.durationSeconds, 1_500)
+        XCTAssertEqual(practice.tags, ["tone", "phrasing"])
+        XCTAssertEqual(practice.notes, "Reflection")
+        XCTAssertEqual(practice.kind, .practice)
+        XCTAssertNil(practice.consentConfirmedAt)
+        XCTAssertNil(practice.consentScope)
+        XCTAssertNil(practice.captureProfile)
+
+        let teaching = makeDraft(
+            goalText: "Teach pulse",
+            practiceDate: practiceDate,
+            entryKind: .teachingLesson,
+            consentConfirmed: true,
+            captureProfile: .ensembleGroup
+        ).makeEntry(studentId: "student-1")
+        XCTAssertEqual(teaching.kind, .teachingLesson)
+        XCTAssertNotNil(teaching.consentConfirmedAt)
+        XCTAssertEqual(teaching.consentScope, .privateCourseReview)
+        XCTAssertEqual(teaching.captureProfile, .ensembleGroup)
+    }
+
+    private func makeDraft(
+        goalText: String,
+        practiceDate: Date = Date(timeIntervalSince1970: 1_700_000_000),
+        durationMinutes: String = "",
+        tags: String = "",
+        notes: String = "",
+        entryKind: EntryKind = .practice,
+        consentConfirmed: Bool = false,
+        captureProfile: CaptureProfile = .teacherLearner
+    ) -> NewEntryDraft {
+        NewEntryDraft(
+            courseId: "course-1",
+            goalText: goalText,
+            practiceDate: practiceDate,
+            durationMinutes: durationMinutes,
+            tags: tags,
+            notes: notes,
+            entryKind: entryKind,
+            consentConfirmed: consentConfirmed,
+            captureProfile: captureProfile
+        )
+    }
+
+    private func assertValidation(_ draft: NewEntryDraft, expected: NewEntryDraftValidationError) {
+        XCTAssertThrowsError(try draft.validate()) { error in
+            guard let actual = error as? NewEntryDraftValidationError else {
+                return XCTFail("Unexpected validation error: \(error)")
+            }
+            switch (actual, expected) {
+            case (.missingGoal, .missingGoal), (.invalidDuration, .invalidDuration),
+                 (.invalidTags, .invalidTags), (.invalidNotes, .invalidNotes):
+                break
+            default:
+                XCTFail("Unexpected validation error: \(actual)")
+            }
+            XCTAssertEqual(actual.message, expected.message)
+        }
+    }
+}

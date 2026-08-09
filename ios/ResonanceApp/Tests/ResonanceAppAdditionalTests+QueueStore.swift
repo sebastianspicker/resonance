@@ -6,6 +6,74 @@ import SwiftData
 
 final class SyncCommandEntityIdentityTests: XCTestCase {
     @MainActor
+    func testTaskExecutorBuildsTypedCommandsAndAppliesServerOutcome() throws {
+        let container = PersistenceController.createContainer(inMemory: true)
+        let context = container.mainContext
+        let entry = makeDraftPracticeEntry(id: "entry-command", goalText: "Shape the phrase", tags: ["legato"])
+        entry.serverVersion = 3
+        context.insert(entry)
+        try context.save()
+        let executor = makeTaskExecutor(for: context)
+
+        let create = SyncQueueItem(
+            id: "create-operation", type: SyncTaskType.createEntry.rawValue,
+            payloadJSON: "{\"entryId\":\"\(entry.id)\"}"
+        )
+        let update = SyncQueueItem(
+            id: "update-operation", type: SyncTaskType.updateEntry.rawValue,
+            payloadJSON: "{\"entryId\":\"\(entry.id)\"}"
+        )
+        let delete = SyncQueueItem(
+            id: "delete-operation", type: SyncTaskType.deleteEntry.rawValue,
+            payloadJSON: "{\"entryId\":\"\(entry.id)\",\"baseVersion\":3}"
+        )
+
+        let createCommand = try XCTUnwrap(executor.command(for: create))
+        XCTAssertEqual(createCommand.kind, .createEntry)
+        XCTAssertEqual(createCommand.entityId, entry.id)
+        XCTAssertNil(createCommand.baseVersion)
+        XCTAssertEqual(createCommand.payload, .object([
+            "courseId": .string(entry.courseId),
+            "kind": .string(EntryKind.practice.rawValue),
+            "practiceDate": .string(JSONEncoder.apiEncoderDateString(entry.practiceDate)),
+            "goalText": .string("Shape the phrase"),
+            "durationSeconds": .null,
+            "tags": .array([.string("legato")]),
+            "notes": .null,
+            "consentConfirmedAt": .null,
+            "consentScope": .null,
+            "captureProfile": .null
+        ]))
+        XCTAssertEqual(try XCTUnwrap(executor.command(for: update)).baseVersion, 3)
+        XCTAssertEqual(try XCTUnwrap(executor.command(for: delete)).kind, .deleteEntry)
+
+        try executor.apply(
+            SyncCommandResult(
+                operationId: update.id, entityId: entry.id, kind: .updateEntry,
+                status: .applied, code: nil, message: nil, currentVersion: 4, resource: nil
+            ),
+            for: update
+        )
+        XCTAssertEqual(entry.serverVersion, 4)
+    }
+
+    @MainActor
+    func testTaskExecutorRejectsMalformedAndMismatchedCommandOutcomes() throws {
+        let container = PersistenceController.createContainer(inMemory: true)
+        let context = container.mainContext
+        let executor = makeTaskExecutor(for: context)
+        let malformed = SyncQueueItem(id: "bad", type: SyncTaskType.createEntry.rawValue, payloadJSON: "[]")
+        XCTAssertThrowsError(try executor.command(for: malformed))
+
+        let item = SyncQueueItem(id: "operation", type: SyncTaskType.createEntry.rawValue, payloadJSON: "{\"entryId\":\"missing\"}")
+        let response = SyncCommandResult(
+            operationId: "different", entityId: "missing", kind: .createEntry,
+            status: .applied, code: nil, message: nil, currentVersion: nil, resource: nil
+        )
+        XCTAssertThrowsError(try executor.apply(response, for: item))
+    }
+
+    @MainActor
     func testArtifactTargetedFeedbackUsesItsParentEntryAsTheCommandWaveIdentity() throws {
         let container = PersistenceController.createContainer(inMemory: true)
         let entry = LocalPracticeEntry(
@@ -316,7 +384,147 @@ final class FeedbackMarkerFormatTests: XCTestCase {
     }
 }
 
+final class FeedbackDraftQueueOperationTests: XCTestCase {
+    @MainActor
+    func testValidationRejectsInvalidMarkerTimeAndEmptyMarkerNoteWhileIgnoringBlankRows() {
+        let entry = makeReviewEntry()
+        let invalidTime = FeedbackDraftQueueOperation(
+            entry: entry,
+            teacherName: "Teacher",
+            status: .accepted,
+            commentsText: "Specific feedback",
+            markers: [MarkerDraft(time: "1:60", text: "Release")]
+        )
+        assertValidation(invalidTime, expected: .invalidMarkerTime)
+
+        let emptyNote = FeedbackDraftQueueOperation(
+            entry: entry,
+            teacherName: "Teacher",
+            status: .accepted,
+            commentsText: "Specific feedback",
+            markers: [MarkerDraft(time: "00:18", text: "   ")]
+        )
+        assertValidation(emptyNote, expected: .emptyMarkerNote)
+
+        let blankRow = FeedbackDraftQueueOperation(
+            entry: entry,
+            teacherName: "Teacher",
+            status: .accepted,
+            commentsText: "Specific feedback",
+            markers: [MarkerDraft(time: "", text: "")]
+        )
+        XCTAssertNoThrow(try blankRow.validate())
+    }
+
+    @MainActor
+    func testPersistCreatesOrderedMarkersAndQueuesFeedbackPayload() throws {
+        let container = PersistenceController.createContainer(inMemory: true)
+        let context = container.mainContext
+        let client = APIClient()
+        let auth = AuthManager(apiClient: client, removeSessionData: {})
+        auth.session = AuthSession(
+            accessToken: "access-token",
+            refreshToken: "refresh-token",
+            userId: "teacher-1",
+            displayName: "Teacher",
+            globalRole: "teacher"
+        )
+        let syncManager = SyncManager(
+            modelContext: context,
+            authManager: auth,
+            apiClient: client,
+            verifiedOwner: { "teacher-1" }
+        )
+        let entry = makeReviewEntry()
+        let operation = FeedbackDraftQueueOperation(
+            entry: entry,
+            teacherName: "Teacher",
+            status: .needsRevision,
+            commentsText: "  Keep the release light.  ",
+            markers: [
+                MarkerDraft(time: "", text: ""),
+                MarkerDraft(time: "00:18", text: "Release lightly"),
+                MarkerDraft(time: "01:02", text: "Keep pulse")
+            ]
+        )
+
+        try operation.persist(in: context, syncManager: syncManager)
+
+        let feedback = try XCTUnwrap(context.fetch(FetchDescriptor<LocalFeedback>()).first)
+        XCTAssertEqual(feedback.targetType, "entry")
+        XCTAssertEqual(feedback.targetId, entry.id)
+        XCTAssertEqual(feedback.teacherName, "Teacher")
+        XCTAssertEqual(feedback.status, .needsRevision)
+        XCTAssertEqual(feedback.commentsText, "Keep the release light.")
+        XCTAssertEqual(feedback.chronologicallyOrderedMarkers.map(\.timeSeconds), [18, 62])
+        XCTAssertEqual(feedback.chronologicallyOrderedMarkers.map(\.text), ["Release lightly", "Keep pulse"])
+
+        let queueItem = try XCTUnwrap(context.fetch(FetchDescriptor<SyncQueueItem>()).first)
+        XCTAssertEqual(queueItem.taskType, .postFeedback)
+        let payload = try XCTUnwrap(
+            try JSONSerialization.jsonObject(with: XCTUnwrap(queueItem.payloadJSON.data(using: .utf8))) as? [String: String]
+        )
+        XCTAssertEqual(payload["targetType"], "entry")
+        XCTAssertEqual(payload["targetId"], entry.id)
+        XCTAssertEqual(payload["feedbackId"], feedback.id)
+    }
+
+    private func makeReviewEntry() -> ReviewQueueEntry {
+        ReviewQueueEntry(
+            id: "entry-feedback",
+            courseId: "course-1",
+            studentId: "student-1",
+            studentName: "Student",
+            kind: EntryKind.practice.rawValue,
+            practiceDate: Date(timeIntervalSince1970: 1_700_000_000),
+            goalText: "Shape the phrase",
+            notes: "Keep pulse",
+            consentConfirmedAt: nil,
+            consentScope: nil,
+            captureProfile: nil,
+            captureMarkerCount: 0,
+            artifacts: []
+        )
+    }
+
+    @MainActor
+    private func assertValidation(
+        _ operation: FeedbackDraftQueueOperation,
+        expected: FeedbackDraftValidationError
+    ) {
+        XCTAssertThrowsError(try operation.validate()) { error in
+            XCTAssertEqual((error as? FeedbackDraftValidationError)?.errorDescription, expected.errorDescription)
+        }
+    }
+}
+
 final class DemoDataCleanupTests: XCTestCase {
+    @MainActor
+    func testLoadMockUniversityDataIsIdempotentAndPreservesNonDemoRecords() throws {
+        let container = PersistenceController.createContainer(inMemory: true)
+        let context = container.mainContext
+        let realCourse = LocalCourse(id: "course-real", title: "Real course", roleInCourse: "student")
+        context.insert(realCourse)
+        try context.save()
+
+        let manager = DemoDataManager(modelContext: context)
+        try manager.loadMockUniversityData(roleInCourse: "teacher")
+        try manager.loadMockUniversityData(roleInCourse: "teacher")
+
+        let courses = try context.fetch(FetchDescriptor<LocalCourse>())
+        let entries = try context.fetch(FetchDescriptor<LocalPracticeEntry>())
+        let artifacts = try context.fetch(FetchDescriptor<LocalArtifact>())
+        let feedback = try context.fetch(FetchDescriptor<LocalFeedback>())
+        let queue = try context.fetch(FetchDescriptor<SyncQueueItem>())
+        XCTAssertEqual(courses.filter { $0.id.hasPrefix("demo_") }.count, 2)
+        XCTAssertEqual(entries.filter { $0.id.hasPrefix("demo_") }.count, 5)
+        XCTAssertEqual(artifacts.filter { $0.id.hasPrefix("demo_") }.count, 4)
+        XCTAssertEqual(feedback.filter { $0.id.hasPrefix("demo_") }.count, 2)
+        XCTAssertEqual(queue.filter { $0.id.hasPrefix("demo_") }.count, 2)
+        XCTAssertEqual(courses.first(where: { $0.id == "demo_course_piano" })?.roleInCourse, "teacher")
+        XCTAssertEqual(courses.first(where: { $0.id == realCourse.id })?.title, "Real course")
+    }
+
     @MainActor
     func testClearMockDataRemovesUUIDQueueRowsByPayloadAndDeletesArtifactFile() throws {
         let container = PersistenceController.createContainer(inMemory: true)

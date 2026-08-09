@@ -13,6 +13,34 @@ final class APIModelDecodeTests: XCTestCase {
         JSONDecoder.apiDecoder
     }
 
+    func testJSONValueAndOfflineCommandRoundTripPreserveNestedWirePayload() throws {
+        let payload: JSONValue = .object([
+            "title": .string("Legato"),
+            "durationSeconds": .integer(1_500),
+            "consented": .boolean(true),
+            "notes": .null,
+            "markers": .array([
+                .object(["timeSeconds": .integer(18), "text": .string("Release lightly")])
+            ])
+        ])
+        let command = SyncCommand(
+            operationId: "operation-1",
+            entityId: "entry-1",
+            kind: .updateEntry,
+            baseVersion: 4,
+            payload: payload
+        )
+
+        let encoded = try JSONEncoder().encode(SyncWork.command(command))
+        let decoded = try JSONDecoder().decode(SyncWork.self, from: encoded)
+
+        XCTAssertEqual(decoded.command.operationId, command.operationId)
+        XCTAssertEqual(decoded.command.entityId, command.entityId)
+        XCTAssertEqual(decoded.command.kind, command.kind)
+        XCTAssertEqual(decoded.command.baseVersion, command.baseVersion)
+        XCTAssertEqual(decoded.command.payload, payload)
+    }
+
     func testTokenResponseDecode() throws {
         let json = Data("""
         {

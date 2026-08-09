@@ -22,6 +22,10 @@ STUDENT_BOOTED_BY_SCRIPT=0
 TEACHER_BOOTED_BY_SCRIPT=0
 CAPTURE_ROWS="$OUTPUT_DIR/.capture-rows.tsv"
 CAPTURE_SETTLE_SECONDS="${RESONANCE_SCREENSHOT_SETTLE_SECONDS:-8}"
+# shellcheck source=scripts/lib/local-process.sh
+source "$ROOT_DIR/scripts/lib/local-process.sh"
+# shellcheck source=scripts/demo/capture-ios-simulator.sh
+source "$ROOT_DIR/scripts/demo/capture-ios-simulator.sh"
 
 require_cmd() {
 	command -v "$1" >/dev/null 2>&1 || {
@@ -31,16 +35,7 @@ require_cmd() {
 }
 
 stop_server() {
-	[[ -n "$SERVER_PID" ]] || return
-	if kill -0 "$SERVER_PID" >/dev/null 2>&1; then
-		kill -TERM "$SERVER_PID" >/dev/null 2>&1 || true
-		for _ in {1..20}; do
-			kill -0 "$SERVER_PID" >/dev/null 2>&1 || break
-			sleep 1
-		done
-		kill -0 "$SERVER_PID" >/dev/null 2>&1 && kill -KILL "$SERVER_PID" >/dev/null 2>&1 || true
-	fi
-	wait "$SERVER_PID" >/dev/null 2>&1 || true
+	stop_local_process "$SERVER_PID" 20 '' ''
 	SERVER_PID=""
 }
 
@@ -48,10 +43,10 @@ cleanup() {
 	local status=$?
 	trap - EXIT INT TERM
 	stop_server
-	if [[ "$STUDENT_BOOTED_BY_SCRIPT" -eq 1 ]]; then xcrun simctl shutdown "$STUDENT_UDID" >/dev/null 2>&1 || true; fi
-	if [[ "$TEACHER_BOOTED_BY_SCRIPT" -eq 1 ]]; then xcrun simctl shutdown "$TEACHER_UDID" >/dev/null 2>&1 || true; fi
-	if [[ "$STUDENT_CREATED" -eq 1 ]]; then xcrun simctl delete "$STUDENT_UDID" >/dev/null 2>&1 || true; fi
-	if [[ "$TEACHER_CREATED" -eq 1 ]]; then xcrun simctl delete "$TEACHER_UDID" >/dev/null 2>&1 || true; fi
+	cleanup_capture_simulators \
+		"$STUDENT_UDID" "$TEACHER_UDID" \
+		"$STUDENT_CREATED" "$TEACHER_CREATED" \
+		"$STUDENT_BOOTED_BY_SCRIPT" "$TEACHER_BOOTED_BY_SCRIPT"
 	exit "$status"
 }
 trap cleanup EXIT
@@ -128,35 +123,18 @@ echo "[2/7] Creating dedicated student and teacher Simulators"
 RUNTIME_ID="$(xcrun simctl list runtimes available -j | jq -r '[.runtimes[] | select(.platform == "iOS" and .isAvailable)] | sort_by(.version) | last.identifier // empty')"
 [[ -n "$RUNTIME_ID" ]] || { echo "No available iOS Simulator runtime." >&2; exit 1; }
 
-resolve_device_type() {
-	local prefix="$1"
-	xcrun simctl list devicetypes -j | jq -r --arg prefix "$prefix" '[.devicetypes[] | select(.name | startswith($prefix))] | last.identifier // empty'
+find_runtime_scoped_device() {
+	local name="$1"
+	xcrun simctl list devices available -j | jq -r --arg name "$name" --arg runtime "$RUNTIME_ID" '[.devices[$runtime][]? | select(.name == $name)] | first.udid // empty'
 }
 
-ensure_device() {
-	local name="$1" type_id="$2" result_var="$3" created_var="$4" booted_var="$5"
-	local udid state
-	udid="$(xcrun simctl list devices available -j | jq -r --arg name "$name" --arg runtime "$RUNTIME_ID" '[.devices[$runtime][]? | select(.name == $name)] | first.udid // empty')"
-	if [[ -z "$udid" ]]; then
-		udid="$(xcrun simctl create "$name" "$type_id" "$RUNTIME_ID")"
-		printf -v "$created_var" '%s' 1
-	fi
-	state="$(xcrun simctl list devices -j | jq -r --arg udid "$udid" '.devices[][] | select(.udid == $udid) | .state')"
-	if [[ "$state" != "Booted" ]]; then
-		xcrun simctl boot "$udid"
-		printf -v "$booted_var" '%s' 1
-	fi
-	xcrun simctl bootstatus "$udid" -b
-	printf -v "$result_var" '%s' "$udid"
-}
-
-IPHONE_TYPE="$(resolve_device_type 'iPhone 16')"
-IPAD_TYPE="$(resolve_device_type 'iPad Pro 11-inch')"
-if [[ -z "$IPHONE_TYPE" ]]; then IPHONE_TYPE="$(resolve_device_type 'iPhone')"; fi
-if [[ -z "$IPAD_TYPE" ]]; then IPAD_TYPE="$(resolve_device_type 'iPad')"; fi
+IPHONE_TYPE="$(resolve_capture_device_type 'iPhone 16')"
+IPAD_TYPE="$(resolve_capture_device_type 'iPad Pro 11-inch')"
+if [[ -z "$IPHONE_TYPE" ]]; then IPHONE_TYPE="$(resolve_capture_device_type 'iPhone')"; fi
+if [[ -z "$IPAD_TYPE" ]]; then IPAD_TYPE="$(resolve_capture_device_type 'iPad')"; fi
 [[ -n "$IPHONE_TYPE" && -n "$IPAD_TYPE" ]] || { echo "Required iPhone/iPad device types are unavailable." >&2; exit 1; }
-ensure_device 'Resonance Walkthrough Student' "$IPHONE_TYPE" STUDENT_UDID STUDENT_CREATED STUDENT_BOOTED_BY_SCRIPT
-ensure_device 'Resonance Walkthrough Teacher' "$IPAD_TYPE" TEACHER_UDID TEACHER_CREATED TEACHER_BOOTED_BY_SCRIPT
+ensure_capture_device 'Resonance Walkthrough Student' "$IPHONE_TYPE" "$RUNTIME_ID" "$(find_runtime_scoped_device 'Resonance Walkthrough Student')" STUDENT_UDID STUDENT_CREATED STUDENT_BOOTED_BY_SCRIPT
+ensure_capture_device 'Resonance Walkthrough Teacher' "$IPAD_TYPE" "$RUNTIME_ID" "$(find_runtime_scoped_device 'Resonance Walkthrough Teacher')" TEACHER_UDID TEACHER_CREATED TEACHER_BOOTED_BY_SCRIPT
 
 SIMULATOR_APP="$(xcode-select -p)/Applications/Simulator.app"
 open "$SIMULATOR_APP" >/dev/null 2>&1 || true
@@ -181,147 +159,27 @@ for udid in "$STUDENT_UDID" "$TEACHER_UDID"; do
 	xcrun simctl install "$udid" "$APP_PATH"
 done
 
-capture() {
-	local index="$1" persona="$2" screen="$3" title="$4" udid="$5" appearance="$6" device="$7"
-	local file_slug="${8:-$screen}" filename
-	filename="$(printf '%02d' "$index")-${persona}-${file_slug}.png"
-	local target="$OUTPUT_DIR/$filename"
-	echo "  Capturing $filename"
-	SIMCTL_CHILD_RESONANCE_SCREENSHOT_MODE=1 \
-		SIMCTL_CHILD_RESONANCE_SCREENSHOT_ROLE="$persona" \
-		SIMCTL_CHILD_RESONANCE_SCREENSHOT_SCREEN="$screen" \
-		SIMCTL_CHILD_RESONANCE_API_BASE="$API_BASE" \
-	SIMCTL_CHILD_RESONANCE_DEMO_UNIVERSITY_NAME='Mock University Conservatory' \
-		xcrun simctl launch --terminate-running-process "$udid" "$BUNDLE_ID" >/dev/null
-	sleep "$CAPTURE_SETTLE_SECONDS"
-	xcrun simctl io "$udid" screenshot "$target" >/dev/null
-	if [[ "$device" == *" landscape" ]]; then
-		local normalized="$target.normalized.png"
-		sips --rotate 90 "$target" --out "$normalized" >/dev/null
-		mv "$normalized" "$target"
-	fi
-	printf '%s\t%s\t%s\t%s\t%s\t%s\t%s\n' "$index" "$filename" "$persona" "$screen" "$title" "$device" "$appearance" >>"$CAPTURE_ROWS"
-}
-
-rotate_teacher_landscape() {
-	open "$SIMULATOR_APP" --args -CurrentDeviceUDID "$TEACHER_UDID" >/dev/null 2>&1 || true
-	osascript \
-		-e 'tell application "Simulator" to activate' \
-		-e 'delay 1' \
-		-e 'tell application "System Events" to key code 124 using command down'
-	sleep 2
-}
-
 echo "[4/7] Capturing the 12-step walkthrough"
-capture 1 student login 'Student sign-in' "$STUDENT_UDID" light 'iPhone portrait'
-capture 2 student courses 'Student course selection' "$STUDENT_UDID" light 'iPhone portrait'
-capture 3 student entry-list 'Draft, submitted, and reviewed entries' "$STUDENT_UDID" light 'iPhone portrait'
-capture 4 student new-entry 'Prefilled new-entry form' "$STUDENT_UDID" light 'iPhone portrait'
-capture 5 student entry-detail 'Draft capture and submission controls' "$STUDENT_UDID" light 'iPhone portrait'
-capture 6 student queue 'Pending and failed sync work' "$STUDENT_UDID" light 'iPhone portrait'
-rotate_teacher_landscape
-capture 7 teacher courses 'Teacher course selection' "$TEACHER_UDID" dark 'iPad landscape'
-capture 8 teacher teacher-review-queue 'Teacher review queue' "$TEACHER_UDID" dark 'iPad landscape' review-queue
-capture 9 teacher submission-detail 'Submission media and feedback composer' "$TEACHER_UDID" dark 'iPad landscape'
-capture 10 teacher feedback-editor 'Timestamped feedback draft' "$TEACHER_UDID" dark 'iPad landscape'
-capture 11 teacher feedback-queued 'Feedback queued state' "$TEACHER_UDID" dark 'iPad landscape'
-capture 12 student reviewed-feedback 'Reviewed entry feedback and markers' "$STUDENT_UDID" light 'iPhone portrait'
+capture_walkthrough_screen 1 student login 'Student sign-in' "$STUDENT_UDID" light 'iPhone portrait' login "$OUTPUT_DIR" "$API_BASE" "$BUNDLE_ID" "$CAPTURE_SETTLE_SECONDS" "$CAPTURE_ROWS"
+capture_walkthrough_screen 2 student courses 'Student course selection' "$STUDENT_UDID" light 'iPhone portrait' courses "$OUTPUT_DIR" "$API_BASE" "$BUNDLE_ID" "$CAPTURE_SETTLE_SECONDS" "$CAPTURE_ROWS"
+capture_walkthrough_screen 3 student entry-list 'Draft, submitted, and reviewed entries' "$STUDENT_UDID" light 'iPhone portrait' entry-list "$OUTPUT_DIR" "$API_BASE" "$BUNDLE_ID" "$CAPTURE_SETTLE_SECONDS" "$CAPTURE_ROWS"
+capture_walkthrough_screen 4 student new-entry 'Prefilled new-entry form' "$STUDENT_UDID" light 'iPhone portrait' new-entry "$OUTPUT_DIR" "$API_BASE" "$BUNDLE_ID" "$CAPTURE_SETTLE_SECONDS" "$CAPTURE_ROWS"
+capture_walkthrough_screen 5 student entry-detail 'Draft capture and submission controls' "$STUDENT_UDID" light 'iPhone portrait' entry-detail "$OUTPUT_DIR" "$API_BASE" "$BUNDLE_ID" "$CAPTURE_SETTLE_SECONDS" "$CAPTURE_ROWS"
+capture_walkthrough_screen 6 student queue 'Pending and failed sync work' "$STUDENT_UDID" light 'iPhone portrait' queue "$OUTPUT_DIR" "$API_BASE" "$BUNDLE_ID" "$CAPTURE_SETTLE_SECONDS" "$CAPTURE_ROWS"
+rotate_capture_teacher_landscape "$SIMULATOR_APP" "$TEACHER_UDID"
+capture_walkthrough_screen 7 teacher courses 'Teacher course selection' "$TEACHER_UDID" dark 'iPad landscape' courses "$OUTPUT_DIR" "$API_BASE" "$BUNDLE_ID" "$CAPTURE_SETTLE_SECONDS" "$CAPTURE_ROWS"
+capture_walkthrough_screen 8 teacher teacher-review-queue 'Teacher review queue' "$TEACHER_UDID" dark 'iPad landscape' review-queue "$OUTPUT_DIR" "$API_BASE" "$BUNDLE_ID" "$CAPTURE_SETTLE_SECONDS" "$CAPTURE_ROWS"
+capture_walkthrough_screen 9 teacher submission-detail 'Submission media and feedback composer' "$TEACHER_UDID" dark 'iPad landscape' submission-detail "$OUTPUT_DIR" "$API_BASE" "$BUNDLE_ID" "$CAPTURE_SETTLE_SECONDS" "$CAPTURE_ROWS"
+capture_walkthrough_screen 10 teacher feedback-editor 'Timestamped feedback draft' "$TEACHER_UDID" dark 'iPad landscape' feedback-editor "$OUTPUT_DIR" "$API_BASE" "$BUNDLE_ID" "$CAPTURE_SETTLE_SECONDS" "$CAPTURE_ROWS"
+capture_walkthrough_screen 11 teacher feedback-queued 'Feedback queued state' "$TEACHER_UDID" dark 'iPad landscape' feedback-queued "$OUTPUT_DIR" "$API_BASE" "$BUNDLE_ID" "$CAPTURE_SETTLE_SECONDS" "$CAPTURE_ROWS"
+capture_walkthrough_screen 12 student reviewed-feedback 'Reviewed entry feedback and markers' "$STUDENT_UDID" light 'iPhone portrait' reviewed-feedback "$OUTPUT_DIR" "$API_BASE" "$BUNDLE_ID" "$CAPTURE_SETTLE_SECONDS" "$CAPTURE_ROWS"
 
 echo "[5/7] Validating capture set and generating manifest"
 RUNTIME_NAME="$(xcrun simctl list runtimes available -j | jq -r --arg id "$RUNTIME_ID" '.runtimes[] | select(.identifier == $id) | .name')"
-node --input-type=module - "$OUTPUT_DIR" "$CAPTURE_ROWS" "$SOURCE_COMMIT" "$RUNTIME_NAME" "$RELEASE_VERSION" <<'NODE'
-import { createHash } from 'node:crypto';
-import { readFileSync, writeFileSync } from 'node:fs';
-import { join } from 'node:path';
-
-const [outputDir, rowsPath, sourceCommit, runtimeName, release] = process.argv.slice(2);
-if (!/^v\d+\.\d+\.\d+-alpha\.\d+$/.test(release)) {
-  throw new Error(`Invalid alpha release identifier: ${release}`);
-}
-const rows = readFileSync(rowsPath, 'utf8').trim().split('\n').filter(Boolean);
-if (rows.length !== 12) throw new Error(`Expected 12 capture rows, found ${rows.length}`);
-const runtimeVersion = runtimeName.replace(/^iOS\s+/, '');
-if (runtimeVersion === runtimeName) {
-  throw new Error(`Expected an iOS Simulator runtime name, found ${runtimeName}`);
-}
-const hashes = new Set();
-const captures = rows.map((row) => {
-  const [index, file, persona, screen, title, device, appearance] = row.split('\t');
-  const data = readFileSync(join(outputDir, file));
-  if (data.length < 10_000 || data.toString('hex', 0, 8) !== '89504e470d0a1a0a') {
-    throw new Error(`${file} is blank, truncated, or not a PNG`);
-  }
-  const width = data.readUInt32BE(16);
-  const height = data.readUInt32BE(20);
-  const orientation = device.endsWith('landscape') ? 'landscape' : 'portrait';
-  if (orientation === 'portrait' && height <= width) {
-    throw new Error(`${file} is not portrait (${width}x${height})`);
-  }
-  if (orientation === 'landscape' && width <= height) {
-    throw new Error(`${file} is not landscape (${width}x${height})`);
-  }
-  const sha256 = createHash('sha256').update(data).digest('hex');
-  if (hashes.has(sha256)) throw new Error(`${file} duplicates another screenshot`);
-  hashes.add(sha256);
-  const platform = device.startsWith('iPad') ? 'iPadOS' : 'iOS';
-  return {
-    index: Number(index), file, persona, screen, title, evidenceKind: 'visual-ui-evidence',
-    device, os: `${platform} ${runtimeVersion}`, orientation, appearance, textSize: 'medium',
-    width, height, sha256, verified: { png: true, orientation: true, unique: true },
-  };
-});
-const manifest = {
-  schemaVersion: 2,
-  release,
-  generatedAt: new Date().toISOString(),
-  revalidatedAt: new Date().toISOString(),
-  source: {
-    commit: sourceCommit,
-    dirty: false,
-    status: 'captured-clean-commit',
-  },
-  proofModel: {
-    kind: 'visual-ui-evidence',
-    description: 'Deterministic debug-only Simulator scenarios. Screenshots do not prove networking or interaction.',
-  },
-  verification: {
-    fixtureValidator: 'passed', apiReadiness: 'passed', iosDebugBuild: 'passed',
-    screenshotCount: 12, screenshotSet: 'integrity-verified', humanVisualInspection: 'pending',
-    serviceE2E: 'not run by capture harness; a separate passing service gate is required before measured claims are accepted',
-    captureLogsPublished: false,
-    releaseReady: false,
-  },
-  captures,
-};
-writeFileSync(join(outputDir, 'manifest.json'), `${JSON.stringify(manifest, null, 2)}\n`);
-NODE
+node "$ROOT_DIR/scripts/demo/generate-screenshot-manifest.mjs" "$OUTPUT_DIR" "$CAPTURE_ROWS" "$SOURCE_COMMIT" "$RUNTIME_NAME" "$RELEASE_VERSION"
 
 echo "[6/7] Writing walkthrough"
-node --input-type=module - "$OUTPUT_DIR" <<'NODE'
-import { readFileSync, writeFileSync } from 'node:fs';
-import { join } from 'node:path';
-const dir = process.argv[2];
-const manifest = JSON.parse(readFileSync(join(dir, 'manifest.json'), 'utf8'));
-const measured = new Map([
-  [1, 'Measured E2E coverage target: dev authentication and token exchange. Requires the separate service gate to pass.'],
-  [2, 'Measured E2E coverage target: authenticated student and teacher course membership. Requires the separate service gate to pass.'],
-  [3, 'Measured E2E coverage target: draft creation, submission, review transition, and reviewed retrieval. Requires the separate service gate to pass.'],
-  [5, 'Measured E2E coverage target: artifact creation, object upload, confirmation, and submission. Requires the separate service gate to pass.'],
-  [7, 'Measured E2E coverage target: same-course teacher authorization. Requires the separate service gate to pass.'],
-  [8, 'Measured E2E coverage target: submitted entries appear in the teacher review queue. Requires the separate service gate to pass.'],
-  [9, 'Measured E2E coverage target: teacher receives an authorized download URL and retrieves exact uploaded bytes. Requires the separate service gate to pass.'],
-  [10, 'Measured E2E coverage target: feedback comments and timestamped markers are persisted. Requires the separate service gate to pass.'],
-  [12, 'Measured E2E coverage target: student retrieves teacher comments, marker time/text, and reviewed state. Requires the separate service gate to pass.'],
-]);
-const visualOnly = new Map([
-  [4, 'Visual only: deterministic form composition; no save interaction is claimed.'],
-  [6, 'Visual only: deterministic pending/failed queue and recovery copy.'],
-  [11, 'Visual only: deterministic local Feedback queued indicator.'],
-]);
-const sections = manifest.captures.map((capture) => `## ${capture.index}. ${capture.title}\n\n![${capture.title}](./${capture.file})\n\n${measured.get(capture.index) ?? visualOnly.get(capture.index)}\n`);
-const markdown = `# Resonance hybrid E2E walkthrough\n\nThis local evidence bundle deliberately separates measured service behavior from deterministic Simulator UI evidence. Screenshots narrate the workflow; they do not independently prove taps, networking, upload, authorization, or persistence. The process-level E2E is the intended proof source, and its claims are accepted only after that separate gate passes.\n\n${sections.join('\n')}\n## Verification boundary\n\nSee \`manifest.json\` for device/OS/appearance/text-size metadata, dimensions, SHA-256 checksums, source state, and capture validation. Human visual inspection and repository gates are recorded in the final handoff after capture.\n`;
-writeFileSync(join(dir, 'WALKTHROUGH.md'), markdown);
-NODE
+node "$ROOT_DIR/scripts/demo/write-screenshot-walkthrough.mjs" "$OUTPUT_DIR"
 
 rm -f "$CAPTURE_ROWS"
 echo "[7/7] Walkthrough bundle ready at $OUTPUT_DIR"
