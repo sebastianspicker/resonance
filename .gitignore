@@ -50,6 +50,7 @@ pnpm-debug.log*
 .codegraph/
 /.repowise/
 /.mcp.json
+/AUDIT_LEDGER.md
 /logs/
 /wip/
 /WIP/
