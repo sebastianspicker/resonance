@@ -48,6 +48,12 @@ pnpm-debug.log*
 .kilo/
 .serena/
 .codegraph/
+/.repowise/
+/.mcp.json
+/logs/
+/wip/
+/WIP/
+/work-in-progress/
 
 # Local private workspace metadata
 AGENTS.md
