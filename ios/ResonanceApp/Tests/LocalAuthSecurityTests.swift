@@ -146,6 +146,35 @@ final class LocalAuthSecurityTests: XCTestCase {
     }
 
     @MainActor
+    func testSuccessfulPersistenceRoundTripAndRefreshReplaceDurableSession() async throws {
+        let harness = SessionPersistenceHarness()
+        let configuration = URLSessionConfiguration.ephemeral
+        configuration.protocolClasses = [DeferredAuthURLProtocol.self]
+        let manager = makePersistentSessionManager(
+            harness,
+            apiClient: APIClient(session: URLSession(configuration: configuration))
+        )
+        let initial = makeSession(accessToken: makeAuthJWT(expiresIn: -60))
+        try manager.persistSession(initial)
+        XCTAssertEqual(manager.session?.refreshToken, initial.refreshToken)
+        XCTAssertFalse(harness.persistenceUncertain)
+
+        let reloaded = makePersistentSessionManager(harness)
+        XCTAssertEqual(reloaded.session?.userId, initial.userId)
+
+        DeferredAuthURLProtocol.requestHandler = { protocolInstance, request in
+            XCTAssertEqual(request.url?.path, "/auth/refresh")
+            protocolInstance.respond(statusCode: 200, data: self.refreshedTokenResponse())
+        }
+        defer { DeferredAuthURLProtocol.requestHandler = nil }
+        await manager.refreshIfNeeded()
+
+        XCTAssertEqual(manager.session?.refreshToken, "replacement-token")
+        let refreshed = makePersistentSessionManager(harness)
+        XCTAssertEqual(refreshed.session?.refreshToken, "replacement-token")
+    }
+
+    @MainActor
     func testCancelledRefreshDoesNotClearOrReplaceANewerSession() async throws {
         let harness = makeDeferredRefreshHarness()
         defer { DeferredAuthURLProtocol.requestHandler = nil }
@@ -214,6 +243,21 @@ final class LocalAuthSecurityTests: XCTestCase {
             removeSessionData: { try harness.failSessionRemoval() },
             setSessionPersistenceUncertain: { try harness.setPersistenceUncertain($0) },
             isSessionPersistenceUncertain: { harness.isPersistenceUncertain }
+        )
+    }
+
+    @MainActor
+    private func makePersistentSessionManager(
+        _ harness: SessionPersistenceHarness,
+        apiClient: APIClient = APIClient()
+    ) -> AuthManager {
+        AuthManager(
+            apiClient: apiClient,
+            storeSessionData: { harness.persistedData = $0 },
+            readSessionData: { harness.persistedData },
+            removeSessionData: { harness.persistedData = nil },
+            setSessionPersistenceUncertain: { harness.persistenceUncertain = $0 },
+            isSessionPersistenceUncertain: { harness.persistenceUncertain }
         )
     }
 

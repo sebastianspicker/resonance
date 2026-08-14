@@ -94,6 +94,129 @@ server/src/
 middleware, probes, authentication, and route registration. Tests use the same
 server factory with injected dependencies.
 
+## Boundary decisions and invariants
+
+These decisions govern the client/server decomposition. A future refactor may
+move code, but it must preserve the listed contracts. If a split must be rolled
+back, revert its facade and extracted units as one compatible batch rather than
+mixing old and new payload, authorization, or persistence behavior.
+
+### Ordered and idempotent v1 commands
+
+DECISION: Keep the v1 command vocabulary and validation in a shared server
+contract, execute admitted commands in request order, and mirror that vocabulary
+with typed client models. Route handlers remain transport adapters; receipt,
+replay, conflict, and mutation policy remain service responsibilities.
+
+This boundary supports durable offline retries without letting a repeated or
+reordered request overwrite newer work.
+
+Invariants:
+
+- A successful operation identifier remains bound to the authenticated user and
+  the original payload. Reusing it for different work is rejected.
+- A request contains 1 to 25 commands and preserves FIFO order. `createEntry`
+  has no base version; every other mutation carries a positive base version.
+- A version conflict returns the current version and never silently overwrites
+  the server record.
+- A client retries the same operation with the same identifier, reconciles a
+  conflict, and never converts a terminal rejection into an overwrite.
+
+Implementation: [server command contract](../server/src/services/sync/contract.ts),
+[server admission](../server/src/services/sync/admission.ts),
+[client command models](../ios/ResonanceApp/Sources/APISyncCommandModels.swift), and
+[client command execution](../ios/ResonanceApp/Sources/TaskExecutor%2BCommands.swift).
+Verification: [server receipt tests](../server/tests/v1-sync/command-receipts.test.ts)
+and [client command tests](../ios/ResonanceApp/Tests/APIClientSyncCommandTests.swift).
+
+### Artifact staging, completion, and deletion
+
+DECISION: Keep upload allocation and completion in the artifact-session service,
+keep signed credentials scoped to staging keys, and keep entry deletion and
+object cleanup in durable cascade services. HTTP routes do not own storage
+lifecycle policy.
+
+This boundary prevents a signed PUT, concurrent completion, or delayed object
+store operation from publishing mutable evidence or recreating deleted content.
+
+Invariants:
+
+- Only the student owner of a draft entry with the matching optimistic version
+  may allocate an upload session.
+- Completion publishes an immutable final key only after exact size and
+  integrity checks against the observed staging object.
+- Entry deletion records durable cleanup work before relational metadata
+  disappears. Cleanup never deletes an object while a signed PUT or completion
+  claim can still be valid.
+- An expired or unsafe session rotates to a new staging key and queues the old
+  key for cleanup. Completion retries use the same durable claim; storage
+  failure retains a retryable deletion job.
+
+Implementation: [artifact-session service](../server/src/services/artifactSessions.ts),
+[entry deletion](../server/src/services/entryCascade/entryDeletion.ts), and
+[artifact cleanup](../server/src/services/entryCascade/artifactCleanup.ts).
+Verification: [artifact lifecycle tests](../server/tests/acl/entry-artifact-lifecycle.test.ts)
+and [client artifact-session tests](../ios/ResonanceApp/Tests/APIClientArtifactSessionTests.swift).
+
+### Course authorization and media visibility
+
+DECISION: Authorize entry, feedback, and media access from current course
+membership, course role, entry owner, and lifecycle state. A global student or
+teacher role is never sufficient, and media inherits the visibility of its
+entry.
+
+This boundary keeps drafts and protected recordings inside their intended
+student and course-review context across legacy routes, v1 routes, and replayed
+commands.
+
+Invariants:
+
+- Students access only their own entries. Teachers must be current teachers in
+  the entry's course.
+- Teachers cannot list, fetch, review, or download media from student drafts.
+- Authorization is rechecked during receipt replay; a previously valid command
+  does not preserve access after membership changes.
+- Rollback or compatibility handling must not restore draft state or relax an
+  authorization check to make a retry succeed.
+
+Implementation: [authorization helpers](../server/src/validation.ts),
+[v1 routes](../server/src/routes/v1.ts), and
+[artifact download route](../server/src/routes/artifacts/download.ts).
+Verification: [course visibility tests](../server/tests/acl/course-visibility.test.ts)
+and [artifact authorization tests](../server/tests/acl/entry-artifact-lifecycle.test.ts).
+
+### Fail-closed runtime and local identity
+
+DECISION: Reject invalid server configuration before startup and preserve local
+credential or account data whenever cleanup cannot be verified. Development
+authentication remains loopback-only; client persistence has no plaintext
+fallback.
+
+This boundary makes uncertainty visible instead of continuing with an unsafe
+network binding, ambiguous credentials, or a second account using a previous
+account's local data.
+
+Invariants:
+
+- Production is the default server mode. Production startup requires explicit
+  host, CORS, and OpenID Connect configuration; development mode rejects
+  non-loopback exposure.
+- Credentials and local ownership use device-only Keychain storage. An
+  uncertainty sentinel remains independently stored until credential removal is
+  verified.
+- Failed credential writes remove and verify the partial state or leave the
+  client blocked. Failed owner replacement or local deletion blocks account
+  admission and sign-out completion.
+- Rollback may restore the previous verified session, but it must not load
+  uncertain credentials, bypass the sentinel, or process a predecessor's queue.
+
+Implementation: [server configuration](../server/src/config.ts),
+[client auth persistence](../ios/ResonanceApp/Sources/AuthManager%2BPersistence.swift),
+and [persistence support](../ios/ResonanceApp/Sources/AuthSessionPersistenceSupport.swift).
+Verification: [server configuration tests](../server/tests/config-env.test.ts),
+[client auth security tests](../ios/ResonanceApp/Tests/LocalAuthSecurityTests.swift),
+and [profile replacement tests](../ios/ResonanceApp/Tests/LocalProfileReplacementTests.swift).
+
 ## iOS synchronization
 
 The sync subsystem is split into four focused components:

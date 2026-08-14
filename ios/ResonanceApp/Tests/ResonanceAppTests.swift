@@ -120,6 +120,89 @@ final class SyncManagerTests: XCTestCase {
         makeSyncManagerTestSUT()
     }
 
+    @MainActor
+    func testReloadServerCopyReplacesLocalConflictAndDiscardsQueuedWork() async throws {
+        let configuration = URLSessionConfiguration.ephemeral
+        configuration.protocolClasses = [TestRequestURLProtocol.self]
+        let client = APIClient(session: URLSession(configuration: configuration))
+        let container = PersistenceController.createContainer(inMemory: true)
+        let auth = AuthManager(apiClient: client, removeSessionData: {})
+        auth.session = AuthSession(accessToken: "token", refreshToken: "refresh", userId: "student-1", displayName: "Student", globalRole: "student")
+        let syncManager = SyncManager(modelContext: container.mainContext, authManager: auth, apiClient: client, verifiedOwner: { "student-1" })
+        let entry = makeDraftPracticeEntry(id: "entry-reload", goalText: "Local goal", tags: ["local"])
+        entry.serverVersion = 1
+        container.mainContext.insert(entry)
+        syncManager.enqueue(type: .updateEntry, payload: ["entryId": entry.id])
+        syncManager.conflictedEntryIDs.insert(entry.id)
+        try container.mainContext.save()
+        let reloadResponseData: Data = Data(
+            """
+            {"id":"entry-reload","courseId":"course-1","studentId":"student-1",\
+            "kind":"teaching_lesson","practiceDate":"2026-01-02T12:00:00Z",\
+            "goalText":"Server goal","durationSeconds":900,\
+            "tags":["server"],"notes":"Remote note","status":"submitted",\
+            "consentConfirmedAt":"2026-01-01T12:00:00Z","consentScope":"private_course_review",\
+            "captureProfile":"ensemble_group","version":7}
+            """.utf8
+        )
+        let reloadResponseHandler: (URLRequest) throws -> (HTTPURLResponse, Data) = { request in
+            XCTAssertEqual(request.url?.path, "/api/v1/entries/entry-reload")
+            let responseURL = try XCTUnwrap(request.url)
+            let response = HTTPURLResponse(
+                url: responseURL,
+                statusCode: 200,
+                httpVersion: nil,
+                headerFields: nil
+            )!
+            return (response, reloadResponseData)
+        }
+        TestRequestURLProtocol.requestHandler = reloadResponseHandler
+        defer { TestRequestURLProtocol.requestHandler = nil }
+
+        try await syncManager.reloadServerCopy(of: entry)
+
+        XCTAssertEqual(entry.goalText, "Server goal")
+        XCTAssertEqual(entry.tags, ["server"])
+        XCTAssertEqual(entry.status, .submitted)
+        XCTAssertEqual(entry.kind, .teachingLesson)
+        XCTAssertEqual(entry.captureProfile, .ensembleGroup)
+        XCTAssertEqual(entry.serverVersion, 7)
+        XCTAssertFalse(syncManager.conflictedEntryIDs.contains(entry.id))
+        XCTAssertTrue(try container.mainContext.fetch(FetchDescriptor<SyncQueueItem>()).isEmpty)
+    }
+
+    @MainActor
+    func testDuplicateAsNewDraftPreservesMetadataAndQueuesCreate() throws {
+        let (container, syncManager) = makeSUT()
+        let entry = LocalPracticeEntry(
+            id: "entry-original", courseId: "course-1", studentId: "student-1",
+            details: PracticeEntryDetails(
+                practiceDate: Date(timeIntervalSince1970: 1_700_000_000),
+                goalText: "Teach rhythm", durationSeconds: 1_200, tags: ["rhythm"], notes: "Keep pulse"
+            ),
+            status: .submitted,
+            captureContext: CaptureContext(
+                kind: .teachingLesson,
+                consentConfirmedAt: Date(timeIntervalSince1970: 1_700_000_100),
+                consentScope: .privateCourseReview, captureProfile: .ensembleGroup
+            )
+        )
+        container.mainContext.insert(entry)
+        try container.mainContext.save()
+
+        let copy = try syncManager.duplicateAsNewDraft(entry, modelContext: container.mainContext)
+
+        XCTAssertNotEqual(copy.id, entry.id)
+        XCTAssertEqual(copy.status, .draft)
+        XCTAssertEqual(copy.goalText, entry.goalText)
+        XCTAssertEqual(copy.durationSeconds, entry.durationSeconds)
+        XCTAssertEqual(copy.tags, entry.tags)
+        XCTAssertEqual(copy.captureProfile, .ensembleGroup)
+        let item = try XCTUnwrap(container.mainContext.fetch(FetchDescriptor<SyncQueueItem>()).first)
+        XCTAssertEqual(item.taskType, .createEntry)
+        XCTAssertTrue(item.payloadJSON.contains(copy.id))
+    }
+
     // MARK: 1: retryFailedItems resets status
 
     @MainActor

@@ -1,7 +1,8 @@
 // Unit-tests S3 bucket setup, presigning, copy verification, and bounded storage failures.
-import { describe, expect, it, beforeEach } from 'vitest';
+import { describe, expect, it, beforeEach, vi } from 'vitest';
 import { S3Client, HeadBucketCommand, CreateBucketCommand } from '@aws-sdk/client-s3';
 import { mockClient } from 'aws-sdk-client-mock';
+import { config } from '../src/config.js';
 import { buildCreateBucketInput, ensureBucket, isS3NotFoundError } from '../src/storage.js';
 
 const s3Mock = mockClient(S3Client);
@@ -48,9 +49,24 @@ describe('ensureBucket', () => {
     s3Mock.on(CreateBucketCommand).resolves({});
 
     const s3 = new S3Client({});
+    const send = vi.spyOn(s3, 'send');
     await ensureBucket(s3);
 
     expect(s3Mock.commandCalls(CreateBucketCommand).length).toBe(1);
+    expect(s3Mock.calls().map((call) => call.args[0])).toEqual([
+      expect.any(HeadBucketCommand),
+      expect.any(CreateBucketCommand),
+    ]);
+    expect(s3Mock.commandCalls(CreateBucketCommand)[0]?.args[0].input).toEqual(
+      buildCreateBucketInput(config.s3.bucket, config.s3.region)
+    );
+    expect(send).toHaveBeenCalledTimes(2);
+    const [, headOptions] = send.mock.calls[0] ?? [];
+    const [, createOptions] = send.mock.calls[1] ?? [];
+    expect(headOptions?.abortSignal).toBeInstanceOf(AbortSignal);
+    expect(headOptions?.abortSignal?.aborted).toBe(false);
+    expect(createOptions?.abortSignal).toBeInstanceOf(AbortSignal);
+    expect(createOptions?.abortSignal?.aborted).toBe(false);
   });
 
   it('accepts a create race only when the bucket is confirmed account-owned', async () => {
@@ -65,8 +81,41 @@ describe('ensureBucket', () => {
     s3Mock.on(HeadBucketCommand).rejectsOnce(notFound).resolves({});
     s3Mock.on(CreateBucketCommand).rejects(createdByPeer);
 
-    await expect(ensureBucket(new S3Client({}))).resolves.toBeUndefined();
+    const s3 = new S3Client({});
+    const send = vi.spyOn(s3, 'send');
+    await expect(ensureBucket(s3)).resolves.toBeUndefined();
     expect(s3Mock.commandCalls(HeadBucketCommand).length).toBe(2);
+    expect(send).toHaveBeenCalledTimes(3);
+    const [, firstHeadOptions] = send.mock.calls[0] ?? [];
+    const [, createOptions] = send.mock.calls[1] ?? [];
+    const [, recheckOptions] = send.mock.calls[2] ?? [];
+    expect(firstHeadOptions?.abortSignal).toBeInstanceOf(AbortSignal);
+    expect(firstHeadOptions?.abortSignal?.aborted).toBe(false);
+    expect(createOptions?.abortSignal).toBeInstanceOf(AbortSignal);
+    expect(createOptions?.abortSignal?.aborted).toBe(false);
+    expect(recheckOptions?.abortSignal).toBeInstanceOf(AbortSignal);
+    expect(recheckOptions?.abortSignal?.aborted).toBe(false);
+  });
+
+  it('rethrows a failed ownership-race recheck', async () => {
+    const notFound = Object.assign(new Error('Not Found'), {
+      name: 'NotFound',
+      $metadata: { httpStatusCode: 404 },
+    });
+    const createdByPeer = Object.assign(new Error('Already owned'), {
+      name: 'BucketAlreadyOwnedByYou',
+      $metadata: { httpStatusCode: 409 },
+    });
+    const accessDenied = Object.assign(new Error('Access Denied'), {
+      name: 'AccessDenied',
+      $metadata: { httpStatusCode: 403 },
+    });
+    s3Mock.on(HeadBucketCommand).rejectsOnce(notFound).rejectsOnce(accessDenied);
+    s3Mock.on(CreateBucketCommand).rejects(createdByPeer);
+
+    await expect(ensureBucket(new S3Client({}))).rejects.toThrow('Access Denied');
+    expect(s3Mock.commandCalls(HeadBucketCommand)).toHaveLength(2);
+    expect(s3Mock.commandCalls(CreateBucketCommand)).toHaveLength(1);
   });
 
   it('does not swallow a globally conflicting bucket name', async () => {
@@ -84,6 +133,23 @@ describe('ensureBucket', () => {
     );
 
     await expect(ensureBucket(new S3Client({}))).rejects.toThrow('Already exists');
+  });
+
+  it('rethrows a non-race create failure', async () => {
+    s3Mock.on(HeadBucketCommand).rejects(
+      Object.assign(new Error('Not Found'), {
+        name: 'NotFound',
+        $metadata: { httpStatusCode: 404 },
+      })
+    );
+    s3Mock.on(CreateBucketCommand).rejects(
+      Object.assign(new Error('S3 unavailable'), {
+        name: 'ServiceUnavailable',
+        $metadata: { httpStatusCode: 503 },
+      })
+    );
+
+    await expect(ensureBucket(new S3Client({}))).rejects.toThrow('S3 unavailable');
   });
 
   it('rethrows AccessDenied (403) instead of creating bucket (bug #38)', async () => {
@@ -115,10 +181,69 @@ describe('ensureBucket', () => {
   it('bounds a bucket probe even when the client never settles', async () => {
     s3Mock.on(HeadBucketCommand).callsFake(() => new Promise(() => {}));
 
-    await expect(ensureBucket(new S3Client({}), 10)).rejects.toThrow(
-      'S3 HeadBucket timed out after 10ms'
-    );
+    const s3 = new S3Client({});
+    const send = vi.spyOn(s3, 'send');
+    await expect(ensureBucket(s3, 10)).rejects.toThrow('S3 HeadBucket timed out after 10ms');
     expect(s3Mock.commandCalls(CreateBucketCommand)).toHaveLength(0);
+    expect(send).toHaveBeenCalledTimes(1);
+    const [, headOptions] = send.mock.calls[0] ?? [];
+    expect(headOptions?.abortSignal).toBeInstanceOf(AbortSignal);
+    expect(headOptions?.abortSignal?.aborted).toBe(true);
+  });
+
+  it('bounds bucket creation even when the client never settles', async () => {
+    s3Mock.on(HeadBucketCommand).rejects(
+      Object.assign(new Error('Not Found'), {
+        name: 'NotFound',
+        $metadata: { httpStatusCode: 404 },
+      })
+    );
+    s3Mock.on(CreateBucketCommand).callsFake(() => new Promise(() => {}));
+
+    const s3 = new S3Client({});
+    const send = vi.spyOn(s3, 'send');
+    await expect(ensureBucket(s3, 10)).rejects.toThrow('S3 CreateBucket timed out after 10ms');
+    expect(s3Mock.commandCalls(HeadBucketCommand)).toHaveLength(1);
+    expect(s3Mock.commandCalls(CreateBucketCommand)).toHaveLength(1);
+    expect(send).toHaveBeenCalledTimes(2);
+    const [, headOptions] = send.mock.calls[0] ?? [];
+    const [, createOptions] = send.mock.calls[1] ?? [];
+    expect(headOptions?.abortSignal).toBeInstanceOf(AbortSignal);
+    expect(headOptions?.abortSignal?.aborted).toBe(false);
+    expect(createOptions?.abortSignal).toBeInstanceOf(AbortSignal);
+    expect(createOptions?.abortSignal?.aborted).toBe(true);
+  });
+
+  it('bounds the ownership-race recheck when the client never settles', async () => {
+    const notFound = Object.assign(new Error('Not Found'), {
+      name: 'NotFound',
+      $metadata: { httpStatusCode: 404 },
+    });
+    const createdByPeer = Object.assign(new Error('Already owned'), {
+      name: 'BucketAlreadyOwnedByYou',
+      $metadata: { httpStatusCode: 409 },
+    });
+    s3Mock
+      .on(HeadBucketCommand)
+      .rejectsOnce(notFound)
+      .callsFake(() => new Promise(() => {}));
+    s3Mock.on(CreateBucketCommand).rejects(createdByPeer);
+
+    const s3 = new S3Client({});
+    const send = vi.spyOn(s3, 'send');
+    await expect(ensureBucket(s3, 10)).rejects.toThrow('S3 HeadBucket timed out after 10ms');
+    expect(s3Mock.commandCalls(HeadBucketCommand)).toHaveLength(2);
+    expect(s3Mock.commandCalls(CreateBucketCommand)).toHaveLength(1);
+    expect(send).toHaveBeenCalledTimes(3);
+    const [, firstHeadOptions] = send.mock.calls[0] ?? [];
+    const [, createOptions] = send.mock.calls[1] ?? [];
+    const [, recheckOptions] = send.mock.calls[2] ?? [];
+    expect(firstHeadOptions?.abortSignal).toBeInstanceOf(AbortSignal);
+    expect(firstHeadOptions?.abortSignal?.aborted).toBe(false);
+    expect(createOptions?.abortSignal).toBeInstanceOf(AbortSignal);
+    expect(createOptions?.abortSignal?.aborted).toBe(false);
+    expect(recheckOptions?.abortSignal).toBeInstanceOf(AbortSignal);
+    expect(recheckOptions?.abortSignal?.aborted).toBe(true);
   });
 });
 
