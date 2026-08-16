@@ -51,7 +51,7 @@
     "dotenv": "17.3.1",
     "fastify": "5.8.5",
     "jsonwebtoken": "9.0.3",
-    "nanoid": "5.1.7",
+    "nanoid": "5.1.16",
     "openid-client": "5.7.1",
     "prisma": "5.22.0"
   },

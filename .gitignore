@@ -146,17 +146,10 @@ junit-*.xml
 *.rej
 
 # Codacy local analysis output; keep checked-in config files visible.
-.codacy/.gitignore
-.codacy/cli-config.yaml
-.codacy/codacy.yaml
-.codacy/codacy.config.json
-.codacy/configure-*.json
-.codacy/*-summary.json
-.codacy/tools-configs/
-.codacy/generated/
-.codacy/logs/
-.codacy/tmp/
-.codacy/cache/
+/.codacy/*
+!/.codacy/codacy.config.json
+!/.codacy/codacy.yaml
+!/.codacy/codacy.yml
 
 # MinIO
 infra/minio-data/

@@ -15,31 +15,13 @@ final class AppState: ObservableObject {
 
     init(
         modelContext: ModelContext,
-        fetchArtifacts: (() throws -> [LocalArtifact])? = nil,
-        saveChanges: (() throws -> Void)? = nil,
-        removeStoredMediaFiles: (() throws -> Void)? = nil,
-        hasStoredMediaFiles: (() throws -> Bool)? = nil,
-        removeCalendarSubscription: (() throws -> Void)? = nil,
-        localDataOwner: (() throws -> String?)? = nil,
-        setLocalDataOwner: ((String) throws -> Void)? = nil,
-        removeLocalDataOwner: (() throws -> Void)? = nil,
-        clearLocalCredentials: (() throws -> AuthSession?)? = nil,
-        revokeRemoteSession: ((AuthSession?) -> Void)? = nil,
+        localProfileOverrides: AppStateLocalProfileOverrides = .init(),
         apiClient: APIClient? = nil,
         networkMonitor: NetworkMonitor? = nil
     ) {
         let dependencies = AppStateDependencies(
             modelContext: modelContext,
-            fetchArtifacts: fetchArtifacts,
-            saveChanges: saveChanges,
-            removeStoredMediaFiles: removeStoredMediaFiles,
-            hasStoredMediaFiles: hasStoredMediaFiles,
-            removeCalendarSubscription: removeCalendarSubscription,
-            localDataOwner: localDataOwner,
-            setLocalDataOwner: setLocalDataOwner,
-            removeLocalDataOwner: removeLocalDataOwner,
-            clearLocalCredentials: clearLocalCredentials,
-            revokeRemoteSession: revokeRemoteSession,
+            localProfileOverrides: localProfileOverrides,
             apiClient: apiClient,
             networkMonitor: networkMonitor
         )

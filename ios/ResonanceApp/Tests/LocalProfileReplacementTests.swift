@@ -35,9 +35,11 @@ final class LocalProfileReplacementTests: XCTestCase {
         let container = PersistenceController.createContainer(inMemory: true)
         let appState = AppState(
             modelContext: container.mainContext,
-            fetchArtifacts: { throw LocalProfileReplacementTestError.fetchFailed },
-            removeCalendarSubscription: {},
-            setLocalDataOwner: { writtenOwner = $0 }
+            localProfileOverrides: .init(
+                fetchArtifacts: { throw LocalProfileReplacementTestError.fetchFailed },
+                removeCalendarSubscription: {},
+                setLocalDataOwner: { writtenOwner = $0 }
+            )
         )
 
         await assertReplaceLocalProfileFails(appState, expectedError: .fetchFailed)
@@ -61,10 +63,12 @@ final class LocalProfileReplacementTests: XCTestCase {
         let container = PersistenceController.createContainer(inMemory: true)
         let appState = AppState(
             modelContext: container.mainContext,
-            hasStoredMediaFiles: { false },
-            removeCalendarSubscription: {},
-            localDataOwner: { nil },
-            setLocalDataOwner: { _ in throw LocalProfileReplacementTestError.ownerWriteFailed }
+            localProfileOverrides: .init(
+                hasStoredMediaFiles: { false },
+                removeCalendarSubscription: {},
+                localDataOwner: { nil },
+                setLocalDataOwner: { _ in throw LocalProfileReplacementTestError.ownerWriteFailed }
+            )
         )
 
         await assertReplaceLocalProfileFails(appState, expectedError: .ownerWriteFailed)
@@ -76,9 +80,11 @@ final class LocalProfileReplacementTests: XCTestCase {
         let container = PersistenceController.createContainer(inMemory: true)
         let appState = AppState(
             modelContext: container.mainContext,
-            saveChanges: { throw LocalProfileReplacementTestError.saveFailed },
-            removeCalendarSubscription: {},
-            setLocalDataOwner: { writtenOwner = $0 }
+            localProfileOverrides: .init(
+                saveChanges: { throw LocalProfileReplacementTestError.saveFailed },
+                removeCalendarSubscription: {},
+                setLocalDataOwner: { writtenOwner = $0 }
+            )
         )
 
         await assertReplaceLocalProfileFails(appState, expectedError: .saveFailed)
@@ -91,9 +97,11 @@ final class LocalProfileReplacementTests: XCTestCase {
         let container = PersistenceController.createContainer(inMemory: true)
         let appState = AppState(
             modelContext: container.mainContext,
-            hasStoredMediaFiles: { false },
-            removeCalendarSubscription: { throw LocalProfileReplacementTestError.calendarRemovalFailed },
-            setLocalDataOwner: { writtenOwner = $0 }
+            localProfileOverrides: .init(
+                hasStoredMediaFiles: { false },
+                removeCalendarSubscription: { throw LocalProfileReplacementTestError.calendarRemovalFailed },
+                setLocalDataOwner: { writtenOwner = $0 }
+            )
         )
 
         await assertReplaceLocalProfileFails(appState, expectedError: .calendarRemovalFailed)
@@ -124,9 +132,11 @@ final class LocalProfileReplacementTests: XCTestCase {
         let container = PersistenceController.createContainer(inMemory: true)
         let appState = AppState(
             modelContext: container.mainContext,
-            removeCalendarSubscription: {},
-            localDataOwner: { writtenOwner },
-            setLocalDataOwner: { writtenOwner = $0 }
+            localProfileOverrides: .init(
+                removeCalendarSubscription: {},
+                localDataOwner: { writtenOwner },
+                setLocalDataOwner: { writtenOwner = $0 }
+            )
         )
 
         try await appState.replaceLocalProfile(with: "new-user")
@@ -251,17 +261,21 @@ final class LocalProfileReplacementTests: XCTestCase {
         if let removeStoredMediaFiles {
             return AppState(
                 modelContext: context,
-                removeStoredMediaFiles: removeStoredMediaFiles,
-                removeCalendarSubscription: {},
-                localDataOwner: localDataOwner,
-                setLocalDataOwner: { owner.value = $0 }
+                localProfileOverrides: .init(
+                    removeStoredMediaFiles: removeStoredMediaFiles,
+                    removeCalendarSubscription: {},
+                    localDataOwner: localDataOwner,
+                    setLocalDataOwner: { owner.value = $0 }
+                )
             )
         }
         return AppState(
             modelContext: context,
-            removeCalendarSubscription: {},
-            localDataOwner: localDataOwner,
-            setLocalDataOwner: { owner.value = $0 }
+            localProfileOverrides: .init(
+                removeCalendarSubscription: {},
+                localDataOwner: localDataOwner,
+                setLocalDataOwner: { owner.value = $0 }
+            )
         )
     }
 
@@ -276,13 +290,15 @@ final class LocalProfileReplacementTests: XCTestCase {
     ) -> AppState {
         AppState(
             modelContext: context,
-            removeStoredMediaFiles: removeStoredMediaFiles,
-            removeCalendarSubscription: {},
-            localDataOwner: localDataOwner,
-            setLocalDataOwner: { _ in },
-            removeLocalDataOwner: removeLocalDataOwner,
-            clearLocalCredentials: clearLocalCredentials,
-            revokeRemoteSession: revokeRemoteSession
+            localProfileOverrides: .init(
+                removeStoredMediaFiles: removeStoredMediaFiles,
+                removeCalendarSubscription: {},
+                localDataOwner: localDataOwner,
+                setLocalDataOwner: { _ in },
+                removeLocalDataOwner: removeLocalDataOwner,
+                clearLocalCredentials: clearLocalCredentials,
+                revokeRemoteSession: revokeRemoteSession
+            )
         )
     }
 

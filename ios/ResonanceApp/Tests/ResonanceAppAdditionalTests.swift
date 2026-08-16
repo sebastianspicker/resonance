@@ -672,16 +672,18 @@ final class ViewCompositionSmokeTests: XCTestCase {
     private func makeOfflineAppState(context: ModelContext) -> AppState {
         AppState(
             modelContext: context,
-            fetchArtifacts: { [] },
-            saveChanges: { try context.save() },
-            removeStoredMediaFiles: {},
-            hasStoredMediaFiles: { false },
-            removeCalendarSubscription: {},
-            localDataOwner: { "student-1" },
-            setLocalDataOwner: { _ in },
-            removeLocalDataOwner: {},
-            clearLocalCredentials: { nil },
-            revokeRemoteSession: { _ in },
+            localProfileOverrides: .init(
+                fetchArtifacts: { [] },
+                saveChanges: { try context.save() },
+                removeStoredMediaFiles: {},
+                hasStoredMediaFiles: { false },
+                removeCalendarSubscription: {},
+                localDataOwner: { "student-1" },
+                setLocalDataOwner: { _ in },
+                removeLocalDataOwner: {},
+                clearLocalCredentials: { nil },
+                revokeRemoteSession: { _ in }
+            ),
             apiClient: APIClient(),
             networkMonitor: NetworkMonitor()
         )
