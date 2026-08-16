@@ -3,10 +3,10 @@ import { GetObjectCommand, type S3Client } from '@aws-sdk/client-s3';
 import Fastify, { type FastifyInstance, type FastifyRequest } from 'fastify';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-const getSignedUrlMock = vi.hoisted(() => vi.fn());
+const presignerMock = vi.hoisted(() => ({ getSignedUrl: vi.fn() }));
 
 vi.mock('@aws-sdk/s3-request-presigner', () => ({
-  getSignedUrl: getSignedUrlMock,
+  getSignedUrl: presignerMock.getSignedUrl,
 }));
 
 import type { PrismaClient } from '@prisma/client';
@@ -14,11 +14,7 @@ import { ErrorCodes } from '../src/errorCodes.js';
 import { ApiError, sendError } from '../src/errors.js';
 import { registerV1Routes } from '../src/routes/v1.js';
 
-const ENTRY_ORDER = [
-  { practiceDate: 'desc' },
-  { createdAt: 'desc' },
-  { id: 'desc' },
-];
+const ENTRY_ORDER = [{ practiceDate: 'desc' }, { createdAt: 'desc' }, { id: 'desc' }];
 const ENTRY_INCLUDE = { artifacts: true, captureMarkers: true };
 
 type PrismaSeams = {
@@ -80,11 +76,11 @@ function entry(id: string, studentId = 'student-1', captureMarkers: unknown[] = 
 }
 
 beforeEach(() => {
-  getSignedUrlMock.mockResolvedValue('https://signed.example/download');
+  presignerMock.getSignedUrl.mockResolvedValue('https://signed.example/download');
 });
 
 afterEach(() => {
-  getSignedUrlMock.mockReset();
+  presignerMock.getSignedUrl.mockReset();
 });
 
 describe('v1 DB-free read routes', () => {
@@ -301,7 +297,12 @@ describe('v1 DB-free read routes', () => {
         method: 'GET',
         url: '/api/v1/courses/course-1/review-queue',
       });
-      expectApiError(student, 403, ErrorCodes.TEACHER_ONLY, 'Only teachers can access the review queue');
+      expectApiError(
+        student,
+        403,
+        ErrorCodes.TEACHER_ONLY,
+        'Only teachers can access the review queue'
+      );
       expect(seams.practiceEntry.findMany).not.toHaveBeenCalled();
 
       const teacher = await app.inject({
@@ -366,7 +367,10 @@ describe('v1 DB-free read routes', () => {
   it('rejects absent, nonuploaded, and keyless artifacts with the exact not-found shape', async () => {
     const { prisma, seams } = createPrismaSeams();
     seams.artifact.findUnique.mockResolvedValueOnce(null);
-    seams.artifact.findUnique.mockResolvedValueOnce({ uploadState: 'uploading', storageKey: 'staging/key' });
+    seams.artifact.findUnique.mockResolvedValueOnce({
+      uploadState: 'uploading',
+      storageKey: 'staging/key',
+    });
     seams.artifact.findUnique.mockResolvedValueOnce({ uploadState: 'uploaded', storageKey: null });
     const { app } = createRouteApp(prisma);
 
@@ -390,7 +394,7 @@ describe('v1 DB-free read routes', () => {
         where: { id: 'keyless' },
         include: { entry: true },
       });
-      expect(getSignedUrlMock).not.toHaveBeenCalled();
+      expect(presignerMock.getSignedUrl).not.toHaveBeenCalled();
     } finally {
       await app.close();
     }
@@ -419,7 +423,7 @@ describe('v1 DB-free read routes', () => {
         ErrorCodes.ENTRY_ACCESS_DENIED,
         'Draft entries are not visible to teachers'
       );
-      expect(getSignedUrlMock).not.toHaveBeenCalled();
+      expect(presignerMock.getSignedUrl).not.toHaveBeenCalled();
     } finally {
       await app.close();
     }
@@ -451,11 +455,11 @@ describe('v1 DB-free read routes', () => {
       expect(seams.membership.findUnique).toHaveBeenCalledWith({
         where: { userId_courseId: { userId: 'teacher-1', courseId: 'course-1' } },
       });
-      expect(getSignedUrlMock).toHaveBeenCalledTimes(1);
-      expect(getSignedUrlMock).toHaveBeenCalledWith(s3, expect.any(GetObjectCommand), {
+      expect(presignerMock.getSignedUrl).toHaveBeenCalledTimes(1);
+      expect(presignerMock.getSignedUrl).toHaveBeenCalledWith(s3, expect.any(GetObjectCommand), {
         expiresIn: 900,
       });
-      const command = getSignedUrlMock.mock.calls[0][1] as GetObjectCommand;
+      const command = presignerMock.getSignedUrl.mock.calls[0][1] as GetObjectCommand;
       expect(command.input).toEqual({
         Bucket: 'resonance-dev',
         Key: 'artifacts/final/entry-1/artifact-1',

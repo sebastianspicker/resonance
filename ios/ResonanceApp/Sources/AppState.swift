@@ -19,12 +19,16 @@ final class AppState: ObservableObject {
         apiClient: APIClient? = nil,
         networkMonitor: NetworkMonitor? = nil
     ) {
-        let dependencies = AppStateDependencies(
+        self.init(configuration: .init(
             modelContext: modelContext,
             localProfileOverrides: localProfileOverrides,
             apiClient: apiClient,
             networkMonitor: networkMonitor
-        )
+        ))
+    }
+
+    private init(configuration: AppStateConfiguration) {
+        let dependencies = AppStateDependencies(configuration: configuration)
         self.apiClient = dependencies.apiClient
         self.authManager = dependencies.authManager
         self.syncManager = dependencies.syncManager

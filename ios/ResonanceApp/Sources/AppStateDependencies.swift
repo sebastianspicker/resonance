@@ -17,6 +17,14 @@ struct AppStateLocalProfileOverrides {
 }
 
 @MainActor
+struct AppStateConfiguration {
+    let modelContext: ModelContext
+    let localProfileOverrides: AppStateLocalProfileOverrides
+    let apiClient: APIClient?
+    let networkMonitor: NetworkMonitor?
+}
+
+@MainActor
 struct AppStateDependencies {
     let apiClient: APIClient
     let authManager: AuthManager
@@ -24,13 +32,10 @@ struct AppStateDependencies {
     let networkMonitor: NetworkMonitor
     let localProfileDependencies: AppStateLocalProfileDependencies
 
-    init(
-        modelContext: ModelContext,
-        localProfileOverrides: AppStateLocalProfileOverrides = .init(),
-        apiClient: APIClient? = nil,
-        networkMonitor: NetworkMonitor? = nil
-    ) {
-        let client = apiClient ?? APIClient()
+    init(configuration: AppStateConfiguration) {
+        let modelContext = configuration.modelContext
+        let localProfileOverrides = configuration.localProfileOverrides
+        let client = configuration.apiClient ?? APIClient()
         self.apiClient = client
         let screenshotScenario = Self.screenshotScenario
         let auth = Self.makeAuthManager(client: client, screenshotScenario: screenshotScenario)
@@ -42,7 +47,7 @@ struct AppStateDependencies {
             screenshotScenario: screenshotScenario
         )
         self.localProfileDependencies = localProfileDependencies
-        let network = networkMonitor ?? NetworkMonitor()
+        let network = configuration.networkMonitor ?? NetworkMonitor()
         self.networkMonitor = network
         self.syncManager = SyncManager(
             modelContext: localProfileDependencies.modelContext,

@@ -212,7 +212,9 @@ jobs:
 
       - name: Install pinned SwiftLint
         run: |
-          brew install swiftlint
+          curl --fail --location --retry 3 --output "$RUNNER_TEMP/SwiftLint.pkg" \
+            "https://github.com/realm/SwiftLint/releases/download/0.63.2/SwiftLint.pkg"
+          sudo installer -pkg "$RUNNER_TEMP/SwiftLint.pkg" -target /
           test "$(swiftlint version)" = "0.63.2"
 
       - name: Lint Swift sources and tests

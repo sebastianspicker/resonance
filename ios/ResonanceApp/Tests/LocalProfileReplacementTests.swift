@@ -32,10 +32,8 @@ final class LocalProfileReplacementTests: XCTestCase {
     @MainActor
     func testReplaceLocalProfileDoesNotSetOwnerWhenArtifactFetchFails() async {
         var writtenOwner: String?
-        let container = PersistenceController.createContainer(inMemory: true)
-        let appState = AppState(
-            modelContext: container.mainContext,
-            localProfileOverrides: .init(
+        let appState = makeInMemoryProfileAppState(
+            overrides: .init(
                 fetchArtifacts: { throw LocalProfileReplacementTestError.fetchFailed },
                 removeCalendarSubscription: {},
                 setLocalDataOwner: { writtenOwner = $0 }
@@ -60,10 +58,8 @@ final class LocalProfileReplacementTests: XCTestCase {
 
     @MainActor
     func testReplaceLocalProfileDoesNotAdmitAnAccountWhenOwnerWriteFails() async {
-        let container = PersistenceController.createContainer(inMemory: true)
-        let appState = AppState(
-            modelContext: container.mainContext,
-            localProfileOverrides: .init(
+        let appState = makeInMemoryProfileAppState(
+            overrides: .init(
                 hasStoredMediaFiles: { false },
                 removeCalendarSubscription: {},
                 localDataOwner: { nil },
@@ -77,10 +73,8 @@ final class LocalProfileReplacementTests: XCTestCase {
     @MainActor
     func testReplaceLocalProfileDoesNotSetOwnerWhenSaveFails() async {
         var writtenOwner: String?
-        let container = PersistenceController.createContainer(inMemory: true)
-        let appState = AppState(
-            modelContext: container.mainContext,
-            localProfileOverrides: .init(
+        let appState = makeInMemoryProfileAppState(
+            overrides: .init(
                 saveChanges: { throw LocalProfileReplacementTestError.saveFailed },
                 removeCalendarSubscription: {},
                 setLocalDataOwner: { writtenOwner = $0 }
@@ -94,10 +88,8 @@ final class LocalProfileReplacementTests: XCTestCase {
     @MainActor
     func testReplaceLocalProfileDoesNotSetOwnerWhenCalendarRemovalFails() async {
         var writtenOwner: String?
-        let container = PersistenceController.createContainer(inMemory: true)
-        let appState = AppState(
-            modelContext: container.mainContext,
-            localProfileOverrides: .init(
+        let appState = makeInMemoryProfileAppState(
+            overrides: .init(
                 hasStoredMediaFiles: { false },
                 removeCalendarSubscription: { throw LocalProfileReplacementTestError.calendarRemovalFailed },
                 setLocalDataOwner: { writtenOwner = $0 }
@@ -129,10 +121,8 @@ final class LocalProfileReplacementTests: XCTestCase {
         let fileURL = try makeProfileMediaFile()
         defer { try? FileManager.default.removeItem(at: fileURL) }
         var writtenOwner: String?
-        let container = PersistenceController.createContainer(inMemory: true)
-        let appState = AppState(
-            modelContext: container.mainContext,
-            localProfileOverrides: .init(
+        let appState = makeInMemoryProfileAppState(
+            overrides: .init(
                 removeCalendarSubscription: {},
                 localDataOwner: { writtenOwner },
                 setLocalDataOwner: { writtenOwner = $0 }
@@ -258,25 +248,31 @@ final class LocalProfileReplacementTests: XCTestCase {
         localDataOwner: @escaping () -> String? = { nil },
         removeStoredMediaFiles: (() throws -> Void)? = nil
     ) -> AppState {
-        if let removeStoredMediaFiles {
-            return AppState(
-                modelContext: context,
-                localProfileOverrides: .init(
-                    removeStoredMediaFiles: removeStoredMediaFiles,
-                    removeCalendarSubscription: {},
-                    localDataOwner: localDataOwner,
-                    setLocalDataOwner: { owner.value = $0 }
-                )
-            )
-        }
-        return AppState(
-            modelContext: context,
-            localProfileOverrides: .init(
+        makeProfileAppState(
+            context: context,
+            overrides: .init(
+                removeStoredMediaFiles: removeStoredMediaFiles,
                 removeCalendarSubscription: {},
                 localDataOwner: localDataOwner,
                 setLocalDataOwner: { owner.value = $0 }
             )
         )
+    }
+
+    @MainActor
+    private func makeInMemoryProfileAppState(overrides: AppStateLocalProfileOverrides) -> AppState {
+        makeProfileAppState(
+            context: PersistenceController.createContainer(inMemory: true).mainContext,
+            overrides: overrides
+        )
+    }
+
+    @MainActor
+    private func makeProfileAppState(
+        context: ModelContext,
+        overrides: AppStateLocalProfileOverrides
+    ) -> AppState {
+        AppState(modelContext: context, localProfileOverrides: overrides)
     }
 
     @MainActor
@@ -288,18 +284,16 @@ final class LocalProfileReplacementTests: XCTestCase {
         removeStoredMediaFiles: (() throws -> Void)? = nil,
         revokeRemoteSession: ((AuthSession?) -> Void)? = nil
     ) -> AppState {
-        AppState(
-            modelContext: context,
-            localProfileOverrides: .init(
-                removeStoredMediaFiles: removeStoredMediaFiles,
-                removeCalendarSubscription: {},
-                localDataOwner: localDataOwner,
-                setLocalDataOwner: { _ in },
-                removeLocalDataOwner: removeLocalDataOwner,
-                clearLocalCredentials: clearLocalCredentials,
-                revokeRemoteSession: revokeRemoteSession
-            )
+        let overrides = AppStateLocalProfileOverrides(
+            removeStoredMediaFiles: removeStoredMediaFiles,
+            removeCalendarSubscription: {},
+            localDataOwner: localDataOwner,
+            setLocalDataOwner: { _ in },
+            removeLocalDataOwner: removeLocalDataOwner,
+            clearLocalCredentials: clearLocalCredentials,
+            revokeRemoteSession: revokeRemoteSession
         )
+        return AppState(modelContext: context, localProfileOverrides: overrides)
     }
 
     @MainActor
