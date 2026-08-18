@@ -45,6 +45,7 @@ pnpm-debug.log*
 *.swp
 .cursor/
 .codex/
+/.mcp.json
 .kilo/
 .serena/
 .codegraph/
