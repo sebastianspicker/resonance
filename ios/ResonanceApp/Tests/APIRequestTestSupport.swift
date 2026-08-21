@@ -72,8 +72,7 @@ func makeCapturingAPIClient() -> APIClient {
 
 @MainActor
 func installRequestBodyCapture(expectedURL: URL, method: String, response: Data)
-  -> RequestBodyCapture
-{
+  -> RequestBodyCapture {
   let capture = RequestBodyCapture()
   APIClientCaptureURLProtocol.requestHandler = { request in
     XCTAssertEqual(request.url, expectedURL)
@@ -95,6 +94,19 @@ func decodedJSON(from capture: RequestBodyCapture) throws -> [String: Any] {
 func teachingEntryResponse() -> Data {
   Data(
     """
-    {"id":"entry-teaching","courseId":"course-1","studentId":"student-1","kind":"teaching_lesson","practiceDate":"2026-02-23T12:00:00Z","goalText":"Teach rhythm ostinato","durationSeconds":null,"tags":["lehramt"],"notes":null,"status":"draft","consentConfirmedAt":"2026-02-23T12:01:00Z","consentScope":"private_course_review"}
+    {
+      "id": "entry-teaching",
+      "courseId": "course-1",
+      "studentId": "student-1",
+      "kind": "teaching_lesson",
+      "practiceDate": "2026-02-23T12:00:00Z",
+      "goalText": "Teach rhythm ostinato",
+      "durationSeconds": null,
+      "tags": ["lehramt"],
+      "notes": null,
+      "status": "draft",
+      "consentConfirmedAt": "2026-02-23T12:01:00Z",
+      "consentScope": "private_course_review"
+    }
     """.utf8)
 }
