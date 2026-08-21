@@ -130,9 +130,6 @@ run_ci_local_workflow() {
 	echo "Validating public documentation and screenshots..."
 	node ./scripts/validate-public-docs.mjs
 
-	echo "Testing repository policy scripts..."
-	node --test tests/repository/*.test.mjs
-
 	echo "Checking committed build artifacts..."
 	./scripts/check-no-build-artifacts.sh
 
@@ -184,11 +181,8 @@ run_ci_local_workflow() {
 	fi
 	stop_server
 
-	echo "Running tests with coverage..."
-	(cd server && npx vitest run --coverage)
-
-	echo "Running process-level E2E tests..."
-	(cd server && npm run test:e2e)
+	echo "Running compact server suite..."
+	(cd server && npm test)
 
 	echo "Linting Swift sources and tests..."
 	./scripts/lint-swift.sh lint

@@ -35,9 +35,6 @@ pnpm-debug.log*
 .pnpm-store/
 .eslintcache
 .prettiercache
-.vitest/
-.vitest-attachments/
-.nyc_output/
 
 # IDE
 .vscode/
@@ -112,7 +109,6 @@ DerivedData/
 /server/tests/fixtures/generated/**/*.sqlite
 /server/tests/fixtures/generated/**/*.sqlite-*
 /server/tests/fixtures/generated/**/*.sqlite3
-/server/tests/fixtures/generated/**/*.sqlite3-*
 
 # Screenshot capture output (copy selected release assets to docs/assets/ before committing)
 /artifacts/
@@ -120,16 +116,6 @@ DerivedData/
 # Internal audit/findings docs (may contain local paths or org-internal details)
 /deprecated/
 
-# Coverage
-coverage/
-*.lcov
-test-results/
-junit.xml
-junit-*.xml
-/reports/
-
-# Generated and machine-local test inputs
-/server/tests/fixtures/generated/
 /ios/ResonanceApp/Tests/GeneratedFixtures/
 /.test-environments/
 
@@ -189,13 +175,6 @@ secrets.local.*
 credentials.local.*
 .netrc
 .npmrc.local
-*.coverage
-.coverage.*
-coverage.xml
-htmlcov/
-playwright-report/
-blob-report/
-junit*.xml
 *.sarif
 target/
 *.local.db
@@ -214,3 +193,17 @@ xcuserdata/
 !/RELEASE_STATUS.md
 /AUDIT_LEDGER.md
 /remediation-ledger.md
+
+# Generated test and coverage output (local only)
+/server/tests/fixtures/generated/
+/coverage/
+/htmlcov/
+/.coverage
+/.coverage.*
+/.pytest_cache/
+/test-results/
+/playwright-report/
+/blob-report/
+/coverage.xml
+/junit.xml
+/junit-*.xml

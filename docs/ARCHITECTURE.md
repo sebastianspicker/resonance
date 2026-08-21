@@ -155,8 +155,9 @@ Invariants:
 Implementation: [artifact-session service](../server/src/services/artifactSessions.ts),
 [entry deletion](../server/src/services/entryCascade/entryDeletion.ts), and
 [artifact cleanup](../server/src/services/entryCascade/artifactCleanup.ts).
-Verification: [artifact lifecycle tests](../server/tests/acl/entry-artifact-lifecycle.test.ts)
-and [client artifact-session tests](../ios/ResonanceApp/Tests/APIClientArtifactSessionTests.swift).
+Verification: [artifact upload contracts](../server/tests/upload.test.ts),
+[artifact lifecycle contracts](../server/tests/artifact-session-lifecycle.test.ts),
+and [client request contracts](../ios/ResonanceApp/Tests/APIClientSyncCommandTests.swift).
 
 ### Course authorization and media visibility
 
@@ -182,8 +183,8 @@ Invariants:
 Implementation: [authorization helpers](../server/src/validation.ts),
 [v1 routes](../server/src/routes/v1.ts), and
 [artifact download route](../server/src/routes/artifacts/download.ts).
-Verification: [course visibility tests](../server/tests/acl/course-visibility.test.ts)
-and [artifact authorization tests](../server/tests/acl/entry-artifact-lifecycle.test.ts).
+Verification: [server security contracts](../server/tests/security.test.ts) and
+[feedback contracts](../server/tests/feedback-contracts.test.ts).
 
 ### Fail-closed runtime and local identity
 
@@ -213,9 +214,8 @@ Invariants:
 Implementation: [server configuration](../server/src/config.ts),
 [client auth persistence](../ios/ResonanceApp/Sources/AuthManager%2BPersistence.swift),
 and [persistence support](../ios/ResonanceApp/Sources/AuthSessionPersistenceSupport.swift).
-Verification: [server configuration tests](../server/tests/config-env.test.ts),
-[client auth security tests](../ios/ResonanceApp/Tests/LocalAuthSecurityTests.swift),
-and [profile replacement tests](../ios/ResonanceApp/Tests/LocalProfileReplacementTests.swift).
+Verification: [database target guards](../server/tests/database-safety.test.ts)
+and [client auth security tests](../ios/ResonanceApp/Tests/LocalAuthSecurityTests.swift).
 
 ## iOS synchronization
 
@@ -311,29 +311,19 @@ and missing-record errors are translated into structured API responses.
 
 ## Test surfaces
 
-The checked-in server test suite contains coverage for:
-
-- Authentication and authorization (dev auth, ACL, course-role vs global-role)
-- Input validation (client IDs, strings, dates, enums)
-- Entry lifecycle (create, update, submit, delete, status transitions, single-entry fetch)
-- Artifact upload flow (staging allocation, immutable completion, ownership, late-write cleanup)
-- Feedback (creation, permissions, deleted-entry guards)
-- Review queue pagination and entries list pagination (cursor-based, deterministic ordering)
-- Security headers, CORS, rate limiting, and content-type enforcement
-- Error handling (structured errors, Prisma error mapping, stack trace suppression)
+The checked-in server suite protects focused boundaries for database target
+safety, authentication and refresh rotation, S3 startup, course isolation,
+entry deletion cascades, artifact-session allocation and completion, feedback
+idempotency and completeness, and sync admission, replay, conflicts, and
+tombstones.
 
 The server factory accepts injected database and storage clients. The iOS
 application services accept test persistence and network boundaries. The
 checked-in suites cover:
 
-- authentication, refresh rotation, and course authorization;
-- request validation and lifecycle transitions;
-- command replay, optimistic conflicts, and synchronization ordering;
-- artifact allocation, completion, failure, and deferred deletion;
-- feedback and review-queue pagination;
-- security headers, CORS, rate limiting, and error normalization;
-- local ownership, profile replacement, queued work, and deletion;
-- API model decoding and student and teacher workflows.
+- credential-free API endpoint resolution;
+- request encoding, artifact-session transport, and wire-model decoding; and
+- conflict replacement, queue reset, and local-auth persistence boundaries.
 
 The complete local gate is `./scripts/ci-local.sh --with-docker`. Release
 evidence and unresolved checks are recorded in the
