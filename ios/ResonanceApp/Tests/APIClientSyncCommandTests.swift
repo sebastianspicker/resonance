@@ -4,6 +4,16 @@ import XCTest
 @testable import ResonanceApp
 
 final class APIClientSyncCommandTests: APIRequestCaptureTestCase {
+  private static let artifactSessionCreateResponseJSON = Data(
+    """
+    {
+      "sessionId":"session-1",
+      "artifact":{"id":"artifact-1","entryId":"entry-1","type":"audio","durationSeconds":30,"uploadState":"uploading"},
+      "completed":false,"uploadUrl":"https://storage.example/upload",
+      "requiredHeaders":{"Content-Type":"audio/m4a"},"expiresInSeconds":900,"currentVersion":8
+    }
+    """.utf8)
+
   @MainActor
   func testSyncCommandsUsesVersionedAbsolutePathAndEncodesOperationMetadata() async throws {
     let expectedURL = AppConfig.apiV1URL(path: "sync/commands")
@@ -43,15 +53,7 @@ final class APIClientSyncCommandTests: APIRequestCaptureTestCase {
   func testArtifactSessionUsesVersionedAllocationAndCompletionContracts() async throws {
     let createURL = AppConfig.apiV1URL(path: "artifact-sessions")
     let completionURL = AppConfig.apiV1URL(path: "artifact-sessions/session-1/complete")
-    let createResponse = Data(
-      """
-      {
-        "sessionId":"session-1",
-        "artifact":{"id":"artifact-1","entryId":"entry-1","type":"audio","durationSeconds":30,"uploadState":"uploading"},
-        "completed":false,"uploadUrl":"https://storage.example/upload",
-        "requiredHeaders":{"Content-Type":"audio/m4a"},"expiresInSeconds":900,"currentVersion":8
-      }
-      """.utf8)
+    let createResponse = Self.artifactSessionCreateResponseJSON
     let completionResponse = Data(
       """
       {
@@ -114,21 +116,12 @@ final class APIClientSyncCommandTests: APIRequestCaptureTestCase {
         "status":"submitted","captureProfile":"ensemble_group","version":7
       }
       """.utf8)
-    let sessionJSON = Data(
-      """
-      {
-        "sessionId":"session-1",
-        "artifact":{"id":"artifact-1","entryId":"entry-1","type":"audio","durationSeconds":30,"uploadState":"uploading"},
-        "completed":false,"uploadUrl":"https://storage.example/upload",
-        "expiresInSeconds":900,"currentVersion":8
-      }
-      """.utf8)
     let entry = try JSONDecoder.apiDecoder.decode(
       EntryResponse.self,
       from: entryJSON)
     let session = try JSONDecoder.apiDecoder.decode(
       ArtifactSessionCreateResponse.self,
-      from: sessionJSON)
+      from: Self.artifactSessionCreateResponseJSON)
 
     XCTAssertEqual(entry.captureProfile, CaptureProfile.ensembleGroup.rawValue)
     XCTAssertEqual(entry.version, 7)
